@@ -9,7 +9,7 @@
   <meta property="og:description" content="AI-powered food surplus marketplace. Zero logistics. Zero waste."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/pitch.css"/>
 </head>
 <body>
@@ -23,107 +23,165 @@
 <nav id="navbar">
   <a href="#hero" class="nav-logo">RES<em>KYU</em></a>
   <ul class="nav-links">
-    <li><a href="#problem">Problem</a></li>
+    <li><a href="#mission">About</a></li>
+    <li><a href="#why">Why RESKYU</a></li>
     <li><a href="#how">How It Works</a></li>
-    <li><a href="#features">Features</a></li>
-    <li><a href="#audiences">Who It's For</a></li>
-    <li><a href="#impact">Impact</a></li>
+    <li><a href="#audiences">For You</a></li>
   </ul>
-  <a href="#cta" class="nav-cta">Get Early Access</a>
-  <button class="hamburger" aria-label="Toggle menu">
+  <div class="nav-right">
+    <a href="#audiences" class="nav-link-secondary">For Businesses</a>
+    <a href="#cta" class="nav-cta">Get Early Access</a>
+  </div>
+  <button class="hamburger" aria-label="Toggle menu" id="hamburger-btn">
     <span></span><span></span><span></span>
   </button>
 </nav>
 
 <!-- ════════════════════════════════════════════
-     HERO
+     HERO  (teal bg)
 ════════════════════════════════════════════ -->
 <section id="hero">
-  <div class="hero-watermark">RESKYU</div>
   <div class="hero-inner">
-
-    <div class="hero-label fade-up">Now rescuing food across India</div>
-
-    <h1 class="hero-headline fade-up delay-1">
-      Rescue Food.<br/>
-      <span class="accent-line">Feed India.</span>
-      Zero Waste.
-    </h1>
-
-    <p class="hero-sub fade-up delay-2">
-      An AI-powered surplus marketplace that connects restaurants to
-      nearby students and NGOs — no delivery, no emissions, no food in the bin.
-    </p>
-
-    <div class="hero-badges fade-up delay-3">
-      <span class="badge accent-badge">⚡ Zero Logistics</span>
-      <span class="badge accent-badge">🤖 AI-Powered</span>
-      <span class="badge">📍 Location-Aware</span>
-      <span class="badge">🌱 ESG Verified</span>
-      <span class="badge">🍱 Up to 80% Off</span>
-    </div>
-
-    <div class="hero-actions fade-up delay-4">
-      <a href="#cta" class="btn-primary">Get Early Access</a>
-      <a href="#how" class="btn-secondary">See How It Works</a>
-    </div>
-
-    <div class="hero-stats fade-up delay-5">
-      <div class="hero-stat">
-        <div class="hero-stat-num">40%</div>
-        <div class="hero-stat-label">of restaurant food wasted daily</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num">₹92K Cr</div>
-        <div class="hero-stat-label">lost to food waste every year</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num">1 in 4</div>
-        <div class="hero-stat-label">Indians face food insecurity</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num">Zero</div>
-        <div class="hero-stat-label">delivery emissions with RESKYU</div>
+    <div class="hero-text-block">
+      <span class="hero-eyebrow">Now rescuing food across India</span>
+      <h1 class="hero-headline">
+        RESCUE<br/>
+        <span class="hero-headline-accent">FOOD.</span><br/>
+        FEED INDIA.
+      </h1>
+      <p class="hero-sub">
+        An AI-powered surplus marketplace connecting restaurants to nearby
+        students and NGOs — zero delivery, zero emissions, zero waste.
+      </p>
+      <div class="hero-actions">
+        <a href="#cta" class="btn-cream">Get Early Access</a>
+        <a href="#how" class="btn-outline-cream">See How It Works</a>
       </div>
     </div>
+    <div class="hero-image-block">
+      <img src="img/food_bag.png" alt="RESKYU food rescue bag with Indian meals" class="hero-bag-img"/>
+    </div>
+  </div>
 
+  <!-- Stat strip inside hero -->
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num">35–45%</div>
+      <div class="hero-stat-label">of restaurant food wasted daily</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">₹85K Cr+</div>
+      <div class="hero-stat-label">lost to food waste every year</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">1 in 5</div>
+      <div class="hero-stat-label">Indians face food insecurity</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">~Zero</div>
+      <div class="hero-stat-label">delivery emissions — walkable pickup</div>
+    </div>
   </div>
 </section>
 
 <!-- ════════════════════════════════════════════
-     PROBLEM
+     MISSION STATEMENT  (cream bg)
 ════════════════════════════════════════════ -->
-<section id="problem">
-  <div class="section-inner">
-    <span class="section-label fade-up">The Problem</span>
-    <h2 class="section-title fade-up delay-1">
-      A crisis hiding in plain sight<br/>
-      <span style="color:var(--accent)">— every single day.</span>
-    </h2>
-    <hr class="divider fade-up delay-2"/>
+<section id="mission">
+  <div class="mission-inner">
+    <p class="mission-statement fade-up">
+      RESKYU is a social impact marketplace on a mission to
+      <strong>eliminate food waste</strong> by connecting surplus meals
+      from restaurants directly to the people nearby who need them most.
+    </p>
+    <p class="mission-sub fade-up delay-1">
+      India wastes enough food to feed millions — yet millions go hungry every day.
+      Our platform bridges that gap with zero logistics and zero waste.
+    </p>
+  </div>
+</section>
 
-    <div class="problem-grid">
-      <div class="problem-copy fade-up delay-2">
-        <p>India's restaurants prepare food for peak demand — but demand is unpredictable. Every evening, thousands of kitchens discard perfectly edible surplus because there is <strong>no efficient way to redistribute it</strong> before close.</p>
-        <p>The result is a paradox: restaurants absorb the loss, surplus food rots in bins, and meanwhile <strong>millions of people within walking distance</strong> go hungry or pay full price for a meal they can barely afford.</p>
-        <p>Existing solutions require delivery infrastructure, cold chains, or costly logistics — making them impractical for the daily, time-sensitive nature of restaurant surplus. <strong>No platform has cracked the zero-logistics model.</strong> Until now.</p>
+<!-- ════════════════════════════════════════════
+     FOOD TICKER  (teal bg strip)
+════════════════════════════════════════════ -->
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    <span>BIRYANI</span><span class="ticker-dot">•</span>
+    <span>PIZZA</span><span class="ticker-dot">•</span>
+    <span>THALI</span><span class="ticker-dot">•</span>
+    <span>IDLI</span><span class="ticker-dot">•</span>
+    <span>DOSA</span><span class="ticker-dot">•</span>
+    <span>CURRY</span><span class="ticker-dot">•</span>
+    <span>KABAB</span><span class="ticker-dot">•</span>
+    <span>NAAN</span><span class="ticker-dot">•</span>
+    <span>SAMOSA</span><span class="ticker-dot">•</span>
+    <span>ROLLS</span><span class="ticker-dot">•</span>
+    <span>PAV BHAJI</span><span class="ticker-dot">•</span>
+    <span>CHOLE</span><span class="ticker-dot">•</span>
+    <span>PARATHA</span><span class="ticker-dot">•</span>
+    <!-- duplicate for seamless loop -->
+    <span>BIRYANI</span><span class="ticker-dot">•</span>
+    <span>PIZZA</span><span class="ticker-dot">•</span>
+    <span>THALI</span><span class="ticker-dot">•</span>
+    <span>IDLI</span><span class="ticker-dot">•</span>
+    <span>DOSA</span><span class="ticker-dot">•</span>
+    <span>CURRY</span><span class="ticker-dot">•</span>
+    <span>KABAB</span><span class="ticker-dot">•</span>
+    <span>NAAN</span><span class="ticker-dot">•</span>
+    <span>SAMOSA</span><span class="ticker-dot">•</span>
+    <span>ROLLS</span><span class="ticker-dot">•</span>
+    <span>PAV BHAJI</span><span class="ticker-dot">•</span>
+    <span>CHOLE</span><span class="ticker-dot">•</span>
+    <span>PARATHA</span><span class="ticker-dot">•</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     WHY RESKYU  (cream bg)
+════════════════════════════════════════════ -->
+<section id="why">
+  <div class="why-header fade-up">
+    <span class="why-eyebrow">The Benefits</span>
+    <h2 class="why-headline">WHY <span class="why-headline-accent">RESKYU</span></h2>
+  </div>
+  <div class="why-grid">
+    <!-- Left benefits -->
+    <div class="why-col why-col-left">
+      <div class="why-item fade-up delay-1">
+        <div class="why-icon">🍱</div>
+        <div class="why-item-text">
+          <div class="why-item-title">SAVE UP TO 80% ON MEALS</div>
+          <div class="why-item-desc">Quality restaurant food at a fraction of the price — not leftovers, just surplus.</div>
+        </div>
       </div>
-      <div class="stat-grid2 fade-up delay-3">
-        <div class="stat-card">
-          <div class="stat-num">40%</div>
-          <div class="stat-desc">of restaurant food is wasted daily across India</div>
+      <div class="why-item fade-up delay-2">
+        <div class="why-icon">🌱</div>
+        <div class="why-item-text">
+          <div class="why-item-title">HELP THE ENVIRONMENT</div>
+          <div class="why-item-desc">Every meal rescued avoids 2–3kg of CO₂ and keeps food from landfill.</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-num" style="font-size:clamp(1.5rem,3vw,2.2rem)">₹92,000 Cr</div>
-          <div class="stat-desc">lost to food waste annually in India</div>
+      </div>
+    </div>
+
+    <!-- Center image -->
+    <div class="why-center-image fade-up">
+      <img src="img/food_bag.png" alt="RESKYU rescue bag" class="why-bag-img"/>
+    </div>
+
+    <!-- Right benefits -->
+    <div class="why-col why-col-right">
+      <div class="why-item fade-up delay-1">
+        <div class="why-icon">📍</div>
+        <div class="why-item-text">
+          <div class="why-item-title">RESCUE FOOD NEAR YOU</div>
+          <div class="why-item-desc">Real-time location-aware listings. Walk in, pick up, done — no riders needed.</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-num">3kg</div>
-          <div class="stat-desc">of CO₂ emitted per kilogram of food wasted</div>
-        </div>
-        <div class="stat-card green-card">
-          <div class="stat-num green-num">1 in 4</div>
-          <div class="stat-desc">Indians experience food insecurity every day</div>
+      </div>
+      <div class="why-item fade-up delay-2">
+        <div class="why-icon">🤝</div>
+        <div class="why-item-text">
+          <div class="why-item-title">SUPPORT YOUR COMMUNITY</div>
+          <div class="why-item-desc">Surplus flows to NGOs automatically — free, verified, and impactful.</div>
         </div>
       </div>
     </div>
@@ -131,43 +189,115 @@
 </section>
 
 <!-- ════════════════════════════════════════════
-     HOW IT WORKS
+     HOW IT WORKS  (teal bg, step slider)
 ════════════════════════════════════════════ -->
 <section id="how">
-  <div class="section-inner">
-    <div class="how-inner">
-      <span class="section-label fade-up">How It Works</span>
-      <h2 class="section-title fade-up delay-1">One tap. Surplus rescued.</h2>
-      <p class="section-sub fade-up delay-2" style="margin:16px auto 0">
-        RESKYU removes every point of friction between surplus food and the people nearby who want it.
-      </p>
+  <div class="how-inner">
+    <!-- Left: step content -->
+    <div class="how-content">
+      <span class="how-eyebrow">How It Works</span>
+
+      <div class="how-steps" id="how-steps">
+        <div class="how-step active" data-step="0">
+          <h2 class="how-step-name">STEP ONE</h2>
+          <p class="how-step-desc">
+            Our AI analyses your restaurant's order history and predicts today's
+            surplus before close. Confirm in a single tap — listed in seconds with
+            price, quantity, and pickup window.
+          </p>
+        </div>
+        <div class="how-step" data-step="1">
+          <h2 class="how-step-name">STEP TWO</h2>
+          <p class="how-step-desc">
+            Consumers and NGOs within walking distance receive an instant push
+            notification. Real-time, location-aware, prioritised by proximity —
+            no browsing required.
+          </p>
+        </div>
+        <div class="how-step" data-step="2">
+          <h2 class="how-step-name">STEP THREE</h2>
+          <p class="how-step-desc">
+            Pay upfront in-app, walk to the restaurant, collect your order and
+            leave. Zero delivery. Zero packaging waste. Full rescue — for people and for the planet.
+          </p>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <div class="how-nav">
+        <button class="how-arrow" id="how-prev" aria-label="Previous step">←</button>
+        <div class="how-dots" id="how-dots">
+          <span class="how-dot active" data-idx="0"></span>
+          <span class="how-dot" data-idx="1"></span>
+          <span class="how-dot" data-idx="2"></span>
+        </div>
+        <button class="how-arrow" id="how-next" aria-label="Next step">→</button>
+      </div>
+
+      <!-- Step titles strip -->
+      <div class="how-step-tabs">
+        <button class="how-tab active" data-tab="0">Merchant Lists</button>
+        <button class="how-tab" data-tab="1">Nearby Notified</button>
+        <button class="how-tab" data-tab="2">Pay & Pick Up</button>
+      </div>
     </div>
 
-    <div class="steps-wrap">
-      <div class="step fade-up delay-1">
-        <div class="step-badge">01</div>
-        <div class="step-title">Merchant Lists Surplus</div>
-        <div class="step-desc">
-          Our AI analyses order history and suggests today's likely surplus. The restaurant confirms
-          in a single tap — the listing goes live in under 10 seconds, with price, quantity, and pickup window.
+    <!-- Right: visual -->
+    <div class="how-visual">
+      <div class="how-visual-panels" id="how-visual-panels">
+        <div class="how-panel active" data-panel="0">
+          <div class="mock-phone">
+            <div class="mock-screen">
+              <div class="mock-header">🍽️ RESKYU Merchant</div>
+              <div class="mock-surplus-tag">AI Prediction Ready</div>
+              <div class="mock-item">
+                <span class="mock-food">Paneer Butter Masala</span>
+                <span class="mock-qty">× 8 portions</span>
+              </div>
+              <div class="mock-item">
+                <span class="mock-food">Dal Makhani</span>
+                <span class="mock-qty">× 12 portions</span>
+              </div>
+              <div class="mock-item">
+                <span class="mock-food">Garlic Naan</span>
+                <span class="mock-qty">× 20 pieces</span>
+              </div>
+              <div class="mock-cta">List Surplus →</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="step-arrow fade-up delay-2">→</div>
-      <div class="step fade-up delay-2">
-        <div class="step-badge">02</div>
-        <div class="step-title">Nearby Users Get Notified</div>
-        <div class="step-desc">
-          Consumers and NGOs within walking radius receive an instant push notification.
-          Real-time, location-aware, prioritised by proximity — no browsing required.
+        <div class="how-panel" data-panel="1">
+          <div class="mock-phone">
+            <div class="mock-screen">
+              <div class="mock-header">📍 Near You — 300m</div>
+              <div class="mock-notif">🔔 New listing nearby!</div>
+              <div class="mock-listing-card">
+                <div class="mock-listing-title">Spice Garden</div>
+                <div class="mock-listing-detail">3 meals available • ₹80 each</div>
+                <div class="mock-listing-time">⏱ Pickup by 10:30 PM</div>
+                <div class="mock-listing-save">Save 75%</div>
+              </div>
+              <div class="mock-cta">Reserve Now →</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="step-arrow fade-up delay-3">→</div>
-      <div class="step fade-up delay-3">
-        <div class="step-badge">03</div>
-        <div class="step-title">Pay, Walk In, Pick Up</div>
-        <div class="step-desc">
-          The consumer pays upfront in-app. They walk to the restaurant, collect their order,
-          and leave. Zero delivery. Zero packaging. Full rescue — for people and for the planet.
+        <div class="how-panel" data-panel="2">
+          <div class="mock-phone">
+            <div class="mock-screen">
+              <div class="mock-header">✅ Order Confirmed</div>
+              <div class="mock-order-block">
+                <div class="mock-order-name">Spice Garden</div>
+                <div class="mock-order-item">🍛 Paneer Butter Masala</div>
+                <div class="mock-order-item">🫓 Garlic Naan × 2</div>
+                <div class="mock-order-price">Paid ₹80 · Saved ₹240</div>
+              </div>
+              <div class="mock-walkdir">
+                <div class="mock-dir-label">Walk 300m</div>
+                <div class="mock-dir-arrow">→</div>
+              </div>
+              <div class="mock-cta">Show QR Code →</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -175,188 +305,147 @@
 </section>
 
 <!-- ════════════════════════════════════════════
-     FEATURES
-════════════════════════════════════════════ -->
-<section id="features">
-  <div class="section-inner">
-    <div class="features-header">
-      <span class="section-label fade-up">Features</span>
-      <h2 class="section-title fade-up delay-1">Built for real-world rescue.</h2>
-      <p class="section-sub fade-up delay-2">Every feature is designed around the actual constraints of restaurant surplus — speed, trust, and zero logistics overhead.</p>
-    </div>
-
-    <div class="features-grid">
-
-      <div class="feat-card fade-up delay-1">
-        <div class="feat-icon-wrap">🧠</div>
-        <div class="feat-name">AI Surplus Prediction</div>
-        <div class="feat-desc">Analyses your restaurant's sales history and patterns to forecast daily surplus quantities before close — so you list faster and waste less.</div>
-      </div>
-
-      <div class="feat-card fade-up delay-2">
-        <div class="feat-icon-wrap">⏱️</div>
-        <div class="feat-name">Dynamic Time-Fencing</div>
-        <div class="feat-desc">Listings automatically expire at your restaurant's close time. No stale offers, no confusion — every listing is live, fresh, and time-bound.</div>
-      </div>
-
-      <div class="feat-card fade-up delay-3">
-        <div class="feat-icon-wrap">🔒</div>
-        <div class="feat-name">Guaranteed No-Double-Booking</div>
-        <div class="feat-desc">Atomic transactions ensure inventory integrity — two buyers can never claim the same portion. Every order is confirmed or rejected instantly.</div>
-      </div>
-
-      <div class="feat-card green-feat fade-up delay-4">
-        <div class="feat-icon-wrap green">🏢</div>
-        <div class="feat-name">NGO Volume Routing</div>
-        <div class="feat-desc">When consumer demand doesn't clear all surplus, verified NGOs are automatically notified and can claim remaining inventory in bulk — always free.</div>
-      </div>
-
-      <div class="feat-card green-feat fade-up delay-5">
-        <div class="feat-icon-wrap green">📊</div>
-        <div class="feat-name">ESG Trust Score</div>
-        <div class="feat-desc">Every restaurant receives a live sustainability score — meals rescued, CO₂ avoided, community impact. Fully transparent and shareable.</div>
-      </div>
-
-      <div class="feat-card fade-up delay-6">
-        <div class="feat-icon-wrap">🛡️</div>
-        <div class="feat-name">No-Show Protection</div>
-        <div class="feat-desc">Payment is captured upfront. If a buyer doesn't show, the merchant is protected automatically — no chasing, no disputes, no lost revenue.</div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ════════════════════════════════════════════
-     WHO IT'S FOR
-════════════════════════════════════════════ -->
-<section id="audiences">
-  <div class="section-inner">
-    <div class="audiences-header fade-up">
-      <span class="section-label" style="display:block;margin-bottom:12px">Who It's For</span>
-      <h2 class="section-title">Everyone wins when food<br/>finds its purpose.</h2>
-      <p class="section-sub" style="margin:16px auto 0">RESKYU is designed for three types of users — each with their own benefit, all working toward the same goal.</p>
-    </div>
-
-    <div class="audiences-grid">
-
-      <div class="audience-card merchants fade-up delay-1">
-        <div class="audience-emoji">🍽️</div>
-        <div class="audience-title merchants">Restaurants & Merchants</div>
-        <div class="audience-desc">Turn end-of-day surplus into revenue instead of waste. Protect your margins, build your community reputation, and earn a verified ESG score.</div>
-        <ul class="audience-perks">
-          <li>Recover revenue from surplus that would otherwise be binned</li>
-          <li>AI prediction means less guesswork on daily prep</li>
-          <li>No-show protection via upfront UPI payment</li>
-          <li>Live ESG dashboard to track your sustainability impact</li>
-          <li>Listed to a hyper-local, ready-to-buy audience</li>
-        </ul>
-      </div>
-
-      <div class="audience-card consumers fade-up delay-2">
-        <div class="audience-emoji">🎓</div>
-        <div class="audience-title consumers">Students & Consumers</div>
-        <div class="audience-desc">Discover great food nearby at 60–80% off. Real meals from real restaurants — not leftovers, just surplus. Walk in, pick up, done.</div>
-        <ul class="audience-perks">
-          <li>Up to 80% off on quality restaurant food</li>
-          <li>Instant notifications when nearby listings go live</li>
-          <li>Secure in-app payment — no cash, no queues</li>
-          <li>Browse by distance, cuisine, and timing</li>
-          <li>Every meal you buy rescues food from landfill</li>
-        </ul>
-      </div>
-
-      <div class="audience-card ngos fade-up delay-3">
-        <div class="audience-emoji">🤝</div>
-        <div class="audience-title ngos">NGOs & Community Orgs</div>
-        <div class="audience-desc">Access a reliable stream of surplus food at zero cost. Verified organisations are routed remaining inventory automatically — no negotiations, no logistics.</div>
-        <ul class="audience-perks">
-          <li>100% free — always. No fees, no catch</li>
-          <li>Automatic routing of unclaimed surplus to your org</li>
-          <li>Pickup-based model keeps coordination simple</li>
-          <li>Impact reporting for your own ESG and grant needs</li>
-          <li>Verified badge builds donor and community trust</li>
-        </ul>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ════════════════════════════════════════════
-     IMPACT
+     IMPACT STATS  (cream bg)
 ════════════════════════════════════════════ -->
 <section id="impact">
-  <div class="section-inner">
+  <div class="impact-inner">
     <div class="impact-header fade-up">
-      <span class="section-label green" style="display:block;margin-bottom:12px">Our Impact</span>
-      <h2 class="section-title">Every meal rescued is a<br/><span style="color:var(--green3)">vote against waste.</span></h2>
-      <p class="section-sub" style="margin:16px auto 0">
-        The numbers behind what happens when surplus food finds the right home.
-      </p>
+      <span class="impact-eyebrow">Our Impact</span>
+      <h2 class="impact-headline">EVERY MEAL<br/><span class="impact-accent">RESCUED</span><br/>MATTERS.</h2>
     </div>
-
-    <div class="impact-grid">
-      <div class="impact-card fade-up delay-1">
-        <div class="impact-num">60–80%</div>
-        <div class="impact-label">Average discount for consumers on RESKYU surplus meals</div>
+    <div class="impact-stats-grid">
+      <div class="i-stat fade-up delay-1">
+        <div class="i-stat-num">50–80%</div>
+        <div class="i-stat-label">Typical discount for consumers on surplus meals</div>
       </div>
-      <div class="impact-card fade-up delay-2">
-        <div class="impact-num">₹0</div>
-        <div class="impact-label">Cost to registered NGOs — surplus food is always free for community organisations</div>
+      <div class="i-stat fade-up delay-2">
+        <div class="i-stat-num">₹0</div>
+        <div class="i-stat-label">Cost to verified NGOs — always free</div>
       </div>
-      <div class="impact-card fade-up delay-3">
-        <div class="impact-num">2.5kg</div>
-        <div class="impact-label">CO₂ saved per meal rescued compared to disposal in landfill</div>
+      <div class="i-stat fade-up delay-3">
+        <div class="i-stat-num">2–3 kg</div>
+        <div class="i-stat-label">CO₂ avoided per meal rescued vs. landfill</div>
       </div>
-      <div class="impact-card fade-up delay-4">
-        <div class="impact-num">Zero</div>
-        <div class="impact-label">Delivery emissions — every transaction is a walkable, rider-free pickup</div>
+      <div class="i-stat fade-up delay-4">
+        <div class="i-stat-num">~Zero</div>
+        <div class="i-stat-label">Delivery footprint — walkable pickup every time</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ════════════════════════════════════════════
-     CTA
+     WHO IT'S FOR (teal bg)
+════════════════════════════════════════════ -->
+<section id="audiences">
+  <div class="audiences-inner">
+    <div class="audiences-header fade-up">
+      <span class="aud-eyebrow">Who It's For</span>
+      <h2 class="aud-headline">EVERYONE WINS<br/><span class="aud-accent">WHEN FOOD FINDS<br/>ITS PURPOSE.</span></h2>
+    </div>
+
+    <div class="aud-grid">
+
+      <div class="aud-card fade-up delay-1">
+        <div class="aud-emoji">🍽️</div>
+        <div class="aud-title">RESTAURANTS &amp; MERCHANTS</div>
+        <div class="aud-desc">Turn end-of-day surplus into revenue. Protect your margins, build community reputation, and earn a verified ESG score.</div>
+        <ul class="aud-perks">
+          <li>Recover revenue from surplus that would be binned</li>
+          <li>AI prediction means less guesswork on daily prep</li>
+          <li>No-show protection via upfront UPI payment</li>
+          <li>Live ESG dashboard for sustainability tracking</li>
+        </ul>
+        <a href="#cta" class="aud-btn aud-btn-orange">List Your Surplus</a>
+      </div>
+
+      <div class="aud-card fade-up delay-2">
+        <div class="aud-emoji">🎓</div>
+        <div class="aud-title">STUDENTS &amp; CONSUMERS</div>
+        <div class="aud-desc">Discover great food nearby at 50–80% off. Real meals from real restaurants — not leftovers, just surplus.</div>
+        <ul class="aud-perks">
+          <li>Up to 50–80% off on quality restaurant food</li>
+          <li>Instant notifications when nearby listings go live</li>
+          <li>Secure in-app payment — no cash, no queues</li>
+          <li>Every meal you buy rescues food from landfill</li>
+        </ul>
+        <a href="#cta" class="aud-btn aud-btn-cream">Find Food Near Me</a>
+      </div>
+
+      <div class="aud-card fade-up delay-3">
+        <div class="aud-emoji">🤝</div>
+        <div class="aud-title">NGOS &amp; COMMUNITY ORGS</div>
+        <div class="aud-desc">Access a reliable stream of surplus food at zero cost. Verified organisations receive remaining inventory automatically.</div>
+        <ul class="aud-perks">
+          <li>100% free — always. No fees, no catch</li>
+          <li>Automatic routing of unclaimed surplus</li>
+          <li>Pickup-based model keeps coordination simple</li>
+          <li>Impact reporting for ESG and grant needs</li>
+        </ul>
+        <a href="#cta" class="aud-btn aud-btn-cream">Register Your NGO</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     CTA  (cream bg)
 ════════════════════════════════════════════ -->
 <section id="cta">
-  <div class="cta-watermark">RESCUE</div>
   <div class="cta-inner">
-    <span class="section-label fade-up" style="display:block;margin-bottom:20px">Join the Movement</span>
+    <span class="cta-eyebrow fade-up">Join the Movement</span>
     <h2 class="cta-headline fade-up delay-1">
-      Ready to rescue?<br/><span style="color:var(--accent)">Join the waitlist.</span>
+      READY TO<br/><span class="cta-headline-accent">RESCUE?</span>
     </h2>
     <p class="cta-sub fade-up delay-2">
-      We're rolling out city by city. Be among the first restaurants, consumers, and NGOs onboarded
-      — no logistics required, just a willingness to make food go further.
+      We're rolling out city by city. Be among the first restaurants, consumers,
+      and NGOs onboarded — no logistics required.
     </p>
-
-    <form class="email-form fade-up delay-3" id="early-access-form" novalidate>
+    <form class="cta-form fade-up delay-3" id="early-access-form" novalidate>
       <input
         id="email-input"
-        class="email-input"
+        class="cta-email-input"
         type="email"
         placeholder="Enter your email address"
         autocomplete="email"
       />
-      <button type="submit" class="btn-primary">Get Early Access</button>
+      <button type="submit" class="btn-teal">Get Early Access</button>
     </form>
-    <p id="form-msg" style="font-size:.85rem;margin-top:14px;min-height:20px;transition:color .3s"></p>
+    <p id="form-msg"></p>
+    <div class="cta-buttons fade-up delay-4">
+      <a href="#audiences" class="cta-link-btn">For Businesses →</a>
+      <a href="#mission" class="cta-link-btn">Our Mission →</a>
+    </div>
   </div>
 </section>
 
 <!-- ════════════════════════════════════════════
-     FOOTER
+     FOOTER  (teal bg)
 ════════════════════════════════════════════ -->
-<footer>
-  <div class="footer-logo">RES<em>KYU</em></div>
-  <p class="footer-copy">© 2026 RESKYU. Rescuing food. Feeding India.</p>
-  <div class="footer-links">
-    <a href="#problem">About</a>
-    <a href="#features">Features</a>
-    <a href="#audiences">For You</a>
-    <a href="#cta">Contact</a>
+<footer id="footer">
+  <div class="footer-top">
+    <div class="footer-logo">RES<em>KYU</em></div>
+    <nav class="footer-links">
+      <a href="#mission">About</a>
+      <a href="#why">Why RESKYU</a>
+      <a href="#how">How It Works</a>
+      <a href="#audiences">For You</a>
+      <a href="#cta">Contact</a>
+    </nav>
+    <p class="footer-tagline">Rescuing food. Feeding India. Zero waste.</p>
+  </div>
+
+  <!-- Massive brand text -->
+  <div class="footer-brand-text">RESKYU</div>
+
+  <div class="footer-bottom">
+    <p class="footer-copy">© 2026 RESKYU. All rights reserved.</p>
+    <div class="footer-legal">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+    </div>
   </div>
 </footer>
 
