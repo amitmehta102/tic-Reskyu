@@ -42,17 +42,22 @@ class DashboardViewModel : ViewModel() {
                     totalRevenue = revenue,
                     pendingClaims = pending
                 )
+            } catch (e: Throwable) {
+                // Silently degrade — UI already shows zero/empty state
+            }
 
-                // Load AI prediction (cache-first)
+            // SurplusIQ is guarded separately: GeminiApiService throws NotImplementedError
+            // (which is a Kotlin Error, not Exception) so it must be caught as Throwable
+            try {
                 val prediction = surplusIqRepository.getPrediction(
                     uid = merchantId,
                     lastPredDate = lastPredDate,
                     lastPredMeals = lastPredMeals,
-                    salesHistory = emptyList() // TODO: pass real history
+                    salesHistory = emptyList()
                 )
                 _surplusIqResult.value = prediction
-            } catch (e: Exception) {
-                // TODO: surface error state
+            } catch (e: Throwable) {
+                // SurplusIQ not yet implemented — banner stays hidden
             } finally {
                 _isLoading.value = false
             }

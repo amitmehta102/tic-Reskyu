@@ -12,24 +12,19 @@ import com.reskyu.merchant.ui.onboarding.OnboardingScreen
 import com.reskyu.merchant.ui.orders.OrderManagementScreen
 import com.reskyu.merchant.ui.post_listing.PostListingScreen
 import com.reskyu.merchant.ui.profile.MerchantProfileScreen
-import com.reskyu.merchant.ui.splash.MerchantSplashScreen
 
 /**
  * Root navigation host for the Merchant app.
  *
- * The start destination is [Screen.SPLASH]. The SplashViewModel resolves
- * [MerchantAuthState] and navigates to LOGIN, ONBOARDING, or DASHBOARD
- * using [popUpTo] to clear the back stack.
+ * Starts at [Screen.LOGIN]. Dev Mode bypass on the login screen
+ * allows navigating straight to DASHBOARD without Firebase auth.
  */
 @Composable
 fun MerchantNavGraph(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = Screen.SPLASH
+        startDestination = Screen.LOGIN
     ) {
-        composable(Screen.SPLASH) {
-            MerchantSplashScreen(navController = navController)
-        }
         composable(Screen.LOGIN) {
             MerchantLoginScreen(navController = navController)
         }

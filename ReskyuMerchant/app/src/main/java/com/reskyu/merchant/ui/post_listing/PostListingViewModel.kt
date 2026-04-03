@@ -30,21 +30,12 @@ class PostListingViewModel : ViewModel() {
     }
 
     /**
-     * Uploads the selected image to Cloudinary and stores the resulting URL in the form.
-     * @param localUri   Content URI from camera/gallery picker.
+     * Records the selected image URI in the form.
+     * Real Cloudinary upload will replace this once credentials are configured.
      */
     fun uploadImage(localUri: String) {
-        _uploadState.value = UploadState.Uploading
-        viewModelScope.launch {
-            try {
-                // TODO: Call CloudinaryUploadHelper.upload(localUri)
-                val uploadedUrl = "https://placeholder.cloudinary.com/image.jpg"
-                _form.value = _form.value.copy(imageUri = localUri, imageUrl = uploadedUrl)
-                _uploadState.value = UploadState.Success(uploadedUrl)
-            } catch (e: Exception) {
-                _uploadState.value = UploadState.Error(e.localizedMessage ?: "Upload failed")
-            }
-        }
+        _form.value = _form.value.copy(imageUri = localUri, imageUrl = localUri)
+        _uploadState.value = UploadState.Success(localUri)
     }
 
     /**

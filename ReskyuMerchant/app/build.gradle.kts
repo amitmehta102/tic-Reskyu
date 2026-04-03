@@ -74,4 +74,13 @@ dependencies {
 
     // Lifecycle ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+
+    // Material Icons Extended (Rounded icons for bottom nav + dashboard)
+    implementation("androidx.compose.material:material-icons-extended")
+
+    // OkHttp (used by CloudinaryUploadHelper)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // MPAndroidChart (used by EsgAnalyticsScreen weekly bar chart)
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }
