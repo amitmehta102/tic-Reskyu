@@ -1,97 +1,89 @@
 /**
- * RESKYU — Pitch Deck Interactive Logic
- * Technocrats Institute of Technology, Bhopal · Hackathon 2026
- *
- * Features:
- *  - Auto-generated nav dots
- *  - Intersection Observer → active slide tracking
- *  - Intersection Observer → fade-up scroll reveal
- *  - Top progress bar
- *  - Slide counter (e.g. 03 / 10)
- *  - Keyboard arrow navigation (↑ ↓ ← →)
+ * RESKYU — Landing Page JS
+ * Handles: sticky nav, mobile menu, scroll progress,
+ *          active nav link, scroll-reveal animations.
  */
-
 (function () {
   'use strict';
 
-  const slides      = document.querySelectorAll('.slide');
+  const navbar      = document.getElementById('navbar');
   const progressBar = document.getElementById('progress-bar');
-  const counter     = document.getElementById('slide-counter');
-  const navDots     = document.getElementById('nav-dots');
-  const total       = slides.length;
-  let   current     = 0;
+  const hamburger   = document.querySelector('.hamburger');
+  const navLinks    = document.querySelector('.nav-links');
+  const navAnchors  = document.querySelectorAll('.nav-links a[href^="#"]');
 
-  // ── Build nav dots ─────────────────────────────────────────────
-  slides.forEach((_, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'dot' + (i === 0 ? ' active' : '');
-    btn.setAttribute('aria-label', 'Go to slide ' + (i + 1));
-    btn.addEventListener('click', () => scrollToSlide(i));
-    navDots.appendChild(btn);
-  });
+  // ── Scroll: progress bar + navbar border ─────────────
+  function onScroll() {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    progressBar.style.width = (scrollTop / docHeight * 100) + '%';
+    navbar.classList.toggle('scrolled', scrollTop > 40);
+    setActiveLink();
+  }
 
-  // ── Update UI (progress bar, counter, active dot) ──────────────
-  function updateUI(idx) {
-    current = idx;
-
-    // Progress bar — 0% on slide 1, 100% on last slide
-    const pct = ((idx) / (total - 1)) * 100;
-    progressBar.style.width = pct + '%';
-
-    // Slide counter — zero-padded
-    const num = String(idx + 1).padStart(2, '0');
-    counter.innerHTML = '<span>' + num + '</span> / ' + String(total).padStart(2, '0');
-
-    // Nav dots
-    document.querySelectorAll('.dot').forEach((d, i) => {
-      d.classList.toggle('active', i === idx);
+  // ── Active nav link by section in view ───────────────
+  function setActiveLink() {
+    const mid = window.innerHeight / 2;
+    navAnchors.forEach(a => {
+      const sec = document.querySelector(a.getAttribute('href'));
+      if (!sec) return;
+      const { top, bottom } = sec.getBoundingClientRect();
+      a.classList.toggle('active', top <= mid && bottom > mid);
     });
   }
 
-  // ── Smooth scroll to a slide ───────────────────────────────────
-  function scrollToSlide(idx) {
-    slides[idx].scrollIntoView({ behavior: 'smooth' });
+  // ── Mobile hamburger menu ─────────────────────────────
+  if (hamburger) {
+    hamburger.addEventListener('click', () => {
+      navLinks.classList.toggle('open');
+      const spans = hamburger.querySelectorAll('span');
+      spans[0].style.transform = navLinks.classList.contains('open') ? 'rotate(45deg) translate(5px,5px)'   : '';
+      spans[1].style.opacity   = navLinks.classList.contains('open') ? '0' : '1';
+      spans[2].style.transform = navLinks.classList.contains('open') ? 'rotate(-45deg) translate(5px,-5px)' : '';
+    });
   }
 
-  // ── Intersection Observer — active slide tracking ──────────────
-  const slideObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting && e.intersectionRatio > 0.5) {
-          const idx = Array.from(slides).indexOf(e.target);
-          updateUI(idx);
-        }
-      });
-    },
-    { threshold: 0.5 }
-  );
-  slides.forEach((s) => slideObserver.observe(s));
-
-  // ── Intersection Observer — fade-up scroll reveal ──────────────
-  const fadeObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          e.target.classList.add('visible');
-          fadeObserver.unobserve(e.target); // animate once
-        }
-      });
-    },
-    { threshold: 0.15 }
-  );
-  document.querySelectorAll('.fade-up').forEach((el) => fadeObserver.observe(el));
-
-  // ── Keyboard navigation ────────────────────────────────────────
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (current < total - 1) scrollToSlide(current + 1);
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-      e.preventDefault();
-      if (current > 0) scrollToSlide(current - 1);
-    }
+  // Close menu on link click
+  navAnchors.forEach(a => {
+    a.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+      hamburger.querySelectorAll('span').forEach(s => { s.style.transform = ''; s.style.opacity = ''; });
+    });
   });
 
-  // ── Initialise ─────────────────────────────────────────────────
-  updateUI(0);
+  // ── Scroll-reveal: fade-up ────────────────────────────
+  const fadeObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        fadeObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-up').forEach(el => fadeObserver.observe(el));
+
+  // ── Email form (early access) ─────────────────────────
+  const form   = document.getElementById('early-access-form');
+  const input  = document.getElementById('email-input');
+  const formMsg= document.getElementById('form-msg');
+
+  if (form) {
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const val = input.value.trim();
+      if (!val || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        formMsg.textContent = 'Please enter a valid email.';
+        formMsg.style.color = 'var(--accent)';
+        return;
+      }
+      formMsg.textContent = '🎉 You\'re on the list! We\'ll be in touch.';
+      formMsg.style.color = 'var(--green3)';
+      input.value = '';
+    });
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 })();
