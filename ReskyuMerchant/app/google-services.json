@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "573581812275",
+    "project_id": "reskyu-9888c",
+    "storage_bucket": "reskyu-9888c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573581812275:android:295502103ac7499d4f7946",
+        "android_client_info": {
+          "package_name": "com.reskyu.consumer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkFxwILQhiDdUBNmHP-Qw3UXhRDpAHEfA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573581812275:android:c270fbdea8dc14124f7946",
+        "android_client_info": {
+          "package_name": "com.reskyu.merchant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkFxwILQhiDdUBNmHP-Qw3UXhRDpAHEfA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
