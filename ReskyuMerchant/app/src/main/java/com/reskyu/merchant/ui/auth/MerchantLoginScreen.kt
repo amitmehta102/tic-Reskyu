@@ -213,25 +213,59 @@ fun MerchantLoginScreen(
 
             // ─── Dev Mode Bypass ─────────────────────────────────────────────
             HorizontalDivider(
-                color = Color.White.copy(alpha = 0.12f),
+                color    = Color.White.copy(alpha = 0.12f),
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            TextButton(
-                onClick = {
-                    navController.navigate(Screen.DASHBOARD) {
-                        popUpTo(Screen.LOGIN) { inclusive = true }
-                    }
-                }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text          = "DEV MODE",
+                color         = Color.White.copy(alpha = 0.22f),
+                fontSize      = 9.sp,
+                letterSpacing = 2.sp,
+                fontWeight    = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // → Existing merchant: skip straight to Dashboard
+                TextButton(
+                    onClick = {
+                        navController.navigate(Screen.DASHBOARD) {
+                            popUpTo(Screen.LOGIN) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text(
+                        text          = "⚡ Skip Login",
+                        color         = Color.White.copy(alpha = 0.35f),
+                        fontSize      = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
                 Text(
-                    text = "⚡  Dev Mode — Skip Login",
-                    color = Color.White.copy(alpha = 0.32f),
-                    style = MaterialTheme.typography.labelSmall,
-                    letterSpacing = 1.2.sp
+                    text     = "·",
+                    color    = Color.White.copy(alpha = 0.20f),
+                    fontSize = 14.sp,
+                    modifier = Modifier.align(Alignment.CenterVertically)
                 )
+                // → New merchant: test the Onboarding flow
+                TextButton(
+                    onClick = {
+                        navController.navigate(Screen.ONBOARDING) {
+                            popUpTo(Screen.LOGIN) { inclusive = false }
+                        }
+                    }
+                ) {
+                    Text(
+                        text          = "🧭 Onboarding",
+                        color         = Color.White.copy(alpha = 0.35f),
+                        fontSize      = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         LoadingOverlay(isVisible = loginState is LoginState.Loading)
