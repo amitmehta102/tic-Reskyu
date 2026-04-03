@@ -34,9 +34,11 @@ data class Listing(
     val discountedPrice: Double = 0.0,
     val imageUrl: String = "",
     val geoHash: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
     val expiresAt: Timestamp = Timestamp.now(),
     val status: String = ListingStatus.OPEN.name
 ) {
     /** No-arg constructor required by Firestore deserialization */
-    constructor() : this("", "", "", "", DietaryTag.VEG.name, 0, 0.0, 0.0, "", "", Timestamp.now(), ListingStatus.OPEN.name)
+    constructor() : this("", "", "", "", DietaryTag.VEG.name, 0, 0.0, 0.0, "", "", 0.0, 0.0, Timestamp.now(), ListingStatus.OPEN.name)
 }

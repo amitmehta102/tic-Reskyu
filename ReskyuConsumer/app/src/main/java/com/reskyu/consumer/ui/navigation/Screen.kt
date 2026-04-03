@@ -42,6 +42,9 @@ sealed class Screen(val route: String) {
         fun createRoute(claimId: String) = "confirmation/$claimId"
     }
 
+    /** Wrapper screen that hosts the bottom nav bar */
+    object Main : Screen("main")
+
     object MyOrders       : Screen("orders")
     object Profile        : Screen("profile")
     object Notifications  : Screen("notifications")

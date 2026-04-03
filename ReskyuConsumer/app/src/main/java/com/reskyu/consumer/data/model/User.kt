@@ -16,8 +16,9 @@ data class User(
     val uid: String = "",
     val name: String = "",
     val email: String = "",
+    val phone: String = "",
     val impactStats: ImpactStats = ImpactStats()
 ) {
     /** No-arg constructor required by Firestore deserialization */
-    constructor() : this("", "", "", ImpactStats())
+    constructor() : this("", "", "", "", ImpactStats())
 }

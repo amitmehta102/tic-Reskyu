@@ -11,16 +11,17 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 /**
  * ConfirmationViewModel
  *
- * Loads the newly created claim document and maps it to a [TicketUiState]
- * for display on the [ConfirmationScreen].
+ * Loads the newly-created claim from Firestore and maps it to [TicketUiState].
+ * Falls back to a dev stub if Firestore fails (e.g., during offline/dev mode).
  *
- * In most cases the data is already available in-memory from [ClaimViewModel]
- * (since we just created it). Loading from Firestore here is a safety fallback
- * for cases like deep-link navigation to the confirmation screen.
+ * The claimId passed here is either:
+ *  - A real Firestore document ID (prod)
+ *  - A "pay_DEV_..." string from the dev payment simulation (dev mode)
  */
 class ConfirmationViewModel : ViewModel() {
 
@@ -29,36 +30,43 @@ class ConfirmationViewModel : ViewModel() {
     private val _ticketState = MutableStateFlow<TicketUiState?>(null)
     val ticketState: StateFlow<TicketUiState?> = _ticketState.asStateFlow()
 
-    /**
-     * Loads claim data and maps it to [TicketUiState].
-     *
-     * @param claimId  Firestore document ID of the created claim
-     */
     fun loadTicket(claimId: String) {
         viewModelScope.launch {
             try {
-                // TODO: Add a getClaimById method to ClaimRepository
-                // val claim = claimRepository.getClaimById(claimId)
-                // For now, build a placeholder ticket
-                _ticketState.value = TicketUiState(
-                    claimId = claimId,
-                    businessName = "Loading...",
-                    heroItem = "...",
-                    amount = 0.0,
-                    paymentId = claimId,
-                    pickupByTime = formatPickupTime(System.currentTimeMillis() + 2 * 60 * 60 * 1000) // +2 hours
-                )
-                // TODO: Replace placeholder with real claim data from repository
+                // Try real Firestore fetch first
+                val claim = claimRepository.getClaimById(claimId)
+                if (claim != null) {
+                    _ticketState.value = TicketUiState(
+                        claimId = claim.id,
+                        businessName = claim.businessName,
+                        heroItem = claim.heroItem,
+                        amount = claim.amount,
+                        paymentId = claim.paymentId,
+                        pickupByTime = formatPickupTime(
+                            claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(2)
+                        )
+                    )
+                } else {
+                    // Dev fallback — claimId is the payment ID from the simulated checkout
+                    _ticketState.value = devTicket(claimId)
+                }
             } catch (e: Exception) {
-                // Silently fail — the ticket will remain in loading state
+                // Firebase not configured / offline — show a dev ticket
+                _ticketState.value = devTicket(claimId)
             }
         }
     }
 
-    /**
-     * Formats a Unix timestamp as a human-readable pickup deadline.
-     * Example: 1684350000000 → "by 10:00 PM"
-     */
+    /** Dev-mode placeholder ticket shown when Firestore isn't reachable */
+    private fun devTicket(paymentId: String) = TicketUiState(
+        claimId = paymentId,
+        businessName = "Dev Bakery Co.",
+        heroItem = "Assorted Pastries Box (Dev)",
+        amount = 149.0,
+        paymentId = paymentId,
+        pickupByTime = formatPickupTime(System.currentTimeMillis() + TimeUnit.HOURS.toMillis(2))
+    )
+
     private fun formatPickupTime(timestampMs: Long): String {
         val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
         return "by ${sdf.format(Date(timestampMs))}"

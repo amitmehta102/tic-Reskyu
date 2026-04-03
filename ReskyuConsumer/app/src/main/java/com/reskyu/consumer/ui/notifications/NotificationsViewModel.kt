@@ -37,6 +37,12 @@ class NotificationsViewModel : ViewModel() {
         _notifications.value = notificationRepository.getNotifications()
     }
 
-    /** Returns the count of unread notifications for a badge indicator. */
+    fun markAllAsRead() {
+        notificationRepository.getNotifications().forEach { n ->
+            if (!n.isRead) notificationRepository.markAsRead(n.id)
+        }
+        _notifications.value = notificationRepository.getNotifications()
+    }
+
     fun getUnreadCount(): Int = notificationRepository.getUnreadCount()
 }

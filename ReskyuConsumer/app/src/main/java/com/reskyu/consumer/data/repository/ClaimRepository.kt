@@ -79,4 +79,19 @@ class ClaimRepository {
             .await()
             .toObjects(Claim::class.java)
     }
+
+    /**
+     * Fetches a single claim document by its ID.
+     * Used by [ConfirmationViewModel] to build the pickup ticket.
+     *
+     * @param claimId  Firestore document ID of the claim
+     * @return         [Claim] or null if not found
+     */
+    suspend fun getClaimById(claimId: String): Claim? {
+        return claimsRef
+            .document(claimId)
+            .get()
+            .await()
+            .toObject(Claim::class.java)
+    }
 }
