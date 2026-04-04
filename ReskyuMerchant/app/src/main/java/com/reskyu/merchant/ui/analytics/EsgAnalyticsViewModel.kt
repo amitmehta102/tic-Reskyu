@@ -76,7 +76,7 @@ class EsgAnalyticsViewModel : ViewModel() {
         }
     }
 
-    /** Forces a fresh Gemini call — only if merchant has ≥ 5 real meals. */
+    /** Forces a fresh Gemini call by clearing the date cache — only if merchant has ≥ 5 real meals. */
     fun retryPrediction(merchantId: String) {
         lastMerchantId = merchantId
         if (realMealsRescued < SurplusIqUiState.GEMINI_THRESHOLD) {
@@ -85,15 +85,15 @@ class EsgAnalyticsViewModel : ViewModel() {
         }
         _surplusIq.value = SurplusIqUiState.Loading
         viewModelScope.launch {
-            try {
-                val (meals, reason) = com.reskyu.merchant.data.remote.GeminiApiService.predict(
+            runCatching {
+                SurplusIqRepository.getPrediction(
+                    uid          = merchantId,
                     salesHistory = _esgStats.value.weeklyData.map { it.toInt() }
                 )
-                _surplusIq.value = SurplusIqUiState.Success(
-                    SurplusIqResult(predictedMeals = meals, reasoning = reason, confidence = 0.82f)
-                )
-            } catch (e: Exception) {
-                _surplusIq.value = SurplusIqUiState.Error(friendlyError(e))
+            }.onSuccess { result ->
+                _surplusIq.value = SurplusIqUiState.Success(result)
+            }.onFailure { e ->
+                _surplusIq.value = SurplusIqUiState.Error(friendlyError(e as Exception))
             }
         }
     }
@@ -157,7 +157,10 @@ class EsgAnalyticsViewModel : ViewModel() {
                 predictedMeals = predicted,
                 reasoning      = "Based on your 7-day sales trend",
                 confidence     = 0.70f,
-                cachedDate     = LocalDate.now().toString()
+                cachedDate     = LocalDate.now().toString(),
+                bestTimeToList = "",
+                pricingHint    = "",
+                actionTip      = ""
             )
         }
     }

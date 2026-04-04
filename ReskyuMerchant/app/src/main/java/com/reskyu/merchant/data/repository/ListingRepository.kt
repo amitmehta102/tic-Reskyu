@@ -38,6 +38,7 @@ class ListingRepository {
     ): String {
         val docRef    = listingsCollection.document()
         val expiresAt = System.currentTimeMillis() + (form.expiresInMinutes * 60 * 1000L)
+        val isMysteryBox = form.listingType == com.reskyu.merchant.data.model.ListingType.MYSTERY_BOX
 
         val listing = Listing(
             id              = docRef.id,
@@ -53,7 +54,12 @@ class ListingRepository {
             lat             = lat,
             lng             = lng,
             expiresAt       = expiresAt,
-            status          = ListingStatus.OPEN.name
+            status          = ListingStatus.OPEN.name,
+            listingType     = form.listingType.name,
+            boxType         = if (isMysteryBox) form.boxType.name else "",
+            priceRangeMin   = if (isMysteryBox) form.priceRangeMin else 0.0,
+            priceRangeMax   = if (isMysteryBox) form.priceRangeMax else 0.0,
+            itemCount       = if (isMysteryBox) form.itemCount     else 0
         )
         docRef.set(listing).await()
         return docRef.id
@@ -156,7 +162,12 @@ class ListingRepository {
                 lat             = doc.getDouble("lat")             ?: 0.0,
                 lng             = doc.getDouble("lng")             ?: 0.0,
                 expiresAt       = expiresAtMs,
-                status          = doc.getString("status")          ?: ListingStatus.OPEN.name
+                status          = doc.getString("status")          ?: ListingStatus.OPEN.name,
+                listingType     = doc.getString("listingType")     ?: com.reskyu.merchant.data.model.ListingType.REGULAR.name,
+                boxType         = doc.getString("boxType")         ?: "",
+                priceRangeMin   = doc.getDouble("priceRangeMin")   ?: 0.0,
+                priceRangeMax   = doc.getDouble("priceRangeMax")   ?: 0.0,
+                itemCount       = doc.getLong("itemCount")?.toInt() ?: 0
             )
         } catch (e: Exception) {
             null

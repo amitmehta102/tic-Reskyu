@@ -444,6 +444,40 @@ private fun SurplusIqCard(result: SurplusIqResult) {
                 )
             }
 
+            // ── New insight chips ───────────────────────────────────────────
+            val hasInsights = result.bestTimeToList.isNotBlank()
+                           || result.pricingHint.isNotBlank()
+                           || result.actionTip.isNotBlank()
+
+            if (hasInsights) {
+                androidx.compose.foundation.layout.Spacer(
+                    modifier = Modifier.height(2.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (result.bestTimeToList.isNotBlank()) {
+                        InsightChip(
+                            emoji  = "🕐",
+                            label  = "Best time to list",
+                            value  = result.bestTimeToList
+                        )
+                    }
+                    if (result.pricingHint.isNotBlank()) {
+                        InsightChip(
+                            emoji  = "💰",
+                            label  = "Pricing hint",
+                            value  = result.pricingHint
+                        )
+                    }
+                    if (result.actionTip.isNotBlank()) {
+                        InsightChip(
+                            emoji  = "💡",
+                            label  = "Today’s tip",
+                            value  = result.actionTip
+                        )
+                    }
+                }
+            }
+
             // Confidence bar
             if (result.confidence > 0f) {
                 val pct = (result.confidence * 100).toInt()
@@ -477,6 +511,38 @@ private fun SurplusIqCard(result: SurplusIqResult) {
                     )
                 }
             }
+        }
+    }
+}
+
+// ── Insight chip (used inside SurplusIqCard) ────────────────────────────────
+
+@Composable
+private fun InsightChip(emoji: String, label: String, value: String) {
+    Row(
+        modifier          = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White.copy(alpha = 0.08f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(emoji, fontSize = 14.sp, modifier = Modifier.padding(top = 1.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text          = label.uppercase(),
+                fontSize      = 9.sp,
+                color         = GreenLight.copy(alpha = 0.7f),
+                fontWeight    = FontWeight.SemiBold,
+                letterSpacing = 0.8.sp
+            )
+            Text(
+                text       = value,
+                fontSize   = 12.sp,
+                color      = Color.White.copy(alpha = 0.88f),
+                lineHeight = 16.sp
+            )
         }
     }
 }

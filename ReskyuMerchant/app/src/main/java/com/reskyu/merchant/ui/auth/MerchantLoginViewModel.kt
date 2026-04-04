@@ -21,6 +21,14 @@ class MerchantLoginViewModel : ViewModel() {
     private val _passwordResetSent = MutableStateFlow(false)
     val passwordResetSent: StateFlow<Boolean> = _passwordResetSent
 
+    /** Non-null while the reset dialog should show an inline error. */
+    private val _passwordResetError = MutableStateFlow<String?>(null)
+    val passwordResetError: StateFlow<String?> = _passwordResetError
+
+    /** True while the sendPasswordReset coroutine is running. */
+    private val _isSendingReset = MutableStateFlow(false)
+    val isSendingReset: StateFlow<Boolean> = _isSendingReset
+
     // ── Sign In ───────────────────────────────────────────────────────────────
 
     fun signIn(email: String, password: String) {
@@ -60,19 +68,25 @@ class MerchantLoginViewModel : ViewModel() {
     // ── Password reset ────────────────────────────────────────────────────────
 
     fun sendPasswordReset(email: String) {
+        _passwordResetError.value = null
         if (!isEmailValid(email)) {
-            _loginState.value = LoginState.Error("Please enter a valid email address")
+            _passwordResetError.value = "Please enter a valid email address"
             return
         }
         viewModelScope.launch {
+            _isSendingReset.value = true
             try {
                 authRepository.sendPasswordReset(email)
                 _passwordResetSent.value = true
             } catch (e: Exception) {
-                _loginState.value = LoginState.Error(parseFirebaseError(e))
+                _passwordResetError.value = parseFirebaseError(e)
+            } finally {
+                _isSendingReset.value = false
             }
         }
     }
+
+    fun clearPasswordResetError() { _passwordResetError.value = null }
 
     fun resetPasswordResetSent() { _passwordResetSent.value = false }
 

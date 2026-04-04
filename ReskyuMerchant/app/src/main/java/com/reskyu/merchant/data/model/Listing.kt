@@ -4,7 +4,12 @@ package com.reskyu.merchant.data.model
  * Firestore: /listings/{listingId}
  *
  * Represents a food-drop listing posted by a merchant.
+ * Can be a REGULAR listing or a MYSTERY_BOX.
+ *
  * Note: [mealsLeft] must ONLY be modified via Firestore atomic transactions.
+ *
+ * Mystery Box fields (priceRangeMin, priceRangeMax, itemCount, boxType)
+ * all default to safe values so existing regular listings are unaffected.
  */
 data class Listing(
     val id: String = "",
@@ -20,5 +25,12 @@ data class Listing(
     val lat: Double = 0.0,                  // Merchant latitude  — for map pins & distance
     val lng: Double = 0.0,                  // Merchant longitude — for map pins & distance
     val expiresAt: Long = 0L,               // Unix timestamp in milliseconds
-    val status: String = ListingStatus.OPEN.name
+    val status: String = ListingStatus.OPEN.name,
+    // ── Mystery Box fields ───────────────────────────────────────────────────
+    val listingType: String = ListingType.REGULAR.name,   // "REGULAR" or "MYSTERY_BOX"
+    val boxType: String = "",                              // MysteryBoxType name
+    val priceRangeMin: Double = 0.0,                      // Min ₹ value of box contents
+    val priceRangeMax: Double = 0.0,                      // Max ₹ value of box contents
+    val itemCount: Int = 0                                 // Total items in mystery box
 )
+

@@ -19,6 +19,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.reskyu.merchant.data.model.DietaryTag
 import com.reskyu.merchant.data.model.Listing
 import com.reskyu.merchant.data.model.ListingStatus
+import com.reskyu.merchant.data.model.ListingType
+import com.reskyu.merchant.data.model.MysteryBoxType
 
 // ── Status → color mapping ────────────────────────────────────────────────────
 private fun statusColor(status: String) = when (status) {
@@ -30,10 +32,11 @@ private fun statusColor(status: String) = when (status) {
 
 // ── Dietary tag → badge color ─────────────────────────────────────────────────
 private fun dietaryColor(tag: String) = when (tag) {
-    DietaryTag.VEG.name     -> Color(0xFF2D6A4F)
-    DietaryTag.NON_VEG.name -> Color(0xFFE63946)
-    DietaryTag.VEGAN.name   -> Color(0xFF457B9D)
-    else                    -> Color(0xFF9CA3AF)
+    DietaryTag.VEG.name           -> Color(0xFF2D6A4F)
+    DietaryTag.NON_VEG.name       -> Color(0xFFE63946)
+    DietaryTag.VEGAN.name         -> Color(0xFF457B9D)
+    DietaryTag.CONTAINS_MILK.name -> Color(0xFF9B7FD4)
+    else                          -> Color(0xFF9CA3AF)
 }
 
 // ── Expiry time format ────────────────────────────────────────────────────────
@@ -64,6 +67,10 @@ fun LiveListingCard(
 ) {
     val sColor = remember(listing.status) { statusColor(listing.status) }
     val dColor = remember(listing.dietaryTag) { dietaryColor(listing.dietaryTag) }
+    val isMysteryBox = listing.listingType == ListingType.MYSTERY_BOX.name
+    val boxType = if (isMysteryBox) {
+        MysteryBoxType.entries.firstOrNull { it.name == listing.boxType }
+    } else null
 
     val timeLeft = remember(listing.expiresAt) { formatTimeLeft(listing.expiresAt) }
 
@@ -196,21 +203,62 @@ fun LiveListingCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // ── Row 1: Name + status badge ────────────────────────────────────
+            // ── Row 1: Name + badges row ──────────────────────────────────────
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.Top
             ) {
-                Text(
-                    text       = listing.heroItem.ifBlank { "Unnamed Item" },
-                    fontSize   = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = Color(0xFF111827),
-                    modifier   = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp)
-                )
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    // Mystery box badge
+                    if (isMysteryBox && boxType != null) {
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier              = Modifier.padding(bottom = 4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF7B5EA7).copy(alpha = 0.12f))
+                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text       = "🎁 Mystery Box",
+                                    fontSize   = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color      = Color(0xFF7B5EA7)
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF7B5EA7).copy(alpha = 0.08f))
+                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text       = "${boxType.emoji} ${boxType.label}",
+                                    fontSize   = 10.sp,
+                                    color      = Color(0xFF7B5EA7)
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text       = listing.heroItem.ifBlank { "Unnamed Item" },
+                        fontSize   = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color(0xFF111827)
+                    )
+                    // Value range line for mystery boxes
+                    if (isMysteryBox && listing.priceRangeMin > 0 && listing.priceRangeMax > 0) {
+                        Text(
+                            text     = "+ surprise items worth ₹${listing.priceRangeMin.toInt()}–₹${listing.priceRangeMax.toInt()}",
+                            fontSize = 12.sp,
+                            color    = Color(0xFF9CA3AF)
+                        )
+                    }
+                }
                 // Status pill
                 Box(
                     modifier = Modifier
@@ -235,6 +283,7 @@ fun LiveListingCard(
                 verticalAlignment     = Alignment.CenterVertically
             ) {
                 // Dietary badge
+                val dietaryTag = DietaryTag.entries.firstOrNull { it.name == listing.dietaryTag }
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
@@ -242,16 +291,26 @@ fun LiveListingCard(
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text       = listing.dietaryTag,
+                        text       = dietaryTag?.let { "${it.emoji} ${it.label}" } ?: listing.dietaryTag,
                         fontSize   = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color      = dColor
                     )
                 }
 
-                // Meals left
+                // Item count (mystery box only)
+                if (isMysteryBox && listing.itemCount > 0) {
+                    Text(
+                        text     = "📦 ${listing.itemCount} items",
+                        fontSize = 12.sp,
+                        color    = Color(0xFF6B7280)
+                    )
+                }
+
+                // Meals/boxes left
+                val unitLabel = if (isMysteryBox) "box" else "meal"
                 Text(
-                    text     = "📦 ${listing.mealsLeft} meal${if (listing.mealsLeft != 1) "s" else ""}",
+                    text     = "🛍 ${listing.mealsLeft} ${unitLabel}${if (listing.mealsLeft != 1) "es" else ""}",
                     fontSize = 12.sp,
                     color    = Color(0xFF6B7280)
                 )
@@ -289,13 +348,22 @@ fun LiveListingCard(
                         fontWeight = FontWeight.ExtraBold,
                         color      = Color(0xFF2D6A4F)
                     )
-                    Text(
-                        text           = "₹${listing.originalPrice.toInt()}",
-                        fontSize       = 14.sp,
-                        color          = Color(0xFFD1D5DB),
-                        textDecoration = TextDecoration.LineThrough,
-                        modifier       = Modifier.padding(bottom = 2.dp)
-                    )
+                    if (isMysteryBox && listing.priceRangeMin > 0) {
+                        Text(
+                            text       = "(₹${listing.priceRangeMin.toInt()}–₹${listing.priceRangeMax.toInt()} value)",
+                            fontSize   = 12.sp,
+                            color      = Color(0xFF9CA3AF),
+                            modifier   = Modifier.padding(bottom = 3.dp)
+                        )
+                    } else if (listing.originalPrice > 0) {
+                        Text(
+                            text           = "₹${listing.originalPrice.toInt()}",
+                            fontSize       = 14.sp,
+                            color          = Color(0xFFD1D5DB),
+                            textDecoration = TextDecoration.LineThrough,
+                            modifier       = Modifier.padding(bottom = 2.dp)
+                        )
+                    }
                 }
 
                 // Cancel only shown for OPEN / CLOSING
