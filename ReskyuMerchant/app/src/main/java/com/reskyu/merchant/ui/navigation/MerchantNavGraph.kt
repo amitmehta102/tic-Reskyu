@@ -10,6 +10,7 @@ import com.reskyu.merchant.ui.dashboard.DashboardScreen
 import com.reskyu.merchant.ui.live_listings.LiveListingsScreen
 import com.reskyu.merchant.ui.onboarding.OnboardingScreen
 import com.reskyu.merchant.ui.orders.OrderManagementScreen
+import com.reskyu.merchant.ui.orders.QrScannerScreen
 import com.reskyu.merchant.ui.post_listing.PostListingScreen
 import com.reskyu.merchant.ui.profile.MerchantProfileScreen
 import com.reskyu.merchant.ui.splash.MerchantSplashScreen
@@ -59,6 +60,18 @@ fun MerchantNavGraph(navController: NavHostController) {
         }
         composable(Screen.PROFILE) {
             MerchantProfileScreen(navController = navController)
+        }
+        composable(Screen.QR_SCANNER) {
+            QrScannerScreen(
+                onScanResult = { rawValue ->
+                    // Pass result back to OrderManagementScreen via SavedStateHandle
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("qr_result", rawValue)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

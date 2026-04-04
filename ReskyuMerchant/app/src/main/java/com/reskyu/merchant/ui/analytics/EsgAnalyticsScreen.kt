@@ -1,4 +1,4 @@
-package com.reskyu.merchant.ui.analytics
+﻿package com.reskyu.merchant.ui.analytics
 
 import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.background
@@ -32,7 +32,11 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.reskyu.merchant.data.model.SurplusIqResult
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
+import com.reskyu.merchant.ui.components.ReskyuHeader
 import com.reskyu.merchant.ui.navigation.Screen
+import com.reskyu.merchant.ui.theme.RGreenAccent
+import com.reskyu.merchant.ui.theme.RGreenLight
+import com.reskyu.merchant.ui.theme.RScreenBg
 import com.google.firebase.auth.FirebaseAuth
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
@@ -64,7 +68,7 @@ fun EsgAnalyticsScreen(
     LaunchedEffect(Unit) { viewModel.loadStats(merchantId) }
 
     Scaffold(
-        containerColor = Color(0xFFF2F8F4),
+        containerColor = RScreenBg,
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.ESG_ANALYTICS) }
     ) { padding ->
         Box(
@@ -74,8 +78,13 @@ fun EsgAnalyticsScreen(
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-                // ── Header ────────────────────────────────────────────────────
-                item { EsgHeader() }
+                // ── Header ───────────────────────────────────────────────────────────────
+                item {
+                    ReskyuHeader(
+                        title    = "🌱 ESG Impact",
+                        subtitle = "Your environmental contribution"
+                    )
+                }
 
                 // ── Body ──────────────────────────────────────────────────────
                 item {
@@ -113,7 +122,7 @@ fun EsgAnalyticsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 ImpactMetricCard("🗑️", "Waste Diverted", "${stats.foodWasteReducedKg.toInt()} kg", Color(0xFFE76F51), Modifier.weight(1f))
-                                ImpactMetricCard("💰", "Revenue Earned",  "₹${stats.totalRevenue.toInt()}",         GreenAccent,       Modifier.weight(1f))
+                                ImpactMetricCard("💰", "Revenue Earned",  "₹${stats.totalRevenue.toInt()}",         RGreenAccent,       Modifier.weight(1f))
                             }
 
                             // ③ Weekly meals chart
@@ -148,33 +157,6 @@ fun EsgAnalyticsScreen(
             }
 
             LoadingOverlay(isVisible = isLoading)
-        }
-    }
-}
-
-// ── ESG Header ────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EsgHeader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(GreenDark, GreenDeep)))
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 20.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text       = "🌱 ESG Impact",
-                fontSize   = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color      = Color.White
-            )
-            Text(
-                text     = "Your environmental contribution",
-                fontSize = 13.sp,
-                color    = Color.White.copy(alpha = 0.6f)
-            )
         }
     }
 }
@@ -273,7 +255,7 @@ private fun SurplusIqLoading() {
                     fontWeight    = FontWeight.Bold
                 )
                 Text(
-                    text       = "Analysing your sales data\u2026",
+                    text       = "Analysing your sales data…",
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color      = Color.White
@@ -291,7 +273,7 @@ private fun SurplusIqLoading() {
 // New restaurant — not enough data yet
 @Composable
 private fun SurplusIqNewRestaurant(state: SurplusIqUiState.NewRestaurant) {
-    val progress = (state.mealsRescued.toFloat() / state.required).coerceIn(0f, 1f)
+    val progress  = (state.mealsRescued.toFloat() / state.required).coerceIn(0f, 1f)
     val remaining = (state.required - state.mealsRescued).coerceAtLeast(0)
 
     Card(
@@ -308,7 +290,7 @@ private fun SurplusIqNewRestaurant(state: SurplusIqUiState.NewRestaurant) {
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(text = "\uD83C\uDF31", fontSize = 24.sp)   // 🌱
+                Text(text = "🌱", fontSize = 24.sp)
                 Column {
                     Text(
                         text          = "SURPLUSIQ",
@@ -332,13 +314,13 @@ private fun SurplusIqNewRestaurant(state: SurplusIqUiState.NewRestaurant) {
             // Progress bar
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 androidx.compose.material3.LinearProgressIndicator(
-                    progress       = { progress },
-                    modifier       = Modifier
+                    progress   = { progress },
+                    modifier   = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
-                    color          = GreenAccent,
-                    trackColor     = Color.White.copy(alpha = 0.12f)
+                    color      = GreenAccent,
+                    trackColor = Color.White.copy(alpha = 0.12f)
                 )
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -362,7 +344,7 @@ private fun SurplusIqNewRestaurant(state: SurplusIqUiState.NewRestaurant) {
                 text      = if (state.mealsRescued == 0)
                                 "Post your first listing to start building your impact story."
                             else
-                                "Keep listing daily \u2014 Gemini will analyse your trend once you hit ${state.required} rescues.",
+                                "Keep listing daily — Gemini will analyse your trend once you hit ${state.required} rescues.",
                 fontSize  = 12.sp,
                 color     = Color.White.copy(alpha = 0.55f),
                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
@@ -438,7 +420,6 @@ private fun SurplusIqCard(result: SurplusIqResult) {
             if (result.reasoning.isNotBlank()) {
                 Text(
                     text      = "\" ${result.reasoning} \"",
-                    fontSize  = 13.sp,
                     color     = Color.White.copy(alpha = 0.7f),
                     fontStyle = FontStyle.Italic
                 )
@@ -450,29 +431,27 @@ private fun SurplusIqCard(result: SurplusIqResult) {
                            || result.actionTip.isNotBlank()
 
             if (hasInsights) {
-                androidx.compose.foundation.layout.Spacer(
-                    modifier = Modifier.height(2.dp)
-                )
+                Spacer(modifier = Modifier.height(2.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (result.bestTimeToList.isNotBlank()) {
                         InsightChip(
-                            emoji  = "🕐",
-                            label  = "Best time to list",
-                            value  = result.bestTimeToList
+                            emoji = "🕐",
+                            label = "Best time to list",
+                            value = result.bestTimeToList
                         )
                     }
                     if (result.pricingHint.isNotBlank()) {
                         InsightChip(
-                            emoji  = "💰",
-                            label  = "Pricing hint",
-                            value  = result.pricingHint
+                            emoji = "💰",
+                            label = "Pricing hint",
+                            value = result.pricingHint
                         )
                     }
                     if (result.actionTip.isNotBlank()) {
                         InsightChip(
-                            emoji  = "💡",
-                            label  = "Today’s tip",
-                            value  = result.actionTip
+                            emoji = "💡",
+                            label = "Today's tip",
+                            value = result.actionTip
                         )
                     }
                 }
@@ -501,13 +480,13 @@ private fun SurplusIqCard(result: SurplusIqResult) {
                         )
                     }
                     LinearProgressIndicator(
-                        progress     = { result.confidence },
-                        modifier     = Modifier
+                        progress   = { result.confidence },
+                        modifier   = Modifier
                             .fillMaxWidth()
                             .height(5.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color        = GreenAccent,
-                        trackColor   = Color.White.copy(alpha = 0.15f)
+                        color      = GreenAccent,
+                        trackColor = Color.White.copy(alpha = 0.15f)
                     )
                 }
             }
@@ -578,9 +557,8 @@ private fun SurplusIqError(message: String, onRetry: () -> Unit) {
                         fontWeight    = FontWeight.Bold
                     )
                     Text(
-                        text     = "Prediction unavailable",
-                        fontSize = 13.sp,
-                        color    = Color.White.copy(alpha = 0.55f)
+                        text  = "Prediction unavailable",
+                        color = Color.White.copy(alpha = 0.55f)
                     )
                 }
             }
@@ -691,9 +669,9 @@ private fun BarChart.applyChartStyle(data: List<Float>) {
     val entries = data.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
     val colors  = data.map { v ->
         if (v == maxVal && maxVal > 0f)
-            AndroidColor.parseColor("#1B4332")   // peak day  — dark green
+            AndroidColor.parseColor("#1B4332")
         else
-            AndroidColor.parseColor("#52B788")   // other days — accent green
+            AndroidColor.parseColor("#52B788")
     }
     val dataSet = BarDataSet(entries, "").apply {
         setColors(colors)
@@ -739,7 +717,7 @@ private fun BarChart.applyChartStyle(data: List<Float>) {
 
 @Composable
 private fun TopSellingItemsCard(items: Map<String, Int>) {
-    val list   = items.entries.toList()   // already sorted descending from repository
+    val list   = items.entries.toList()
     val maxVal = list.firstOrNull()?.value?.toFloat() ?: 1f
 
     Card(
@@ -766,12 +744,11 @@ private fun TopSellingItemsCard(items: Map<String, Int>) {
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // Rank emoji — gold trophy for #1, medal for #2/#3
                             Text(
                                 text     = when (idx) {
-                                    0 -> "🥇"
-                                    1 -> "🥈"
-                                    2 -> "🥉"
+                                    0    -> "🥇"
+                                    1    -> "🥈"
+                                    2    -> "🥉"
                                     else -> "  ${idx + 1}."
                                 },
                                 fontSize = if (idx < 3) 16.sp else 13.sp
@@ -785,13 +762,11 @@ private fun TopSellingItemsCard(items: Map<String, Int>) {
                         }
                         Text(
                             text       = "$count sold",
-                            fontSize   = 13.sp,
                             fontWeight = if (isTop) FontWeight.Bold else FontWeight.Medium,
                             color      = if (isTop) Color(0xFF52B788) else Color(0xFF9CA3AF)
                         )
                     }
 
-                    // Horizontal progress bar
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -839,9 +814,7 @@ private fun RevenueBarChart(weeklyRevenue: List<Float>) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             AndroidView(
-                factory = { ctx ->
-                    BarChart(ctx).apply { applyRevenueStyle(safeData) }
-                },
+                factory = { ctx -> BarChart(ctx).apply { applyRevenueStyle(safeData) } },
                 update  = { chart -> chart.applyRevenueStyle(safeData) },
                 modifier = Modifier.fillMaxWidth().height(190.dp)
             )
@@ -914,7 +887,6 @@ private fun RecoveryRateChart(recoveryRate: List<Float>) {
                     color      = Color(0xFF9CA3AF),
                     fontWeight = FontWeight.Medium
                 )
-                // Overall average badge
                 val avg = if (safeData.all { it == 0f }) 0 else safeData.average().toInt()
                 Box(
                     modifier = Modifier
@@ -923,18 +895,15 @@ private fun RecoveryRateChart(recoveryRate: List<Float>) {
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text       = "Avg $avg%",
-                        fontSize   = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = Color(0xFF2D6A4F)
+                        text     = "Avg $avg%",
+                        fontSize = 11.sp,
+                        color    = Color(0xFF2D6A4F)
                     )
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
             AndroidView(
-                factory = { ctx ->
-                    LineChart(ctx).apply { applyRecoveryStyle(safeData) }
-                },
+                factory = { ctx -> LineChart(ctx).apply { applyRecoveryStyle(safeData) } },
                 update  = { chart -> chart.applyRecoveryStyle(safeData) },
                 modifier = Modifier.fillMaxWidth().height(190.dp)
             )
@@ -985,7 +954,7 @@ private fun LineChart.applyRecoveryStyle(data: List<Float>) {
         textColor      = AndroidColor.parseColor("#9CA3AF")
         textSize       = 10f
         axisMinimum    = 0f
-        axisMaximum    = 105f   // 0–100% + small buffer
+        axisMaximum    = 105f
     }
     axisRight.isEnabled = false
     invalidate()
@@ -1060,7 +1029,7 @@ private fun OrderOutcomeCard(completed: Int, disputed: Int) {
                     Column {
                         Text(
                             text       = "$completed",
-                            fontSize   = 22.sp,
+                            fontSize   = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color      = Color(0xFF52B788)
                         )
@@ -1086,7 +1055,7 @@ private fun OrderOutcomeCard(completed: Int, disputed: Int) {
                     Column {
                         Text(
                             text       = "$disputed",
-                            fontSize   = 22.sp,
+                            fontSize   = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color      = Color(0xFFEF4444)
                         )
@@ -1117,4 +1086,3 @@ private fun OrderOutcomeCard(completed: Int, disputed: Int) {
         }
     }
 }
-

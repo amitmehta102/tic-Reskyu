@@ -14,6 +14,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reskyu.merchant.data.model.MerchantClaim
+import com.reskyu.merchant.ui.theme.RGreenAccent
+import com.reskyu.merchant.ui.theme.RGreenDeep
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,8 +36,8 @@ private fun statusLabel(status: String) = when (status) {
     else             -> status
 }
 
-private val GreenDeep   = Color(0xFF163823)
-private val GreenAccent = Color(0xFF52B788)
+private val GreenDeep   = RGreenDeep
+private val GreenAccent = RGreenAccent
 
 /**
  * A single claim card in the Order Management screen.

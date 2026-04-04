@@ -33,11 +33,16 @@ import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
+import com.reskyu.merchant.ui.theme.RGreenAccent
+import com.reskyu.merchant.ui.theme.RGreenDark
+import com.reskyu.merchant.ui.theme.RGreenDeep
+import com.reskyu.merchant.ui.theme.RGreenMid
+
 // ── Brand palette ─────────────────────────────────────────────────────────────
-private val GreenDark   = Color(0xFF0C1E13)
-private val GreenDeep   = Color(0xFF163823)
-private val GreenMid    = Color(0xFF1F5235)
-private val GreenAccent = Color(0xFF52B788)
+private val GreenDark   = RGreenDark
+private val GreenDeep   = RGreenDeep
+private val GreenMid    = RGreenMid
+private val GreenAccent = RGreenAccent
 private val CardBg      = Color(0xFFF4FBF6)
 
 @Composable

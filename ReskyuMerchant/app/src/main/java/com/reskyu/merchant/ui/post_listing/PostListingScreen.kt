@@ -8,6 +8,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -40,15 +42,21 @@ import com.reskyu.merchant.data.model.MysteryBoxType
 import com.reskyu.merchant.data.model.PublishState
 import com.reskyu.merchant.data.model.UploadState
 import com.reskyu.merchant.ui.components.LoadingOverlay
+import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
+import com.reskyu.merchant.ui.theme.RGreenAccent
+import com.reskyu.merchant.ui.theme.RGreenDark
+import com.reskyu.merchant.ui.theme.RGreenDeep
+import com.reskyu.merchant.ui.theme.RScreenBg
 import com.google.firebase.auth.FirebaseAuth
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
-private val GreenDark   = Color(0xFF0C1E13)
-private val GreenDeep   = Color(0xFF163823)
-private val GreenAccent = Color(0xFF52B788)
-private val MysteryPurple = Color(0xFF7B5EA7)
+private val GreenDark     = RGreenDark
+private val GreenDeep     = RGreenDeep
+private val GreenAccent   = RGreenAccent
+private val MysteryPurple = Color(0xFF6D3FD1)
 private val MysteryAmber  = Color(0xFFF4A261)
+private val ScreenBg      = RScreenBg
 
 // ── Expiry quick-select options ───────────────────────────────────────────────
 private val expiryOptions = listOf(30 to "30 min", 60 to "1 hr", 120 to "2 hrs", 240 to "4 hrs")
@@ -157,6 +165,11 @@ fun PostListingScreen(
                                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                                     ),
                                     supportingText  = { Text("This item is shown to customers; the rest is a surprise", fontSize = 11.sp) }
+                                )
+                                // ⚡ Quick-select food name chips
+                                QuickFoodChips(
+                                    suggestions = MYSTERY_FOOD_SUGGESTIONS,
+                                    onSelect    = { viewModel.updateForm { copy(heroItem = it) } }
                                 )
                             }
 
@@ -277,6 +290,11 @@ fun PostListingScreen(
                                     keyboardActions = KeyboardActions(
                                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                                     )
+                                )
+                                // ⚡ Quick-select food name chips
+                                QuickFoodChips(
+                                    suggestions = REGULAR_FOOD_SUGGESTIONS,
+                                    onSelect    = { viewModel.updateForm { copy(heroItem = it) } }
                                 )
                             }
 
@@ -777,3 +795,54 @@ private fun greenFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor   = Color(0xFF111827),
     cursorColor          = GreenAccent
 )
+
+// ── Quick food name suggestions ────────────────────────────────────────────────
+
+private val REGULAR_FOOD_SUGGESTIONS = listOf(
+    "Egg Rice", "Veg Biryani", "Chicken Biryani", "Butter Paneer Masala",
+    "Butter Chicken", "Dal Makhani", "Chole Bhature", "Samosa",
+    "Masala Dosa", "Idli Sambhar", "Paneer Tikka", "Chicken Curry",
+    "Mutton Biryani", "Aloo Paratha", "Rajma Rice", "Pav Bhaji",
+    "Veg Pulao", "Fried Rice", "Noodles", "Pasta",
+    "Pizza", "Burger", "Sandwich", "Wrap"
+)
+
+private val MYSTERY_FOOD_SUGGESTIONS = listOf(
+    "Pizza", "Burger", "Pasta", "Biryani", "Sushi",
+    "Sandwich", "Wrap", "Tacos", "Noodles", "Salad",
+    "Paneer Dish", "Chicken Dish", "Assorted Snacks", "Dessert", "Soup"
+)
+
+/**
+ * Horizontally scrollable chip row for quick-filling item name fields.
+ * Chips auto-select the current value to make it visually clear what's typed.
+ */
+@Composable
+private fun QuickFoodChips(
+    suggestions : List<String>,
+    onSelect    : (String) -> Unit
+) {
+    androidx.compose.foundation.lazy.LazyRow(
+        modifier            = Modifier.fillMaxWidth(),
+        contentPadding      = PaddingValues(top = 8.dp, bottom = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        items(suggestions) { name ->
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(GreenAccent.copy(alpha = 0.10f))
+                    .border(1.dp, GreenAccent.copy(alpha = 0.30f), RoundedCornerShape(20.dp))
+                    .clickable { onSelect(name) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text       = name,
+                    fontSize   = 12.sp,
+                    color      = GreenDeep,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}

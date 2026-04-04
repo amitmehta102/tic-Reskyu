@@ -29,12 +29,17 @@ import com.reskyu.merchant.data.model.SaveState
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
+import com.reskyu.merchant.ui.theme.RGreenAccent
+import com.reskyu.merchant.ui.theme.RGreenDark
+import com.reskyu.merchant.ui.theme.RGreenDeep
+import com.reskyu.merchant.ui.theme.RGreenLight
+import com.reskyu.merchant.ui.theme.RScreenBg
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
-private val GreenDark   = Color(0xFF0C1E13)
-private val GreenDeep   = Color(0xFF163823)
-private val GreenAccent = Color(0xFF52B788)
-private val GreenLight  = Color(0xFF95D5B2)
+private val GreenDark   = RGreenDark
+private val GreenDeep   = RGreenDeep
+private val GreenAccent = RGreenAccent
+private val GreenLight  = RGreenLight
 
 /**
  * Merchant profile screen — avatar header, editable business details, and sign-out.
@@ -66,7 +71,7 @@ fun MerchantProfileScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFFF2F8F4),
+        containerColor = RScreenBg,
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.PROFILE) }
     ) { padding ->
         Box(
