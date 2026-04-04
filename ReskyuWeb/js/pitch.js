@@ -277,9 +277,10 @@
     if (!btn) return;
     btn.addEventListener('click', () => {
       if (typeof window.RESKYU_GOOGLE_LOGIN !== 'function') {
-        alert('Firebase not configured. See firebase-config.js'); return;
+        alert('Firebase is still loading. Please wait a moment and try again.'); return;
       }
-      btn.textContent = 'Signing in…';
+      const originalHTML = btn.innerHTML;  // save full HTML (SVG + text)
+      btn.textContent = 'Signing in…';      // safe: no child SVGs to preserve here
       btn.disabled = true;
       window.RESKYU_GOOGLE_LOGIN()
         .then(() => {
@@ -288,8 +289,20 @@
         })
         .catch(err => {
           btn.disabled = false;
-          btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" height="18" /> Continue with Google`;
-          console.error('[Google Login]', err.code, err.message);
+          btn.innerHTML = originalHTML;     // restore original SVG button content
+          if (err.code !== 'auth/popup-closed-by-user' &&
+              err.code !== 'auth/cancelled-popup-request') {
+            console.error('[Google Login]', err.code, err.message);
+            // Show error near the button instead of silent fail
+            const msgEl = btn.closest('.auth-panel')?.querySelector('.auth-msg');
+            if (msgEl) {
+              msgEl.style.color = '#F5A623';
+              msgEl.textContent = '⚠ Google sign-in failed. ' +
+                (err.code === 'auth/popup-blocked'
+                  ? 'Popups are blocked by your browser. Please allow popups for this site.'
+                  : err.message);
+            }
+          }
         });
     });
   }
@@ -303,7 +316,10 @@
       if (!input) return;
       const isHidden = input.type === 'password';
       input.type = isHidden ? 'text' : 'password';
-      btn.textContent = isHidden ? '🙈' : '👁';
+      // Toggle between eye-open and eye-off SVG
+      btn.innerHTML = isHidden
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
     });
   });
 
