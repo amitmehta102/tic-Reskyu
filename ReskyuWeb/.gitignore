@@ -1,0 +1,69 @@
+# ============================================================
+#  RESKYU — .gitignore
+# ============================================================
+
+# ── Node / npm ───────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# ── Firebase ─────────────────────────────────────────────────
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
+# ── Netlify ──────────────────────────────────────────────────
+.netlify/
+
+# ── Environment / Secrets ────────────────────────────────────
+# (firebase-config.js is intentionally committed — Firebase API
+#  keys are safe to expose for client-side apps; security is
+#  enforced via Firebase Security Rules, not API key secrecy.)
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+*.secret
+
+# ── Build outputs ────────────────────────────────────────────
+dist/
+build/
+out/
+.cache/
+
+# ── Sharp image conversion cache ─────────────────────────────
+# (Keep generated WebP images; ignore temporary build artifacts)
+
+# ── OS-generated files ────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── IDE & Editor ─────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ── Logs ─────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Misc ─────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.swp
+*~

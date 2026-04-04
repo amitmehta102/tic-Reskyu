@@ -1,0 +1,49 @@
+[build]
+  publish = "."
+
+# Static files always take priority — redirects only apply when no file matches
+[[redirects]]
+  from   = "/dashboard"
+  to     = "/dashboard.html"
+  status = 200
+  force  = false
+
+[[redirects]]
+  from   = "/restaurant-dashboard"
+  to     = "/restaurant-dashboard.html"
+  status = 200
+  force  = false
+
+[[redirects]]
+  from   = "/ngo-dashboard"
+  to     = "/ngo-dashboard.html"
+  status = 200
+  force  = false
+
+# Root redirect — only fires if no file matches "/"
+[[redirects]]
+  from   = "/"
+  to     = "/pitch.html"
+  status = 200
+  force  = false
+
+# ── Content-Type for sitemap ──────────────────────────
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    X-Robots-Tag = "noindex"
+
+# ── Content-Type for robots.txt ───────────────────────
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+
+# ── Security headers on everything else ───────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options            = "DENY"
+    X-Content-Type-Options     = "nosniff"
+    Referrer-Policy            = "strict-origin-when-cross-origin"

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>NGO Dashboard — RESKYU</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0E0A1F" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0A1F'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='16' font-weight='900' fill='%23F5A623' font-family='Arial'%3ER%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/pitch.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/role-dashboard.css" />
+</head>
+<body class="loaded dash-body">
+
+  <!-- NAV -->
+  <nav class="dash-nav">
+    <a href="pitch.html" class="nav-logo">RES<em>KYU</em></a>
+    <div class="role-nav-center">
+      <button class="role-tab active" data-tab="browse">🗺️ Browse Surplus</button>
+      <button class="role-tab" data-tab="collections">📋 My Collections</button>
+      <button class="role-tab" data-tab="impact">🌱 Impact</button>
+      <button class="role-tab" data-tab="profile">👤 Profile</button>
+    </div>
+    <div class="dash-nav-right">
+      <a href="pitch.html" class="nav-link-secondary">← Home</a>
+      <button class="nav-auth-btn" id="dash-logout-btn">Log Out</button>
+    </div>
+  </nav>
+
+  <!-- LOADING -->
+  <div id="dash-loading" class="dash-loading"><div class="dash-spinner"></div></div>
+
+  <main id="dash-main" class="dash-main" hidden>
+
+    <!-- HEADER STRIP -->
+    <div class="role-header ngo-header">
+      <div class="dash-container role-header-inner">
+        <div class="role-avatar ngo-avatar" id="dash-avatar">N</div>
+        <div>
+          <p class="dash-greeting" id="dash-greeting">Good morning,</p>
+          <h1 class="role-title" id="dash-name">Loading…</h1>
+          <span class="dash-role-badge ngo-badge">🤝 NGO / Community Org</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS STRIP -->
+    <div class="dash-stats-strip">
+      <div class="dash-container">
+        <div class="dash-stats-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="dash-stat-card"><div class="dash-stat-icon">🍛</div><div class="dash-stat-num" id="stat-claimed">0</div><div class="dash-stat-label">Meals Claimed</div></div>
+          <div class="dash-stat-card"><div class="dash-stat-icon">👥</div><div class="dash-stat-num" id="stat-people">0</div><div class="dash-stat-label">People Fed</div></div>
+          <div class="dash-stat-card"><div class="dash-stat-icon">♻️</div><div class="dash-stat-num" id="stat-co2">0 kg</div><div class="dash-stat-label">CO₂ Averted</div></div>
+          <div class="dash-stat-card"><div class="dash-stat-icon">🏪</div><div class="dash-stat-num" id="stat-partners">0</div><div class="dash-stat-label">Partner Restaurants</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-content">
+      <div class="dash-container">
+
+        <!-- ── TAB: BROWSE SURPLUS ── -->
+        <div class="role-panel active" id="tab-browse">
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">🗺️ Available Surplus Near You</h2>
+            <div class="browse-controls">
+              <select id="category-filter" class="filter-select">
+                <option value="all">All Categories</option>
+                <option value="meals">🍛 Full Meals</option>
+                <option value="snacks">🥪 Snacks</option>
+                <option value="breads">🫓 Breads</option>
+                <option value="desserts">🍮 Desserts</option>
+                <option value="mystery">🎁 Mystery Box</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="surplus-grid" class="surplus-grid">
+            <!-- Demo cards shown until live data loads -->
+            <div class="surplus-card demo-card">
+              <div class="surplus-card-badge">🟢 Active</div>
+              <div class="surplus-card-category">🍛 Full Meals</div>
+              <h3 class="surplus-card-name">Paneer Butter Masala + Naan</h3>
+              <div class="surplus-card-restaurant">🏪 Spice Garden, Connaught Place</div>
+              <div class="surplus-card-qty">8 portions remaining</div>
+              <div class="surplus-card-prices">
+                <span class="surplus-original">₹280</span>
+                <span class="surplus-discounted">₹98</span>
+                <span class="surplus-save-pct">65% off</span>
+              </div>
+              <div class="surplus-card-pickup">⏰ Pickup: 9:00 PM – 10:30 PM</div>
+              <button class="dash-btn-primary surplus-claim-btn" data-id="demo1">Claim for NGO →</button>
+            </div>
+
+            <div class="surplus-card demo-card">
+              <div class="surplus-card-badge">🟢 Active</div>
+              <div class="surplus-card-category">🎁 Mystery Box</div>
+              <h3 class="surplus-card-name">Chef's Surprise Box</h3>
+              <div class="surplus-card-restaurant">🏪 Flavours of India, Karol Bagh</div>
+              <div class="surplus-card-qty">5 boxes remaining</div>
+              <div class="surplus-card-prices">
+                <span class="surplus-original">₹350</span>
+                <span class="surplus-discounted">₹105</span>
+                <span class="surplus-save-pct">70% off</span>
+              </div>
+              <div class="surplus-card-pickup">⏰ Pickup: 8:30 PM – 10:00 PM</div>
+              <button class="dash-btn-primary surplus-claim-btn" data-id="demo2">Claim for NGO →</button>
+            </div>
+
+            <div class="surplus-card demo-card">
+              <div class="surplus-card-badge">🟡 Filling Fast</div>
+              <div class="surplus-card-category">🍮 Desserts</div>
+              <h3 class="surplus-card-name">Assorted Mithai Box</h3>
+              <div class="surplus-card-restaurant">🏪 Halwai Sweet House, Lajpat Nagar</div>
+              <div class="surplus-card-qty">3 boxes remaining</div>
+              <div class="surplus-card-prices">
+                <span class="surplus-original">₹200</span>
+                <span class="surplus-discounted">₹60</span>
+                <span class="surplus-save-pct">70% off</span>
+              </div>
+              <div class="surplus-card-pickup">⏰ Pickup: 8:00 PM – 9:30 PM</div>
+              <button class="dash-btn-primary surplus-claim-btn" data-id="demo3">Claim for NGO →</button>
+            </div>
+          </div>
+
+          <!-- Live data container -->
+          <div id="live-surplus-grid" class="surplus-grid"></div>
+          <div id="no-surplus" class="role-empty-state" hidden>
+            <div class="role-empty-icon">🔍</div>
+            <p>No live surplus available right now. Check back closer to meal times!</p>
+          </div>
+        </div>
+
+        <!-- ── TAB: MY COLLECTIONS ── -->
+        <div class="role-panel" id="tab-collections" hidden>
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">📋 My Collections & Pickups</h2>
+          </div>
+          <div class="listing-filters">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="scheduled">🕐 Scheduled</button>
+            <button class="filter-chip" data-filter="collected">✅ Collected</button>
+            <button class="filter-chip" data-filter="missed">❌ Missed</button>
+          </div>
+          <div id="collections-container">
+            <div class="role-empty-state" id="collections-empty">
+              <div class="role-empty-icon">📭</div>
+              <p>No collections yet. <button class="link-btn" onclick="switchTab('browse')">Browse available surplus →</button></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: IMPACT ── -->
+        <div class="role-panel" id="tab-impact" hidden>
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">🌱 Your Community Impact</h2>
+          </div>
+          <div class="analytics-grid">
+            <div class="dash-card analytics-highlight">
+              <div class="analytics-big-num" id="ana-meals">0</div>
+              <div class="analytics-label">Total Meals Distributed</div>
+              <div class="analytics-sub">Directly from restaurants to your community</div>
+            </div>
+            <div class="dash-card analytics-highlight">
+              <div class="analytics-big-num green" id="ana-people">0</div>
+              <div class="analytics-label">People Fed</div>
+              <div class="analytics-sub">Estimated @ 1 meal = 1 person</div>
+            </div>
+            <div class="dash-card analytics-highlight">
+              <div class="analytics-big-num orange" id="ana-co2">0 kg</div>
+              <div class="analytics-label">CO₂ Emissions Prevented</div>
+              <div class="analytics-sub">By rescuing food from landfill</div>
+            </div>
+          </div>
+
+          <div class="dash-card impact-cert-card">
+            <div class="cert-icon">🏅</div>
+            <h3 class="dash-card-title">RESKYU Impact Certificate</h3>
+            <p class="dash-card-desc">Download your monthly impact report to showcase your NGO's contribution to food rescue and community welfare.</p>
+            <button class="dash-btn-primary" id="download-cert-btn">📄 Download Impact Certificate</button>
+          </div>
+
+          <div class="impact-milestones">
+            <h3 class="milestones-title">🎯 Milestones</h3>
+            <div class="milestones-grid" id="milestones-grid">
+              <div class="milestone locked" data-target="10"><div class="milestone-icon">🥉</div><div class="milestone-label">First 10 Meals</div><div class="milestone-progress">0 / 10</div></div>
+              <div class="milestone locked" data-target="50"><div class="milestone-icon">🥈</div><div class="milestone-label">50 Meals</div><div class="milestone-progress">0 / 50</div></div>
+              <div class="milestone locked" data-target="100"><div class="milestone-icon">🥇</div><div class="milestone-label">100 Meals</div><div class="milestone-progress">0 / 100</div></div>
+              <div class="milestone locked" data-target="500"><div class="milestone-icon">🏆</div><div class="milestone-label">Food Hero (500)</div><div class="milestone-progress">0 / 500</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: PROFILE ── -->
+        <div class="role-panel" id="tab-profile" hidden>
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">👤 NGO Profile</h2>
+          </div>
+          <div class="dash-grid">
+            <div class="dash-card">
+              <form id="profile-form" class="dash-profile-form">
+                <div class="dash-field">
+                  <label for="edit-name">NGO / Organisation Name</label>
+                  <input id="edit-name" type="text" placeholder="Organisation name" />
+                </div>
+                <div class="dash-field">
+                  <label for="edit-email">Email</label>
+                  <input id="edit-email" type="email" disabled />
+                  <span class="dash-field-hint">Email cannot be changed</span>
+                </div>
+                <div class="dash-field">
+                  <label for="edit-address">Organisation Address</label>
+                  <input id="edit-address" type="text" placeholder="Full address" />
+                </div>
+                <div class="dash-field">
+                  <label for="edit-phone">Contact Phone</label>
+                  <input id="edit-phone" type="tel" placeholder="+91 XXXXX XXXXX" />
+                </div>
+                <div class="dash-field">
+                  <label for="edit-reg">Registration / NGO ID (optional)</label>
+                  <input id="edit-reg" type="text" placeholder="e.g. AP/2022/1234567" />
+                </div>
+                <div class="dash-field">
+                  <label for="edit-joined">Member Since</label>
+                  <input id="edit-joined" type="text" disabled />
+                </div>
+                <button type="submit" class="dash-btn-primary" id="save-profile-btn">Save Changes</button>
+                <p class="dash-form-msg" id="profile-msg"></p>
+              </form>
+            </div>
+            <div class="dash-side-col">
+              <div class="dash-card">
+                <div class="dash-card-header"><span class="dash-card-icon">🔒</span><h2 class="dash-card-title">Security</h2></div>
+                <p class="dash-card-desc">Send a password reset link to your email.</p>
+                <button class="dash-btn-outline" id="reset-pw-btn">Send Reset Email</button>
+                <p class="dash-form-msg" id="reset-msg"></p>
+              </div>
+              <div class="dash-card dash-impact-card">
+                <div class="dash-impact-badge">🤝</div>
+                <h3 class="dash-impact-title">Verified NGO Partner</h3>
+                <p class="dash-impact-desc">Your organisation is helping fight food insecurity in India. Thank you for being part of the RESKYU movement.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- CLAIM MODAL -->
+  <div id="claim-modal" class="auth-modal" role="dialog" hidden>
+    <div class="auth-backdrop" id="claim-backdrop"></div>
+    <div class="auth-card claim-card">
+      <button class="auth-close" id="claim-close">&times;</button>
+      <div class="auth-logo">Claim Surplus</div>
+      <p class="auth-welcome" id="claim-item-name">Item name</p>
+      <div class="dash-field">
+        <label for="claim-qty">How many portions? *</label>
+        <input id="claim-qty" type="number" min="1" placeholder="e.g. 5" />
+      </div>
+      <div class="dash-field">
+        <label for="claim-note">Note to restaurant (optional)</label>
+        <textarea id="claim-note" rows="2" placeholder="e.g. Collecting for 20 students, will arrive by 9 PM"></textarea>
+      </div>
+      <button class="dash-btn-primary" id="confirm-claim-btn">✅ Confirm Claim</button>
+      <p class="dash-form-msg" id="claim-msg"></p>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/ngo-dashboard.js"></script>
+</body>
+</html>

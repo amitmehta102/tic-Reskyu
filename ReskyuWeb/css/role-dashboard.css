@@ -1,0 +1,341 @@
+/* ============================================================
+   RESKYU — Role Dashboard Shared Styles
+   Used by: restaurant-dashboard.html, ngo-dashboard.html
+   ============================================================ */
+
+/* ── ROLE NAV TABS ──────────────────────────────────────── */
+.role-nav-center {
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(254,250,242,.05);
+  border: 1px solid rgba(254,250,242,.08);
+  border-radius: 50px; padding: 4px;
+}
+.role-tab {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-head); font-weight: 600; font-size: .8rem;
+  color: rgba(254,250,242,.45); padding: 7px 16px;
+  border-radius: 50px; transition: background .2s, color .2s;
+  white-space: nowrap;
+}
+.role-tab.active {
+  background: var(--orange); color: var(--dark);
+}
+.role-tab:hover:not(.active) {
+  background: rgba(254,250,242,.08); color: var(--cream);
+}
+
+/* ── ROLE HEADER ─────────────────────────────────────────── */
+.role-header {
+  background: linear-gradient(135deg, #1A1535 0%, #0E0A1F 100%);
+  border-bottom: 1px solid rgba(254,250,242,.07);
+  padding: 36px 0 30px;
+}
+.ngo-header {
+  background: linear-gradient(135deg, rgba(123,224,138,.08) 0%, #0E0A1F 60%);
+}
+.role-header-inner {
+  display: flex; align-items: center; gap: 20px;
+}
+.role-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  color: var(--dark); font-family: var(--font-head);
+  font-weight: 900; font-size: 1.8rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; box-shadow: 0 0 0 3px rgba(245,166,35,.25);
+}
+.ngo-avatar {
+  background: linear-gradient(135deg, #7BE08A, #34a853);
+  box-shadow: 0 0 0 3px rgba(123,224,138,.25);
+}
+.role-title {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  color: var(--cream); letter-spacing: -.02em;
+  line-height: 1; margin-bottom: 10px;
+}
+.ngo-badge { background: rgba(123,224,138,.15); color: #7BE08A; border-color: rgba(123,224,138,.3); }
+
+/* ── ROLE PANELS ─────────────────────────────────────────── */
+.role-panel { width: 100%; }
+.role-panel[hidden] { display: none; }
+.role-panel.active { display: block; }
+
+.role-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+}
+.role-panel-title {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: 1.2rem; color: var(--cream);
+}
+.role-btn-sm { padding: 9px 20px; font-size: .84rem; width: auto; }
+
+/* ── FILTER CHIPS ────────────────────────────────────────── */
+.listing-filters {
+  display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 6px 18px; border-radius: 50px; font-size: .78rem;
+  font-weight: 700; cursor: pointer;
+  background: rgba(254,250,242,.05);
+  border: 1px solid rgba(254,250,242,.1);
+  color: rgba(254,250,242,.55);
+  transition: background .2s, color .2s, border-color .2s;
+  font-family: var(--font-head);
+}
+.filter-chip.active, .filter-chip:hover {
+  background: rgba(245,166,35,.15);
+  border-color: rgba(245,166,35,.35);
+  color: var(--orange);
+}
+
+/* ── LISTING CARDS (Restaurant) ──────────────────────────── */
+.listing-card {
+  background: rgba(254,250,242,.04);
+  border: 1px solid rgba(254,250,242,.09);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+  transition: border-color .2s, background .2s;
+}
+.listing-card:hover { border-color: rgba(245,166,35,.25); background: rgba(245,166,35,.03); }
+.listing-card-name {
+  font-family: var(--font-head); font-weight: 700;
+  font-size: 1rem; color: var(--cream); margin-bottom: 6px;
+}
+.listing-card-meta {
+  font-size: .8rem; color: rgba(254,250,242,.45);
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.listing-card-meta span { display: flex; align-items: center; gap: 4px; }
+.listing-card-actions { display: flex; gap: 8px; align-items: center; }
+
+.status-badge {
+  padding: 4px 12px; border-radius: 50px; font-size: .7rem;
+  font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+}
+.status-active   { background: rgba(123,224,138,.15); color: #7BE08A; border: 1px solid rgba(123,224,138,.3); }
+.status-claimed  { background: rgba(245,166,35,.15);  color: var(--orange); border: 1px solid rgba(245,166,35,.3); }
+.status-expired  { background: rgba(255,80,80,.1);    color: #FF8080; border: 1px solid rgba(255,80,80,.2); }
+
+.listing-delete-btn {
+  background: none; border: 1px solid rgba(255,80,80,.2);
+  color: #FF8080; padding: 5px 12px; border-radius: 8px;
+  font-size: .75rem; cursor: pointer; font-weight: 600;
+  transition: background .15s;
+}
+.listing-delete-btn:hover { background: rgba(255,80,80,.1); }
+
+/* ── FORM LAYOUT ─────────────────────────────────────────── */
+.role-form-grid {
+  display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start;
+}
+.role-form .dash-field { margin-bottom: 0; }
+.form-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 16px;
+}
+.dash-field textarea {
+  background: rgba(254,250,242,.05);
+  border: 1px solid rgba(254,250,242,.1);
+  border-radius: 10px; padding: 12px 16px;
+  color: var(--cream); font-family: var(--font-body); font-size: .92rem;
+  outline: none; width: 100%; resize: vertical;
+  transition: border-color .2s;
+}
+.dash-field textarea:focus { border-color: var(--orange); }
+
+/* Price preview panel */
+.price-preview {
+  background: rgba(245,166,35,.06);
+  border: 1px solid rgba(245,166,35,.2);
+  border-radius: 12px; padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.price-preview-row {
+  display: flex; justify-content: space-between;
+  font-size: .85rem; padding: 4px 0;
+  color: rgba(254,250,242,.6);
+}
+.price-preview-row.highlight {
+  font-weight: 700; color: var(--cream);
+  font-size: .95rem; border-top: 1px solid rgba(254,250,242,.08);
+  margin-top: 6px; padding-top: 10px;
+}
+.saving-text { color: #7BE08A; font-weight: 700; }
+
+/* Tips card */
+.tips-card { position: sticky; top: 90px; }
+.tips-title {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: .95rem; color: var(--cream); margin-bottom: 16px;
+}
+.tips-list {
+  list-style: none; display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px;
+}
+.tips-list li { font-size: .83rem; color: rgba(254,250,242,.6); line-height: 1.5; }
+.tips-badge {
+  background: rgba(123,224,138,.08); border: 1px solid rgba(123,224,138,.2);
+  border-radius: 10px; padding: 12px 16px;
+  font-size: .8rem; color: rgba(254,250,242,.6);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.tips-badge strong { color: #7BE08A; }
+
+/* ── ANALYTICS ───────────────────────────────────────────── */
+.analytics-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 20px;
+  margin-bottom: 24px;
+}
+.analytics-highlight { text-align: center; padding: 32px 20px; }
+.analytics-big-num {
+  font-family: var(--font-head); font-weight: 900;
+  font-size: 2.8rem; color: var(--cream);
+  line-height: 1; margin-bottom: 10px;
+}
+.analytics-big-num.orange { color: var(--orange); }
+.analytics-big-num.green  { color: #7BE08A; }
+.analytics-label { font-size: .85rem; font-weight: 700; color: rgba(254,250,242,.7); margin-bottom: 4px; }
+.analytics-sub   { font-size: .75rem; color: rgba(254,250,242,.35); }
+
+/* ESG Bars */
+.esg-card { margin-bottom: 24px; }
+.esg-score-row { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
+.esg-bar-wrap { display: grid; grid-template-columns: 140px 1fr 48px; align-items: center; gap: 12px; }
+.esg-bar-wrap > span:first-child { font-size: .82rem; color: rgba(254,250,242,.6); }
+.esg-bar-wrap > span:last-child  { font-size: .82rem; font-weight: 700; color: var(--cream); }
+.esg-bar {
+  height: 8px; background: rgba(254,250,242,.08); border-radius: 50px; overflow: hidden;
+}
+.esg-fill {
+  height: 100%; background: #7BE08A; border-radius: 50px;
+  transition: width 1.2s cubic-bezier(.4,0,.2,1);
+}
+.esg-fill.orange { background: var(--orange); }
+.esg-fill.green  { background: #7BE08A; }
+
+/* ── SURPLUS CARDS (NGO Browse) ──────────────────────────── */
+.surplus-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px; margin-bottom: 24px;
+}
+.surplus-card {
+  background: rgba(254,250,242,.04);
+  border: 1px solid rgba(254,250,242,.09);
+  border-radius: 18px; padding: 22px;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: border-color .22s, transform .22s, background .22s;
+  position: relative; overflow: hidden;
+}
+.surplus-card:hover {
+  border-color: rgba(245,166,35,.3);
+  transform: translateY(-4px);
+  background: rgba(245,166,35,.04);
+}
+.surplus-card-badge {
+  font-size: .7rem; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; color: #7BE08A;
+}
+.surplus-card-category { font-size: .88rem; color: rgba(254,250,242,.4); }
+.surplus-card-name {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: 1rem; color: var(--cream); line-height: 1.3;
+}
+.surplus-card-restaurant { font-size: .8rem; color: rgba(254,250,242,.5); }
+.surplus-card-qty { font-size: .8rem; color: rgba(254,250,242,.4); }
+.surplus-card-prices {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.surplus-original {
+  font-size: .82rem; color: rgba(254,250,242,.3);
+  text-decoration: line-through;
+}
+.surplus-discounted {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: 1.3rem; color: var(--orange);
+}
+.surplus-save-pct {
+  font-size: .72rem; font-weight: 800; padding: 3px 10px;
+  border-radius: 50px; background: rgba(123,224,138,.15);
+  color: #7BE08A; border: 1px solid rgba(123,224,138,.25);
+}
+.surplus-card-pickup { font-size: .78rem; color: rgba(254,250,242,.4); margin-top: 2px; }
+.surplus-claim-btn { width: 100%; margin-top: 6px; }
+
+.browse-controls { display: flex; gap: 10px; }
+.filter-select {
+  background: rgba(254,250,242,.05); border: 1px solid rgba(254,250,242,.1);
+  color: var(--cream); border-radius: 10px; padding: 8px 14px;
+  font-family: var(--font-body); font-size: .85rem; cursor: pointer;
+  outline: none;
+}
+.filter-select option { background: #1A1535; }
+
+/* ── CLAIM MODAL ─────────────────────────────────────────── */
+.claim-card { max-width: 420px; }
+
+/* ── MILESTONES ──────────────────────────────────────────── */
+.milestones-title {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: 1rem; color: var(--cream); margin-bottom: 16px;
+}
+.milestones-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-bottom: 24px;
+}
+.milestone {
+  background: rgba(254,250,242,.04);
+  border: 1px solid rgba(254,250,242,.08);
+  border-radius: 14px; padding: 20px 12px;
+  text-align: center; transition: border-color .2s;
+}
+.milestone.unlocked {
+  border-color: rgba(245,166,35,.35);
+  background: rgba(245,166,35,.06);
+}
+.milestone.locked { opacity: .55; }
+.milestone-icon { font-size: 1.8rem; margin-bottom: 8px; }
+.milestone-label { font-size: .8rem; font-weight: 700; color: var(--cream); margin-bottom: 4px; }
+.milestone-progress { font-size: .72rem; color: rgba(254,250,242,.35); }
+
+/* ── IMPACT CERT CARD ────────────────────────────────────── */
+.impact-cert-card { text-align: center; margin-bottom: 24px; padding: 36px; }
+.cert-icon { font-size: 2.8rem; margin-bottom: 12px; }
+
+/* ── EMPTY STATES ────────────────────────────────────────── */
+.role-empty-state {
+  text-align: center; padding: 60px 24px;
+  background: rgba(254,250,242,.02);
+  border: 1px dashed rgba(254,250,242,.1);
+  border-radius: 16px; margin-top: 8px;
+}
+.role-empty-icon { font-size: 2.4rem; margin-bottom: 12px; }
+.role-empty-state p { color: rgba(254,250,242,.45); font-size: .9rem; }
+
+.link-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--orange); font-family: var(--font-body);
+  font-size: .9rem; font-weight: 600; padding: 0;
+  transition: opacity .15s;
+}
+.link-btn:hover { opacity: .75; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .role-form-grid   { grid-template-columns: 1fr; }
+  .analytics-grid   { grid-template-columns: 1fr 1fr; }
+  .milestones-grid  { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .role-nav-center  { display: none; }
+  .analytics-grid   { grid-template-columns: 1fr; }
+  .form-row         { grid-template-columns: 1fr; }
+  .surplus-grid     { grid-template-columns: 1fr; }
+  .milestones-grid  { grid-template-columns: 1fr 1fr; }
+}

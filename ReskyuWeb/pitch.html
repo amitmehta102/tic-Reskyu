@@ -4,11 +4,177 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+  <!-- ── Primary SEO ─────────────────────────────────────── -->
   <title>RESKYU — Rescue Food. Feed India. Zero Waste.</title>
   <meta name="description"
-    content="RESKYU connects restaurants with surplus food directly to nearby students and NGOs — no delivery, no emissions, no waste." />
-  <meta property="og:title" content="RESKYU — Rescue Food. Feed India." />
-  <meta property="og:description" content="AI-powered food surplus marketplace. Zero logistics. Zero waste." />
+    content="RESKYU is India's AI-powered food surplus marketplace. Connects restaurants with surplus food directly to students and NGOs — no delivery, no emissions, zero waste. Join 1000s rescuing meals daily." />
+  <meta name="keywords"
+    content="food rescue India, surplus food marketplace, food waste app India, cheap food near me, NGO food donation, restaurant surplus, food sustainability India, zero waste food, RESKYU" />
+  <meta name="author" content="RESKYU" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <link rel="canonical" href="https://reskyu-app.netlify.app/" />
+
+  <!-- ── Open Graph (Facebook, WhatsApp, LinkedIn) ─────── -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="RESKYU" />
+  <meta property="og:title"       content="RESKYU — Rescue Food. Feed India. Zero Waste." />
+  <meta property="og:description" content="India's AI-powered food surplus marketplace. Restaurants list surplus. Students & NGOs grab it at 50–80% off. No delivery. Zero waste." />
+  <meta property="og:url"         content="https://reskyu-app.netlify.app/" />
+  <meta property="og:image"       content="https://reskyu-app.netlify.app/img/hero_bg.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale"      content="en_IN" />
+
+  <!-- ── Twitter Card ─────────────────────────────────── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="RESKYU — Rescue Food. Feed India." />
+  <meta name="twitter:description" content="AI-powered food surplus marketplace. Zero logistics. Zero waste. Join the movement." />
+  <meta name="twitter:image"       content="https://reskyu-app.netlify.app/img/hero_bg.png" />
+
+  <!-- ── Theme & App ──────────────────────────────────── -->
+  <meta name="theme-color" content="#0E0A1F" />
+  <meta name="application-name" content="RESKYU" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="RESKYU" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- ── Favicon (inline SVG base64 placeholder) ──────── -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0A1F'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='16' font-weight='900' fill='%23F5A623' font-family='Arial'%3ER%3C/text%3E%3C/svg%3E" />
+
+  <!-- ── Structured Data: Organization ────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "RESKYU",
+    "url": "https://reskyu-app.netlify.app",
+    "logo": "https://reskyu-app.netlify.app/img/hero_bg.png",
+    "description": "India's AI-powered food surplus marketplace connecting restaurants, students and NGOs to eliminate food waste.",
+    "email": "reskyu123@gmail.com",
+    "foundingDate": "2026",
+    "areaServed": "IN",
+    "sameAs": []
+  }
+  </script>
+
+  <!-- ── Structured Data: WebSite + Sitelinks Search ───── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "RESKYU",
+    "url": "https://reskyu-app.netlify.app",
+    "description": "Rescue food. Feed India. Zero waste.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://reskyu-app.netlify.app/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- ── Structured Data: FAQPage ─────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is RESKYU?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "RESKYU is an AI-powered food surplus marketplace in India that connects restaurants with unsold end-of-day food to nearby students and NGOs at 50–80% off, reducing food waste and carbon emissions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does RESKYU work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Restaurants list their end-of-day surplus on the RESKYU app. Consumers and students browse nearby listings and pay upfront via UPI. They pick up the meal directly — no delivery, no emissions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is RESKYU free for NGOs?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. RESKYU is 100% free for NGOs and community organisations. Verified NGOs automatically receive unclaimed surplus inventory at zero cost."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much can I save with RESKYU?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Users typically save 50–80% off restaurant meal prices when purchasing surplus food through RESKYU."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- ── Structured Data: SoftwareApplication ─────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "RESKYU",
+    "operatingSystem": "Web, Android, iOS",
+    "applicationCategory": "FoodApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "INR"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "120"
+    },
+    "description": "India's AI-powered food surplus marketplace. Save 50–80% on restaurant meals while reducing food waste.",
+    "url": "https://reskyu-app.netlify.app"
+  }
+  </script>
+
+  <!-- ── Structured Data: BreadcrumbList ───────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://reskyu-app.netlify.app/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "How It Works",
+        "item": "https://reskyu-app.netlify.app/#how"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "For You",
+        "item": "https://reskyu-app.netlify.app/#audiences"
+      }
+    ]
+  }
+  </script>
+
+  <!-- ── Fonts & Styles ────────────────────────────────── -->
+  <!-- ── Preload critical assets (Core Web Vitals boost) ── -->
+  <!-- Preload LCP hero background image -->
+  <link rel="preload" as="image" href="img/hero_bg.webp" fetchpriority="high" />
+  <!-- DNS prefetch for Firebase CDN (auth + firestore) -->
+  <link rel="dns-prefetch" href="https://www.gstatic.com" />
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -32,7 +198,8 @@
     </ul>
     <div class="nav-right">
       <a href="#audiences" class="nav-link-secondary">For Businesses</a>
-      <a href="#cta" class="nav-cta">Get Early Access</a>
+      <button class="nav-auth-btn" id="open-login">Log In</button>
+      <button class="nav-cta" id="open-signup">Sign Up</button>
     </div>
     <button class="hamburger" aria-label="Toggle menu" id="hamburger-btn">
       <span></span><span></span><span></span>
@@ -429,6 +596,125 @@
       </div>
     </div>
   </footer>
+
+  <!-- ════ AUTH MODAL ════ -->
+  <div id="auth-modal" class="auth-modal" role="dialog" aria-modal="true" aria-label="Login or Sign Up" hidden>
+    <div class="auth-backdrop" id="auth-backdrop"></div>
+    <div class="auth-card">
+
+      <!-- Close -->
+      <button class="auth-close" id="auth-close" aria-label="Close">&times;</button>
+
+      <!-- Logo -->
+      <div class="auth-logo">RES<em>KYU</em></div>
+
+      <!-- Tabs (hidden on forgot-password panel) -->
+      <div class="auth-tabs" id="auth-tabs-bar" role="tablist">
+        <button class="auth-tab active" id="tab-login" role="tab" data-target="panel-login">Log In</button>
+        <button class="auth-tab" id="tab-signup" role="tab" data-target="panel-signup">Sign Up</button>
+        <div class="auth-tab-indicator"></div>
+      </div>
+
+      <!-- ── LOGIN PANEL ── -->
+      <div class="auth-panel active" id="panel-login" role="tabpanel">
+        <p class="auth-welcome">Welcome back! Pick up where you left off.</p>
+
+        <!-- Google button -->
+        <button class="auth-google-btn" id="google-login-btn">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" height="18" />
+          Continue with Google
+        </button>
+        <div class="auth-divider"><span>or</span></div>
+
+        <form class="auth-form" id="login-form" novalidate>
+          <div class="auth-field">
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div class="auth-field">
+            <label for="login-password">Password</label>
+            <div class="auth-pw-wrap">
+              <input id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password" />
+              <button type="button" class="auth-pw-toggle" data-target="login-password" aria-label="Show password">👁</button>
+            </div>
+          </div>
+          <div class="auth-forgot"><button type="button" class="auth-forgot-link" id="show-forgot">Forgot password?</button></div>
+          <button type="submit" class="auth-submit">Log In →</button>
+          <p class="auth-msg" id="login-msg"></p>
+        </form>
+        <p class="auth-switch">Don't have an account? <button class="auth-switch-btn" data-target="tab-signup">Sign Up</button></p>
+      </div>
+
+      <!-- ── SIGNUP PANEL ── -->
+      <div class="auth-panel" id="panel-signup" role="tabpanel" hidden>
+        <p class="auth-welcome">Join RESKYU — it only takes a minute.</p>
+
+        <!-- Google button -->
+        <button class="auth-google-btn" id="google-signup-btn">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" height="18" />
+          Continue with Google
+        </button>
+        <div class="auth-divider"><span>or</span></div>
+
+        <form class="auth-form" id="signup-form" novalidate>
+          <div class="auth-field">
+            <label for="signup-name">Full Name</label>
+            <input id="signup-name" type="text" placeholder="Your name" autocomplete="name" />
+          </div>
+          <div class="auth-field">
+            <label for="signup-email">Email</label>
+            <input id="signup-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div class="auth-field">
+            <label for="signup-password">Password</label>
+            <div class="auth-pw-wrap">
+              <input id="signup-password" type="password" placeholder="Min. 8 characters" autocomplete="new-password" />
+              <button type="button" class="auth-pw-toggle" data-target="signup-password" aria-label="Show password">👁</button>
+            </div>
+          </div>
+          <div class="auth-field">
+            <label for="signup-role">I am a…</label>
+            <select id="signup-role">
+              <option value="" disabled selected>Select your role</option>
+              <option value="restaurant">🍽️ Restaurant / Merchant</option>
+              <option value="consumer">🎓 Student / Consumer</option>
+              <option value="ngo">🤝 NGO / Community Org</option>
+            </select>
+          </div>
+          <button type="submit" class="auth-submit">Create Account →</button>
+          <p class="auth-msg" id="signup-msg"></p>
+        </form>
+        <p class="auth-switch">Already have an account? <button class="auth-switch-btn" data-target="tab-login">Log In</button></p>
+      </div>
+
+      <!-- ── FORGOT PASSWORD PANEL ── -->
+      <div class="auth-panel" id="panel-forgot" role="tabpanel" hidden>
+        <button class="auth-back-btn" id="back-to-login">← Back to Log In</button>
+        <p class="auth-welcome">Enter your email and we'll send you a reset link.</p>
+        <form class="auth-form" id="forgot-form" novalidate>
+          <div class="auth-field">
+            <label for="forgot-email">Email Address</label>
+            <input id="forgot-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <button type="submit" class="auth-submit">Send Reset Link →</button>
+          <p class="auth-msg" id="forgot-msg"></p>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Firebase Compat SDK (v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+  <!-- RESKYU Firebase config (add YOUR keys here) -->
+  <script src="js/firebase-config.js"></script>
+
+  <!-- RESKYU auth logic -->
+  <script src="js/auth.js"></script>
 
   <script src="js/pitch.js"></script>
 </body>

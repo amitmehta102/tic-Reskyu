@@ -1,0 +1,5 @@
+# Netlify _redirects
+# Note: Static files always take priority over these rules.
+# sitemap.xml, robots.txt, CSS, JS will be served directly.
+
+/dashboard    /dashboard.html    200

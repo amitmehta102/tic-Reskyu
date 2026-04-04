@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Restaurant Dashboard — RESKYU</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0E0A1F" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0A1F'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='16' font-weight='900' fill='%23F5A623' font-family='Arial'%3ER%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/pitch.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/role-dashboard.css" />
+</head>
+<body class="loaded dash-body">
+
+  <!-- NAV -->
+  <nav class="dash-nav">
+    <a href="pitch.html" class="nav-logo">RES<em>KYU</em></a>
+    <div class="role-nav-center">
+      <button class="role-tab active" data-tab="listings">📦 My Listings</button>
+      <button class="role-tab" data-tab="add">➕ List Surplus</button>
+      <button class="role-tab" data-tab="analytics">📊 Analytics</button>
+      <button class="role-tab" data-tab="profile">👤 Profile</button>
+    </div>
+    <div class="dash-nav-right">
+      <a href="pitch.html" class="nav-link-secondary">← Home</a>
+      <button class="nav-auth-btn" id="dash-logout-btn">Log Out</button>
+    </div>
+  </nav>
+
+  <!-- LOADING -->
+  <div id="dash-loading" class="dash-loading"><div class="dash-spinner"></div></div>
+
+  <main id="dash-main" class="dash-main" hidden>
+
+    <!-- HEADER STRIP -->
+    <div class="role-header">
+      <div class="dash-container role-header-inner">
+        <div class="role-avatar" id="dash-avatar">R</div>
+        <div>
+          <p class="dash-greeting" id="dash-greeting">Good morning,</p>
+          <h1 class="role-title" id="dash-name">Loading…</h1>
+          <span class="dash-role-badge">🍽️ Restaurant / Merchant</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS STRIP -->
+    <div class="dash-stats-strip">
+      <div class="dash-container">
+        <div class="dash-stats-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="dash-stat-card"><div class="dash-stat-icon">📦</div><div class="dash-stat-num" id="stat-listed">0</div><div class="dash-stat-label">Items Listed</div></div>
+          <div class="dash-stat-card"><div class="dash-stat-icon">✅</div><div class="dash-stat-num" id="stat-claimed">0</div><div class="dash-stat-label">Meals Rescued</div></div>
+          <div class="dash-stat-card"><div class="dash-stat-icon">♻️</div><div class="dash-stat-num" id="stat-co2">0 kg</div><div class="dash-stat-label">CO₂ Saved</div></div>
+          <div class="dash-stat-card"><div class="dash-stat-icon">💰</div><div class="dash-stat-num" id="stat-revenue">₹0</div><div class="dash-stat-label">Revenue Generated</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-content">
+      <div class="dash-container">
+
+        <!-- ── TAB: MY LISTINGS ── -->
+        <div class="role-panel active" id="tab-listings">
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">📦 My Active Listings</h2>
+            <button class="dash-btn-primary role-btn-sm" onclick="switchTab('add')">+ Add New</button>
+          </div>
+
+          <!-- Filter bar -->
+          <div class="listing-filters">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="active">🟢 Active</button>
+            <button class="filter-chip" data-filter="claimed">✅ Claimed</button>
+            <button class="filter-chip" data-filter="expired">🔴 Expired</button>
+          </div>
+
+          <div id="listings-container">
+            <div class="role-empty-state" id="listings-empty">
+              <div class="role-empty-icon">📭</div>
+              <p>No listings yet. <button class="link-btn" onclick="switchTab('add')">Add your first surplus item →</button></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: ADD LISTING ── -->
+        <div class="role-panel" id="tab-add" hidden>
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">➕ List Surplus Food</h2>
+          </div>
+          <div class="role-form-grid">
+            <form id="listing-form" class="dash-card role-form" novalidate>
+
+              <div class="form-row">
+                <div class="dash-field">
+                  <label for="food-name">Food Item Name *</label>
+                  <input id="food-name" type="text" placeholder="e.g. Paneer Butter Masala, Biryani" required />
+                </div>
+                <div class="dash-field">
+                  <label for="food-category">Category *</label>
+                  <select id="food-category" required>
+                    <option value="" disabled selected>Select category</option>
+                    <option value="meals">🍛 Full Meals</option>
+                    <option value="snacks">🥪 Snacks & Starters</option>
+                    <option value="breads">🫓 Breads & Rotis</option>
+                    <option value="desserts">🍮 Desserts & Sweets</option>
+                    <option value="beverages">🧃 Beverages</option>
+                    <option value="veg">🥗 Salads & Sides</option>
+                    <option value="mystery">🎁 Mystery Box</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="dash-field">
+                  <label for="food-qty">Quantity (portions) *</label>
+                  <input id="food-qty" type="number" min="1" max="200" placeholder="e.g. 10" required />
+                </div>
+                <div class="dash-field">
+                  <label for="food-original-price">Original Price (₹) *</label>
+                  <input id="food-original-price" type="number" min="1" placeholder="e.g. 250" required />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="dash-field">
+                  <label for="food-discount">Discount % *</label>
+                  <select id="food-discount" required>
+                    <option value="" disabled selected>Select discount</option>
+                    <option value="40">40% off</option>
+                    <option value="50">50% off</option>
+                    <option value="60">60% off</option>
+                    <option value="70">70% off</option>
+                    <option value="80">80% off</option>
+                  </select>
+                </div>
+                <div class="dash-field">
+                  <label>Discounted Price (₹)</label>
+                  <input id="food-discounted-price" type="number" placeholder="Auto-calculated" disabled />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="dash-field">
+                  <label for="pickup-start">Pickup From *</label>
+                  <input id="pickup-start" type="time" required />
+                </div>
+                <div class="dash-field">
+                  <label for="pickup-end">Pickup Until *</label>
+                  <input id="pickup-end" type="time" required />
+                </div>
+              </div>
+
+              <div class="dash-field">
+                <label for="food-desc">Description (optional)</label>
+                <textarea id="food-desc" rows="2" placeholder="Any allergen info, freshness notes, etc."></textarea>
+              </div>
+
+              <!-- Price preview -->
+              <div class="price-preview" id="price-preview" hidden>
+                <div class="price-preview-row">
+                  <span>Original price</span>
+                  <span id="preview-original">—</span>
+                </div>
+                <div class="price-preview-row highlight">
+                  <span>Your discounted price</span>
+                  <span id="preview-discounted">—</span>
+                </div>
+                <div class="price-preview-row">
+                  <span>Customer saves</span>
+                  <span id="preview-savings" class="saving-text">—</span>
+                </div>
+              </div>
+
+              <button type="submit" class="dash-btn-primary" id="list-submit-btn">🚀 Publish Listing</button>
+              <p class="dash-form-msg" id="listing-msg"></p>
+            </form>
+
+            <!-- Tips card -->
+            <div class="dash-card tips-card">
+              <h3 class="tips-title">💡 Tips for More Rescues</h3>
+              <ul class="tips-list">
+                <li>🕐 List early — users browse during lunch & dinner hours</li>
+                <li>🎁 "Mystery Box" listings get 3× more clicks</li>
+                <li>📸 Add a clear description of contents</li>
+                <li>⏰ Keep pickup windows 60–90 minutes</li>
+                <li>💸 60–70% discount gets the fastest claim rate</li>
+              </ul>
+              <div class="tips-badge">
+                <span>🌱 Every listing helps reduce</span>
+                <strong>food waste & carbon emissions</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: ANALYTICS ── -->
+        <div class="role-panel" id="tab-analytics" hidden>
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">📊 Your Impact</h2>
+          </div>
+          <div class="analytics-grid">
+            <div class="dash-card analytics-highlight">
+              <div class="analytics-big-num" id="ana-total-rescued">0</div>
+              <div class="analytics-label">Total Meals Rescued</div>
+              <div class="analytics-sub">You're making a difference 🌍</div>
+            </div>
+            <div class="dash-card analytics-highlight">
+              <div class="analytics-big-num orange" id="ana-co2">0 kg</div>
+              <div class="analytics-label">CO₂ Emissions Avoided</div>
+              <div class="analytics-sub">Equivalent to planting trees 🌳</div>
+            </div>
+            <div class="dash-card analytics-highlight">
+              <div class="analytics-big-num green" id="ana-revenue">₹0</div>
+              <div class="analytics-label">Revenue from Surplus</div>
+              <div class="analytics-sub">Food that would have been wasted</div>
+            </div>
+          </div>
+
+          <div class="dash-card esg-card">
+            <h3 class="dash-card-title">🏆 ESG Score</h3>
+            <p class="dash-card-desc">Your environmental, social, and governance score based on your RESKYU activity. Share this with stakeholders.</p>
+            <div class="esg-score-row">
+              <div class="esg-bar-wrap">
+                <span>Environmental</span>
+                <div class="esg-bar"><div class="esg-fill" id="esg-env" style="width:0%"></div></div>
+                <span id="esg-env-val">0%</span>
+              </div>
+              <div class="esg-bar-wrap">
+                <span>Social Impact</span>
+                <div class="esg-bar"><div class="esg-fill orange" id="esg-soc" style="width:0%"></div></div>
+                <span id="esg-soc-val">0%</span>
+              </div>
+              <div class="esg-bar-wrap">
+                <span>Consistency</span>
+                <div class="esg-bar"><div class="esg-fill green" id="esg-con" style="width:0%"></div></div>
+                <span id="esg-con-val">0%</span>
+              </div>
+            </div>
+            <button class="dash-btn-outline" id="generate-report-btn">📄 Download ESG Report</button>
+          </div>
+        </div>
+
+        <!-- ── TAB: PROFILE ── -->
+        <div class="role-panel" id="tab-profile" hidden>
+          <div class="role-panel-header">
+            <h2 class="role-panel-title">👤 My Profile</h2>
+          </div>
+          <div class="dash-grid">
+            <div class="dash-card">
+              <form id="profile-form" class="dash-profile-form">
+                <div class="dash-field">
+                  <label for="edit-name">Restaurant / Business Name</label>
+                  <input id="edit-name" type="text" placeholder="Your restaurant name" />
+                </div>
+                <div class="dash-field">
+                  <label for="edit-email">Email</label>
+                  <input id="edit-email" type="email" disabled />
+                  <span class="dash-field-hint">Email cannot be changed</span>
+                </div>
+                <div class="dash-field">
+                  <label for="edit-address">Restaurant Address</label>
+                  <input id="edit-address" type="text" placeholder="Full address for pickup" />
+                </div>
+                <div class="dash-field">
+                  <label for="edit-phone">Contact Phone</label>
+                  <input id="edit-phone" type="tel" placeholder="+91 XXXXX XXXXX" />
+                </div>
+                <div class="dash-field">
+                  <label for="edit-joined">Member Since</label>
+                  <input id="edit-joined" type="text" disabled />
+                </div>
+                <button type="submit" class="dash-btn-primary" id="save-profile-btn">Save Changes</button>
+                <p class="dash-form-msg" id="profile-msg"></p>
+              </form>
+            </div>
+            <div class="dash-side-col">
+              <div class="dash-card">
+                <div class="dash-card-header"><span class="dash-card-icon">🔒</span><h2 class="dash-card-title">Security</h2></div>
+                <p class="dash-card-desc">Send a password reset link to your email.</p>
+                <button class="dash-btn-outline" id="reset-pw-btn">Send Reset Email</button>
+                <p class="dash-form-msg" id="reset-msg"></p>
+              </div>
+              <div class="dash-card dash-impact-card">
+                <div class="dash-impact-badge">🍽️</div>
+                <h3 class="dash-impact-title">RESKYU Partner Restaurant</h3>
+                <p class="dash-impact-desc">You're helping reduce food waste and supporting communities across India. Every listing makes a difference.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/restaurant-dashboard.js"></script>
+</body>
+</html>

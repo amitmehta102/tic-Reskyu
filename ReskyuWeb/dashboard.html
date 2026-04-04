@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+  <!-- Dashboard is private — exclude from search engines -->
+  <title>My Dashboard — RESKYU</title>
+  <meta name="description" content="Manage your RESKYU account, view your impact stats and update your profile." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://reskyu-app.netlify.app/dashboard" />
+
+  <!-- Theme & Favicon -->
+  <meta name="theme-color" content="#0E0A1F" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0A1F'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='16' font-weight='900' fill='%23F5A623' font-family='Arial'%3ER%3C/text%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/pitch.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+
+<body class="loaded dash-body">
+
+  <!-- NAV -->
+  <nav id="navbar" class="dash-nav">
+    <a href="pitch.html" class="nav-logo">RES<em>KYU</em></a>
+    <div class="dash-nav-right">
+      <a href="pitch.html" class="nav-link-secondary">← Back to Home</a>
+      <button class="nav-auth-btn" id="dash-logout-btn">Log Out</button>
+    </div>
+  </nav>
+
+  <!-- LOADING SCREEN -->
+  <div id="dash-loading" class="dash-loading">
+    <div class="dash-spinner"></div>
+  </div>
+
+  <!-- MAIN DASHBOARD (hidden until auth confirmed) -->
+  <main id="dash-main" class="dash-main" hidden>
+
+    <!-- HEADER -->
+    <section class="dash-header">
+      <div class="dash-container">
+        <div class="dash-hero-row">
+          <div class="dash-avatar-lg" id="dash-avatar">?</div>
+          <div class="dash-hero-info">
+            <p class="dash-greeting" id="dash-greeting">Good morning,</p>
+            <h1 class="dash-name" id="dash-name">Loading…</h1>
+            <div class="dash-badges">
+              <span class="dash-role-badge" id="dash-role-badge">Member</span>
+              <span class="dash-verified-badge">✓ Verified</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS STRIP -->
+    <section class="dash-stats-strip">
+      <div class="dash-container">
+        <div class="dash-stats-grid">
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon">🍛</div>
+            <div class="dash-stat-num" id="stat-meals">0</div>
+            <div class="dash-stat-label">Meals Rescued</div>
+          </div>
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon">♻️</div>
+            <div class="dash-stat-num" id="stat-co2">0 kg</div>
+            <div class="dash-stat-label">CO₂ Avoided</div>
+          </div>
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon">💰</div>
+            <div class="dash-stat-num" id="stat-saved">₹0</div>
+            <div class="dash-stat-label">Amount Saved</div>
+          </div>
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon">⭐</div>
+            <div class="dash-stat-num" id="stat-streak">0</div>
+            <div class="dash-stat-label">Day Streak</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTENT GRID -->
+    <section class="dash-content">
+      <div class="dash-container dash-grid">
+
+        <!-- PROFILE CARD -->
+        <div class="dash-card" id="profile-card">
+          <div class="dash-card-header">
+            <span class="dash-card-icon">👤</span>
+            <h2 class="dash-card-title">My Profile</h2>
+          </div>
+
+          <form id="profile-form" class="dash-profile-form">
+            <div class="dash-field">
+              <label for="edit-name">Full Name</label>
+              <input id="edit-name" type="text" placeholder="Your name" />
+            </div>
+            <div class="dash-field">
+              <label for="edit-email">Email</label>
+              <input id="edit-email" type="email" placeholder="Email" disabled />
+              <span class="dash-field-hint">Email cannot be changed</span>
+            </div>
+            <div class="dash-field">
+              <label for="edit-role">Role</label>
+              <select id="edit-role">
+                <option value="restaurant">🍽️ Restaurant / Merchant</option>
+                <option value="consumer">🎓 Student / Consumer</option>
+                <option value="ngo">🤝 NGO / Community Org</option>
+              </select>
+            </div>
+            <div class="dash-field">
+              <label>Member Since</label>
+              <input id="edit-joined" type="text" disabled />
+            </div>
+            <button type="submit" class="dash-btn-primary" id="save-profile-btn">Save Changes</button>
+            <p class="dash-form-msg" id="profile-msg"></p>
+          </form>
+        </div>
+
+        <!-- SIDE COLUMN -->
+        <div class="dash-side-col">
+
+          <!-- QUICK ACTIONS -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span class="dash-card-icon">⚡</span>
+              <h2 class="dash-card-title">Quick Actions</h2>
+            </div>
+            <div class="dash-actions" id="dash-actions">
+              <!-- Populated by JS based on role -->
+            </div>
+          </div>
+
+          <!-- CHANGE PASSWORD -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span class="dash-card-icon">🔒</span>
+              <h2 class="dash-card-title">Security</h2>
+            </div>
+            <p class="dash-card-desc">Send a password reset link to your email.</p>
+            <button class="dash-btn-outline" id="reset-pw-btn">Send Reset Email</button>
+            <p class="dash-form-msg" id="reset-msg"></p>
+          </div>
+
+          <!-- IMPACT BADGE -->
+          <div class="dash-card dash-impact-card">
+            <div class="dash-impact-badge">🌱</div>
+            <h3 class="dash-impact-title">You're Making a Difference</h3>
+            <p class="dash-impact-desc">Every meal rescued prevents food from reaching landfill and feeds someone in need. Keep going!</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/dashboard.js"></script>
+
+</body>
+</html>

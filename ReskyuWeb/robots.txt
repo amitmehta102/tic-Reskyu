@@ -1,0 +1,11 @@
+# RESKYU — robots.txt
+# Allows all crawlers to index the landing page
+# Blocks crawlers from private/auth pages
+
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /dashboard.html
+
+# Sitemap location
+Sitemap: https://reskyu-app.netlify.app/sitemap.xml
