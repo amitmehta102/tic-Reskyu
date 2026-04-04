@@ -1,4 +1,4 @@
-package com.reskyu.consumer.data.remote
+﻿package com.reskyu.consumer.data.remote
 
 import com.reskyu.consumer.BuildConfig
 import okhttp3.Interceptor
@@ -8,23 +8,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-/**
- * RetrofitClient
- *
- * Singleton Retrofit instance pointing at the Node.js backend running via localtunnel.
- * The tunnel URL is read from BuildConfig (local.properties → NODE_API_BASE_URL).
- *
- * Interceptors:
- *  ① bypass-tunnel-reminder — localtunnel shows a warning page on first visit
- *     unless this header is set. OkHttp injects it on every request.
- *  ② Logging — full request/response logging in debug builds.
- */
 object RetrofitClient {
 
-    /**
-     * OkHttp interceptor that injects the header required to bypass
-     * the localtunnel "this is a tunnel" splash page automatically.
-     */
     private val tunnelBypassInterceptor = Interceptor { chain ->
         val request = chain.request().newBuilder()
             .addHeader("bypass-tunnel-reminder", "true")
@@ -54,7 +39,6 @@ object RetrofitClient {
             .build()
     }
 
-    /** Convenience accessor — create a typed API service interface */
     val api: ApiService by lazy {
         instance.create(ApiService::class.java)
     }

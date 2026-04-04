@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.splash
+﻿package com.reskyu.consumer.ui.splash
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -32,14 +32,6 @@ import com.reskyu.consumer.data.model.AuthState
 import com.reskyu.consumer.ui.navigation.Screen
 import kotlinx.coroutines.delay
 
-/**
- * SplashScreen
- *
- * Shown on app launch while Firebase checks the auth session.
- * - Animates the logo in with a scale + fade effect
- * - Waits for [SplashViewModel] to emit [AuthState]
- * - Navigates to [Screen.Home] or [Screen.Login], popping Splash off the back stack
- */
 @Composable
 fun SplashScreen(
     navController: NavController,
@@ -47,11 +39,9 @@ fun SplashScreen(
 ) {
     val authState by viewModel.authState.collectAsState()
 
-    // Animation values
     val scale = remember { Animatable(0.6f) }
     val alpha = remember { Animatable(0f) }
 
-    // Kick off entrance animation
     LaunchedEffect(Unit) {
         scale.animateTo(
             targetValue = 1f,
@@ -63,7 +53,6 @@ fun SplashScreen(
         )
     }
 
-    // Navigate once auth state resolves (with a small delay so the logo is visible)
     LaunchedEffect(authState) {
         if (authState != null) {
             delay(800) // Let the logo breathe for at least 800ms
@@ -78,12 +67,11 @@ fun SplashScreen(
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
-                null -> { /* still loading */ }
+                null -> {  }
             }
         }
     }
 
-    // ── UI ────────────────────────────────────────────────────────────────────
     Box(
         modifier = Modifier
             .fillMaxSize()

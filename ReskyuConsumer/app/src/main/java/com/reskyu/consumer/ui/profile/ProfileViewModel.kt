@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.profile
+﻿package com.reskyu.consumer.ui.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,15 +23,12 @@ class ProfileViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    /** null = idle, true = saving, false = saved */
     private val _isSaving = MutableStateFlow<Boolean?>(null)
     val isSaving: StateFlow<Boolean?> = _isSaving.asStateFlow()
 
     private val _saveError = MutableStateFlow<String?>(null)
     val saveError: StateFlow<String?> = _saveError.asStateFlow()
 
-    // ── Privacy Policy ─────────────────────────────────────────────────────────
-    /** null = not loaded yet, empty = no doc in Firestore */
     private val _privacyPolicy = MutableStateFlow<String?>(null)
     val privacyPolicy: StateFlow<String?> = _privacyPolicy.asStateFlow()
 
@@ -59,8 +56,6 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // ── Profile edit ───────────────────────────────────────────────────────────
-
     fun updateProfile(name: String, phone: String) {
         val trimName  = name.trim()
         val trimPhone = phone.trim()
@@ -72,7 +67,7 @@ class ProfileViewModel : ViewModel() {
             try {
                 val uid = authRepository.requireUid()
                 userRepository.updateProfile(uid, trimName, trimPhone)
-            } catch (_: Exception) { /* optimistic */ }
+            } catch (_: Exception) {  }
             _user.value = _user.value?.copy(name = trimName, phone = trimPhone)
             _isSaving.value = false
         }
@@ -83,42 +78,26 @@ class ProfileViewModel : ViewModel() {
         _saveError.value = null
     }
 
-    // ── Notification Preferences ───────────────────────────────────────────────
-
-    /**
-     * Saves the user's selected dietary tag preferences to Firestore.
-     * Empty list = notify for all categories.
-     */
     fun updateNotificationPrefs(prefs: List<String>) {
         viewModelScope.launch {
             try {
                 val uid = authRepository.requireUid()
                 userRepository.updateNotificationPrefs(uid, prefs)
-            } catch (_: Exception) { /* optimistic */ }
+            } catch (_: Exception) {  }
             _user.value = _user.value?.copy(notificationPrefs = prefs)
         }
     }
 
-    // ── Discovery Radius ───────────────────────────────────────────────────────
-
-    /**
-     * Saves the user's preferred discovery radius to Firestore.
-     * HomeViewModel reads this on next refresh/pull-to-refresh.
-     */
     fun updateDiscoveryRadius(radiusKm: Int) {
         viewModelScope.launch {
             try {
                 val uid = authRepository.requireUid()
                 userRepository.updateDiscoveryRadius(uid, radiusKm)
-            } catch (_: Exception) { /* optimistic */ }
+            } catch (_: Exception) {  }
             _user.value = _user.value?.copy(discoveryRadiusKm = radiusKm)
         }
     }
 
-    // ── Privacy Policy ─────────────────────────────────────────────────────────
-
-    /** Fetches (or re-fetches) privacy policy text from Firestore config/privacy_policy.
-     *  Always fetches fresh \u2014 avoids stale data if admin edits the policy without the user restarting. */
     fun loadPrivacyPolicy() {
         if (_isPolicyLoading.value) return   // debounce concurrent taps
         viewModelScope.launch {
@@ -127,8 +106,6 @@ class ProfileViewModel : ViewModel() {
             _isPolicyLoading.value = false
         }
     }
-
-    // ── Sign Out ───────────────────────────────────────────────────────────────
 
     fun signOut() {
         try { authRepository.signOut() } catch (_: Exception) {}

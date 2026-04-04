@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.auth
+﻿package com.reskyu.consumer.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,21 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-/**
- * LoginViewModel
- *
- * Handles email/password authentication only:
- *  [signInWithEmail]  → Firebase signInWithEmailAndPassword
- *  [signUpWithEmail]  → Firebase createUserWithEmailAndPassword + Firestore profile
- *                        (stores name, email, consumerType: INDIVIDUAL | NGO)
- *
- * After every successful auth (sign-in or sign-up):
- *  → Fetches the current FCM token and saves it to /users/{uid}/fcmToken
- *    so the Node.js backend can send push notifications to this device.
- *  → This runs in addition to ReskuMessagingService.onNewToken() which fires
- *    only when the token changes — saving on login ensures the token is always
- *    current even on first install or after a manual data clear.
- */
 class LoginViewModel : ViewModel() {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -35,8 +20,6 @@ class LoginViewModel : ViewModel() {
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
-
-    // ── Email Sign In ─────────────────────────────────────────────────────────
 
     fun signInWithEmail(email: String, password: String) {
         if (email.isBlank() || password.length < 6) {
@@ -49,7 +32,6 @@ class LoginViewModel : ViewModel() {
                 val result = auth.signInWithEmailAndPassword(email.trim(), password).await()
                 val uid = result.user?.uid ?: throw Exception("Sign in succeeded but UID missing")
 
-                // Save FCM token on every login
                 fetchAndSaveFcmToken(uid)
 
                 _loginState.value = LoginState.Success
@@ -67,14 +49,6 @@ class LoginViewModel : ViewModel() {
         }
     }
 
-    // ── Email Sign Up ─────────────────────────────────────────────────────────
-
-    /**
-     * Creates a new account with email/password + consumer type,
-     * then writes a Firestore user profile and saves the FCM token.
-     *
-     * @param consumerType  "INDIVIDUAL" or "NGO"
-     */
     fun signUpWithEmail(
         name: String,
         email: String,
@@ -99,7 +73,6 @@ class LoginViewModel : ViewModel() {
                 val result = auth.createUserWithEmailAndPassword(email.trim(), password).await()
                 val uid = result.user?.uid ?: throw Exception("Account created but UID missing")
 
-                // Write Firestore user profile (includes consumerType)
                 userRepository.createUserProfile(
                     User(
                         uid          = uid,
@@ -109,7 +82,6 @@ class LoginViewModel : ViewModel() {
                     )
                 )
 
-                // Save FCM token immediately after sign-up
                 fetchAndSaveFcmToken(uid)
 
                 _loginState.value = LoginState.Success
@@ -127,31 +99,18 @@ class LoginViewModel : ViewModel() {
         }
     }
 
-    // ── FCM Token ─────────────────────────────────────────────────────────────
-
-    /**
-     * Fetches the current FCM registration token and saves it to Firestore.
-     *
-     * This is non-critical — if it fails (e.g., no network), the token will
-     * be saved the next time [ReskuMessagingService.onNewToken] fires.
-     * We never block login on a token failure.
-     */
     private suspend fun fetchAndSaveFcmToken(uid: String) {
         try {
             val token = FirebaseMessaging.getInstance().token.await()
             userRepository.saveFcmToken(uid, token)
         } catch (_: Exception) {
-            // Non-critical — ReskuMessagingService.onNewToken() is the fallback
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     fun resetState() {
         _loginState.value = LoginState.Idle
     }
 
-    /** DEV ONLY — skips Firebase Auth for UI testing without a network. */
     fun devBypass() {
         _loginState.value = LoginState.Success
     }

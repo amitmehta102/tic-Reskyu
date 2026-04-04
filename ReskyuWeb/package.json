@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "firebase": "^12.11.0"
-  },
-  "devDependencies": {
-    "sharp": "^0.34.5"
-  }
-}

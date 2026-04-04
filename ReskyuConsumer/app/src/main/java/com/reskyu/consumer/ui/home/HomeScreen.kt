@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.home
+﻿package com.reskyu.consumer.ui.home
 
 import android.Manifest
 import android.graphics.Bitmap
@@ -62,7 +62,6 @@ import org.osmdroid.views.overlay.Overlay
 import java.util.concurrent.TimeUnit
 import kotlin.math.*
 
-// ── Reskyu brand colors — exact merchant palette ──────────────────────────────
 private val RGreenDark    = Color(0xFF0C1E13)   // header top  / exact merchant GreenDark
 private val RGreenDeep    = Color(0xFF163823)   // header mid  / exact merchant GreenDeep
 private val RGreenMid     = Color(0xFF1F5235)   // header btm  / exact merchant GreenMid
@@ -102,7 +101,6 @@ fun HomeScreen(
     var mapExpanded by remember { mutableStateOf(false) }
     var selectedListing by remember { mutableStateOf<Listing?>(null) }
 
-    // ── GPS permission ────────────────────────────────────────────────────────
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -111,7 +109,6 @@ fun HomeScreen(
         viewModel.onLocationPermissionResult(granted)
     }
 
-    // Request location on first composition
     LaunchedEffect(Unit) {
         locationPermissionLauncher.launch(
             arrayOf(
@@ -121,7 +118,6 @@ fun HomeScreen(
         )
     }
 
-    // ── Notification deep link: navigate directly to listing when tapped ───────
     val pendingListingId by NotificationDeepLinkBus.pendingListingId.collectAsState()
     LaunchedEffect(pendingListingId) {
         pendingListingId?.let { listingId ->
@@ -131,9 +127,7 @@ fun HomeScreen(
             )
         }
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
-    // Animate map height between collapsed and expanded
     val mapHeight by animateDpAsState(
         targetValue = if (mapExpanded) MAP_HEIGHT_EXPANDED else MAP_HEIGHT_COLLAPSED,
         animationSpec = tween(durationMillis = 300),
@@ -145,10 +139,8 @@ fun HomeScreen(
             .fillMaxSize()
             .background(RGreenSurface)
     ) {
-        // ── Fixed: branded header ──────────────────────────────────────────────
         HomeBanner(onNotificationsClick = { innerNavController.navigate(Screen.Notifications.route) })
 
-        // ── Fixed: OSM map (animated height, interactive) ──────────────────────
         OsmMapCard(
             listings      = listings,
             userLat       = userLat,
@@ -159,7 +151,6 @@ fun HomeScreen(
             onToggleExpand = { mapExpanded = !mapExpanded }
         )
 
-        // ── Scrollable: filter chips + listing cards ───────────────────────────
         PullToRefreshBox(
             isRefreshing = isLoading,
             onRefresh    = { viewModel.refresh() },
@@ -242,7 +233,6 @@ fun HomeScreen(
         }
     }
 
-    // ── Order Bottom Sheet ──────────────────────────────────────────────
     selectedListing?.let { listing ->
         OrderBottomSheet(
             listing   = listing,
@@ -254,8 +244,6 @@ fun HomeScreen(
         )
     }
 }
-
-// ── Header — dark gradient matching merchant app ──────────────────────────────
 
 @Composable
 private fun HomeBanner(onNotificationsClick: () -> Unit) {
@@ -276,7 +264,6 @@ private fun HomeBanner(onNotificationsClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Title + subtitle
             Column {
                 Text(
                     "Today's Food Drops 🍱",
@@ -292,7 +279,6 @@ private fun HomeBanner(onNotificationsClick: () -> Unit) {
                 )
             }
 
-            // Notification bell — top-right (same pattern as merchant's profile icon)
             IconButton(
                 onClick = onNotificationsClick,
                 modifier = Modifier
@@ -310,8 +296,6 @@ private fun HomeBanner(onNotificationsClick: () -> Unit) {
         }
     }
 }
-
-// ── OSM Map Card — animated height, fully interactive ─────────────────────────
 
 @Composable
 private fun OsmMapCard(
@@ -388,7 +372,6 @@ private fun OsmMapCard(
             DisposableEffect(Unit) { onDispose { radarOverlay.stopAnimation() } }
         }
 
-        // ── Expand / Collapse chip — ONLY button that triggers resize ──────────
         Surface(
             onClick   = onToggleExpand,
             modifier  = Modifier
@@ -418,11 +401,8 @@ private fun OsmMapCard(
     }
 }
 
-// ── Dietary Filter Chips ──────────────────────────────────────────────────────
-
 @Composable
 private fun DietaryFilterChips(selected: DietaryTag?, onSelect: (DietaryTag?) -> Unit) {
-    // Explicit list — JAIN hidden (kept in enum for data compat), BAKERY & SWEETS added
     val filters = listOf(null, DietaryTag.VEG, DietaryTag.NON_VEG, DietaryTag.VEGAN,
                          DietaryTag.BAKERY, DietaryTag.SWEETS)
     val labels  = mapOf(
@@ -451,8 +431,6 @@ private fun DietaryFilterChips(selected: DietaryTag?, onSelect: (DietaryTag?) ->
     }
 }
 
-// ── Distance Utilities ────────────────────────────────────────────────────────
-
 fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
     if (lat2 == 0.0 && lon2 == 0.0) return 0.0
     val R    = 6371.0
@@ -469,8 +447,6 @@ fun formatDistance(km: Double?): String? {
     return if (km < 1.0) "${(km * 1000).toInt()}m" else "%.1f km".format(km)
 }
 
-// ── Order Bottom Sheet ────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OrderBottomSheet(
@@ -485,7 +461,6 @@ private fun OrderBottomSheet(
     val timeLeftMs = listing.expiresAt.toDate().time - System.currentTimeMillis()
     val maxQty     = listing.mealsLeft.coerceAtLeast(1)
 
-    // Quantity state — drives stepper and all price rows
     var quantity    by remember { mutableStateOf(1) }
     val savings     = (listing.originalPrice - listing.discountedPrice) * quantity
     val totalPrice  = listing.discountedPrice * quantity
@@ -502,7 +477,6 @@ private fun OrderBottomSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp)
         ) {
-            // ── Hero image ──────────────────────────────────────────────────────
             if (listing.imageUrl.isNotBlank()) {
                 AsyncImage(
                     model              = listing.imageUrl,
@@ -525,7 +499,6 @@ private fun OrderBottomSheet(
             }
             Spacer(Modifier.height(16.dp))
 
-            // ── Restaurant row ──────────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     modifier = Modifier
@@ -550,73 +523,99 @@ private fun OrderBottomSheet(
             HorizontalDivider(color = Color(0xFFB2DFBB))
             Spacer(Modifier.height(14.dp))
 
-            // ── What's in the bag ───────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.ShoppingBag, null, tint = RGreenAccent, modifier = Modifier.size(18.dp))
-                Text("What's in the bag", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard)
+                Text(
+                    if (listing.isMysteryBox) "What's in the box?" else "What's in the bag",
+                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard
+                )
             }
             Spacer(Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    listing.heroItem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = RGreenOnCard,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Quantity stepper — replaces the static "X left" badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+            if (listing.isMysteryBox) {
+                Surface(
+                    color = Color(0xFFF3EEFF),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    IconButton(
-                        onClick  = { if (quantity > 1) quantity-- },
-                        modifier = Modifier.size(28.dp),
-                        enabled  = quantity > 1
-                    ) {
-                        Icon(
-                            Icons.Rounded.Remove,
-                            contentDescription = "Less",
-                            modifier = Modifier.size(16.dp),
-                            tint = if (quantity > 1) RGreenAccent
-                                   else Color(0xFFB0CABB)
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = RGreenAccent.copy(alpha = 0.12f)
-                    ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            "$quantity",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = RGreenAccent,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            "🎁 It's a surprise!",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF5C35C7)
                         )
+                        Text(
+                            "Contents vary — every box is unique. You'll know when you pick it up!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF7C5CBF)
+                        )
+                        if (listing.heroItem.isNotBlank()) {
+                            Text(
+                                "💬 Hint: ${listing.heroItem.trim()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF5C35C7)
+                            )
+                        }
+                        if (listing.boxType.isNotBlank()) {
+                            Text(
+                                "🏷️ Box type: ${listing.boxType.lowercase().replaceFirstChar { it.uppercase() }}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF7C5CBF)
+                            )
+                        }
                     }
-                    IconButton(
-                        onClick  = { if (quantity < maxQty) quantity++ },
-                        modifier = Modifier.size(28.dp),
-                        enabled  = quantity < maxQty
+                }
+
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        listing.heroItem,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = RGreenOnCard,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = "More",
-                            modifier = Modifier.size(16.dp),
-                            tint = if (quantity < maxQty) RGreenAccent
-                                   else Color(0xFFB0CABB)
-                        )
+                        IconButton(
+                            onClick  = { if (quantity > 1) quantity-- },
+                            modifier = Modifier.size(28.dp),
+                            enabled  = quantity > 1
+                        ) {
+                            Icon(Icons.Rounded.Remove, contentDescription = "Less",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (quantity > 1) RGreenAccent else Color(0xFFB0CABB))
+                        }
+                        Surface(shape = RoundedCornerShape(6.dp), color = RGreenAccent.copy(alpha = 0.12f)) {
+                            Text("$quantity",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = RGreenAccent,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        }
+                        IconButton(
+                            onClick  = { if (quantity < maxQty) quantity++ },
+                            modifier = Modifier.size(28.dp),
+                            enabled  = quantity < maxQty
+                        ) {
+                            Icon(Icons.Rounded.Add, contentDescription = "More",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (quantity < maxQty) RGreenAccent else Color(0xFFB0CABB))
+                        }
                     }
                 }
             }
 
-            // Availability note below stepper
+            Spacer(Modifier.height(6.dp))
             Text(
                 "${listing.mealsLeft} portion${if (listing.mealsLeft != 1) "s" else ""} available",
                 style = MaterialTheme.typography.labelSmall,
@@ -641,19 +640,30 @@ private fun OrderBottomSheet(
             HorizontalDivider(color = Color(0xFFB2DFBB))
             Spacer(Modifier.height(14.dp))
 
-            // ── Price breakdown ─────────────────────────────────────────────────
             Text("Price Breakdown", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard)
             Spacer(Modifier.height(8.dp))
-            PriceRow("Original price", "₹${(listing.originalPrice * quantity).toInt()}", strikethrough = true)
-            PriceRow("Discount ($discountPct%)", "-₹${savings.toInt()}", valueColor = RPriceGreen)
-            Spacer(Modifier.height(6.dp))
-            HorizontalDivider(color = Color(0xFFB2DFBB))
-            Spacer(Modifier.height(6.dp))
-            PriceRow("You Pay", "₹${totalPrice.toInt()}", bold = true, valueColor = RPriceGreen)
+            if (listing.isMysteryBox) {
+                if (listing.priceRangeMin > 0 || listing.priceRangeMax > 0) {
+                    PriceRow("Box value (est.)", "₹${listing.priceRangeMin.toInt()}–₹${listing.priceRangeMax.toInt()}")
+                }
+                if (listing.itemCount > 0) {
+                    PriceRow("Items in box", "${listing.itemCount} items")
+                }
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = Color(0xFFB2DFBB))
+                Spacer(Modifier.height(6.dp))
+                PriceRow("You Pay", "₹${(listing.discountedPrice * quantity).toInt()}", bold = true, valueColor = Color(0xFF5C35C7))
+            } else {
+                PriceRow("Original price", "₹${(listing.originalPrice * quantity).toInt()}", strikethrough = true)
+                PriceRow("Discount ($discountPct%)", "-₹${savings.toInt()}", valueColor = RPriceGreen)
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = Color(0xFFB2DFBB))
+                Spacer(Modifier.height(6.dp))
+                PriceRow("You Pay", "₹${totalPrice.toInt()}", bold = true, valueColor = RPriceGreen)
+            }
 
             Spacer(Modifier.height(20.dp))
 
-            // ── Confirm Payment ─────────────────────────────────────────────────
             Button(
                 onClick  = { onConfirm(quantity) },
                 modifier = Modifier.fillMaxWidth().height(54.dp),
@@ -694,7 +704,6 @@ private fun PriceRow(
     }
 }
 
-// ── Radar Pulse Overlay ───────────────────────────────────────────────────────
 private class RadarPulseOverlay(
     private var center: GeoPoint,
     private val radiusMeters: Double = 2000.0
@@ -721,7 +730,6 @@ private class RadarPulseOverlay(
         val sp   = Point(); proj.toPixels(center, sp)
         val cx = sp.x.toFloat(); val cy = sp.y.toFloat()
 
-        // Radius in pixels
         val off = GeoPoint(
             center.latitude,
             center.longitude + radiusMeters / (111_320.0 * cos(Math.toRadians(center.latitude)))
@@ -729,16 +737,13 @@ private class RadarPulseOverlay(
         val op = Point(); proj.toPixels(off, op)
         val rPx = abs(op.x - sp.x).toFloat()
 
-        // Faint fill
         canvas.drawCircle(cx, cy, rPx, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             style = AndroidPaint.Style.FILL; color = AndroidColor.argb(18, 45, 198, 83)
         })
-        // Border ring
         canvas.drawCircle(cx, cy, rPx, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             style = AndroidPaint.Style.STROKE; strokeWidth = 2.5f
             color = AndroidColor.argb(140, 45, 198, 83)
         })
-        // 3 pulsing rings
         for (i in 0..2) {
             val phase = (animProgress + i / 3f) % 1f
             canvas.drawCircle(cx, cy, rPx * 0.40f * phase,
@@ -751,22 +756,18 @@ private class RadarPulseOverlay(
     }
 }
 
-// ── User Location Icon ────────────────────────────────────────────────────────
 private fun userLocationIcon(context: android.content.Context): BitmapDrawable {
     val dp = context.resources.displayMetrics.density
     val sz = (52 * dp).toInt()
     val bm = Bitmap.createBitmap(sz, sz, Bitmap.Config.ARGB_8888)
     val cv = AndroidCanvas(bm)
     val cx = sz / 2f; val cy = sz / 2f
-    // Glow halo
     cv.drawCircle(cx, cy, sz * 0.46f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.argb(55, 220, 40, 40); style = AndroidPaint.Style.FILL
     })
-    // White ring
     cv.drawCircle(cx, cy, sz * 0.30f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.WHITE; style = AndroidPaint.Style.FILL
     })
-    // Red dot
     cv.drawCircle(cx, cy, sz * 0.20f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.rgb(210, 35, 35); style = AndroidPaint.Style.FILL
     })

@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.claim
+﻿package com.reskyu.consumer.ui.claim
 
 import android.app.Activity
 import androidx.compose.animation.animateContentSize
@@ -45,7 +45,6 @@ import com.reskyu.consumer.ui.components.LoadingOverlay
 import com.reskyu.consumer.ui.navigation.Screen
 import org.json.JSONObject
 
-// ── Checkout brand palette ────────────────────────────────────────────────────
 private val CC_Bg        = Color(0xFFF2F8F4)   // ScreenBg
 private val CC_Surface   = Color.White
 private val CC_Accent    = Color(0xFF52B788)   // GreenAccent
@@ -119,7 +118,7 @@ fun ClaimScreen(
                 RazorpayPaymentBus.reset()
                 viewModel.onPaymentFailed(result.reason)
             }
-            is RazorpayResult.Idle -> { /* nothing */ }
+            is RazorpayResult.Idle -> {  }
         }
     }
 
@@ -130,10 +129,8 @@ fun ClaimScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // ── Dark gradient header ──────────────────────────────────────────
             CheckoutHeader(onBack = { navController.popBackStack() })
 
-            // ── Scrollable body ───────────────────────────────────────────────
             listing?.let { l ->
                 val maxQty       = l.mealsLeft.coerceAtLeast(1)
                 val totalOriginal = l.originalPrice * quantity
@@ -148,10 +145,8 @@ fun ClaimScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
 
-                    // ── Listing mini-card ─────────────────────────────────────
                     ListingMiniCard(listing = l)
 
-                    // ── Order summary card ────────────────────────────────────
                     SummaryCard(
                         listing       = l,
                         quantity      = quantity,
@@ -163,10 +158,8 @@ fun ClaimScreen(
                         onIncrement   = { if (quantity < maxQty) quantity++ }
                     )
 
-                    // ── Impact card ───────────────────────────────────────────
                     ImpactCard(quantity = quantity)
 
-                    // ── Secure payment badge ──────────────────────────────────
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -186,7 +179,6 @@ fun ClaimScreen(
                         )
                     }
 
-                    // ── Payment error ─────────────────────────────────────────
                     if (paymentState is PaymentState.Failed) {
                         Surface(
                             color  = Color(0xFFFFEDED),
@@ -210,7 +202,6 @@ fun ClaimScreen(
             }
         }
 
-        // ── Sticky Pay button ─────────────────────────────────────────────────
         listing?.let { l ->
             Surface(
                 modifier        = Modifier
@@ -251,8 +242,6 @@ fun ClaimScreen(
         if (paymentState is PaymentState.Processing) LoadingOverlay()
     }
 }
-
-// ── Dark gradient header ──────────────────────────────────────────────────────
 
 @Composable
 private fun CheckoutHeader(onBack: () -> Unit) {
@@ -301,8 +290,6 @@ private fun CheckoutHeader(onBack: () -> Unit) {
     }
 }
 
-// ── Listing mini-card ─────────────────────────────────────────────────────────
-
 @Composable
 private fun ListingMiniCard(listing: Listing) {
     Card(
@@ -316,7 +303,6 @@ private fun ListingMiniCard(listing: Listing) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Food image / emoji fallback
             Box(
                 modifier = Modifier
                     .size(68.dp)
@@ -337,7 +323,6 @@ private fun ListingMiniCard(listing: Listing) {
             }
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                // Business name
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -369,7 +354,6 @@ private fun ListingMiniCard(listing: Listing) {
                 }
             }
 
-            // Price chip
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     "₹${listing.discountedPrice.toInt()}",
@@ -387,8 +371,6 @@ private fun ListingMiniCard(listing: Listing) {
         }
     }
 }
-
-// ── Order summary card ────────────────────────────────────────────────────────
 
 @Composable
 private fun SummaryCard(
@@ -419,7 +401,6 @@ private fun SummaryCard(
             )
             HorizontalDivider(color = CC_Divider)
 
-            // Quantity stepper
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -440,7 +421,6 @@ private fun SummaryCard(
 
             HorizontalDivider(color = CC_Divider)
 
-            // Price rows
             PriceRow(
                 label = listing.heroItem,
                 value = "₹${listing.originalPrice.toInt()}" +
@@ -454,7 +434,6 @@ private fun SummaryCard(
 
             HorizontalDivider(color = CC_Divider)
 
-            // Total row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -476,7 +455,6 @@ private fun SummaryCard(
                 )
             }
 
-            // Savings highlight
             Surface(
                 color    = CC_SaveBg,
                 shape    = RoundedCornerShape(10.dp),
@@ -505,8 +483,6 @@ private fun SummaryCard(
     }
 }
 
-// ── Impact card ───────────────────────────────────────────────────────────────
-
 @Composable
 private fun ImpactCard(quantity: Int) {
     Card(
@@ -531,8 +507,6 @@ private fun ImpactCard(quantity: Int) {
         }
     }
 }
-
-// ── Helper composables ────────────────────────────────────────────────────────
 
 @Composable
 private fun PriceRow(
@@ -565,8 +539,6 @@ private fun ImpactPill(emoji: String, label: String) {
         )
     }
 }
-
-// ── Quantity Stepper ──────────────────────────────────────────────────────────
 
 @Composable
 private fun QuantityStepper(

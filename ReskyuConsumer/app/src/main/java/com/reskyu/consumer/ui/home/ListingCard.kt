@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.home
+﻿package com.reskyu.consumer.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,7 +28,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-// ── ListingCard palette — exact merchant brand ────────────────────────────────
 private val LC_Text        = Color(0xFF0C1E13)   // GreenDark — main text
 private val LC_TextSub     = Color(0xFF5A7A65)   // muted sage (keep)
 private val LC_Outline     = Color(0xFFB0CABB)   // soft outline / date text (keep)
@@ -36,17 +35,6 @@ private val LC_Green       = Color(0xFF1F5235)   // GreenMid — dark price / di
 private val LC_Error       = Color(0xFFD32F2F)   // urgency red (keep)
 private val LC_Surface     = Color(0xFFF2F8F4)   // ScreenBg — placeholder bg
 
-/**
- * ListingCard
- *
- * A card composable for the home screen LazyColumn.
- * Features:
- *  - Coil AsyncImage hero thumbnail (graceful placeholder/error)
- *  - Discount % badge overlaid on image
- *  - Dietary tag chip + meals left with urgency coloring
- *  - Strikethrough original price + discounted price
- *  - Expiry countdown ("Expires in 2h 15m" / "Expiring soon!")
- */
 @Composable
 fun ListingCard(
     listing: Listing,
@@ -77,7 +65,6 @@ fun ListingCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // ── Hero Image with discount badge ────────────────────────────────
             Box(
                 modifier = Modifier
                     .size(88.dp)
@@ -88,10 +75,8 @@ fun ListingCard(
                     contentDescription = listing.heroItem,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
-                    // Placeholder composable shown while loading
                     error = null,
                 )
-                // Grey placeholder when imageUrl is blank
                 if (listing.imageUrl.isBlank()) {
                     Box(
                         modifier = Modifier
@@ -99,11 +84,29 @@ fun ListingCard(
                             .background(LC_Surface),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🍱", fontSize = 28.sp)
+                        Text(if (listing.isMysteryBox) "🎁" else "🍱", fontSize = 28.sp)
                     }
                 }
 
-                // Discount badge
+                if (listing.isMysteryBox) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .background(
+                                color = Color(0xFF5C35C7),
+                                shape = RoundedCornerShape(bottomEnd = 8.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "🎁 Mystery",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
                 if (discountPct > 0) {
                     Box(
                         modifier = Modifier
@@ -126,19 +129,16 @@ fun ListingCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // ── Content ───────────────────────────────────────────────────────
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
 
-                // ── Top row: business name ← → expiry ─────────────────────────
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Business name (slightly bigger) + rating chip
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -152,7 +152,6 @@ fun ListingCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        // Rating chip — only shown when we have data
                         if (merchantRating != null && merchantRating > 0.0) {
                             Surface(
                                 color = Color(0xFFFFF8E1),
@@ -181,7 +180,6 @@ fun ListingCard(
                         }
                     }
 
-                    // Expiry — top-right corner
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -201,26 +199,46 @@ fun ListingCard(
                     }
                 }
 
-                // Hero item (main title)
-                Text(
-                    text = listing.heroItem,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = LC_Text,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (listing.isMysteryBox) {
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(
+                            text = "🎁 Mystery Box" + if (listing.boxType.isNotBlank())
+                                " · ${listing.boxType.lowercase().replaceFirstChar { it.uppercase() }}" else "",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF5C35C7),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (listing.heroItem.isNotBlank()) {
+                            Text(
+                                text = "May include: ${listing.heroItem.trim()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = LC_TextSub,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = listing.heroItem,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = LC_Text,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // Dietary chip + meals left
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     DietaryChip(tag = DietaryTag.valueOf(listing.dietaryTag))
 
-                    // Meals-left urgency chip
                     val (chipBg, chipText, chipLabel) = when {
                         listing.mealsLeft <= 1 -> Triple(
                             Color(0xFFFFEBEE), LC_Error, "🔥 Last 1!"
@@ -250,36 +268,52 @@ fun ListingCard(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // Pricing row — price left, distance right
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "₹${listing.discountedPrice.toInt()}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = LC_Green
-                        )
-                        Text(
-                            text = "₹${listing.originalPrice.toInt()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            textDecoration = TextDecoration.LineThrough,
-                            color = LC_TextSub
-                        )
+                    if (listing.isMysteryBox) {
+                        Column {
+                            Text(
+                                text = "₹${listing.discountedPrice.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF5C35C7)
+                            )
+                            if (listing.priceRangeMin > 0 || listing.priceRangeMax > 0) {
+                                Text(
+                                    text = "Worth ₹${listing.priceRangeMin.toInt()}–₹${listing.priceRangeMax.toInt()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LC_TextSub
+                                )
+                            }
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "₹${listing.discountedPrice.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LC_Green
+                            )
+                            Text(
+                                text = "₹${listing.originalPrice.toInt()}",
+                                style = MaterialTheme.typography.bodySmall,
+                                textDecoration = TextDecoration.LineThrough,
+                                color = LC_TextSub
+                            )
+                        }
                     }
 
-                    // Distance — lower-right, beside pricing
                     if (distanceText != null) {
                         Text(
                             text = "📍 $distanceText",
                             style = MaterialTheme.typography.labelSmall,
-                            color = LC_Green,
+                            color = if (listing.isMysteryBox) Color(0xFF5C35C7) else LC_Green,
                             fontWeight = FontWeight.Medium
                         )
                     }

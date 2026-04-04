@@ -1,13 +1,14 @@
 [build]
   publish = "."
 
-# ── Custom 404 page ────────────────────────────────────────
+# ── Root: show home page when visiting the site root ────────
 [[redirects]]
-  from   = "/*"
-  to     = "/404.html"
-  status = 404
+  from   = "/"
+  to     = "/pitch.html"
+  status = 200
+  force  = false
 
-# Static files always take priority — redirects only apply when no file matches
+# ── Clean URL redirects (no .html in address bar) ───────────
 [[redirects]]
   from   = "/dashboard"
   to     = "/dashboard.html"
@@ -26,12 +27,11 @@
   status = 200
   force  = false
 
-# Root redirect — only fires if no file matches "/"
+# ── 404 catch-all — must be LAST so it only fires for unknown paths ──
 [[redirects]]
-  from   = "/"
-  to     = "/pitch.html"
-  status = 200
-  force  = false
+  from   = "/*"
+  to     = "/404.html"
+  status = 404
 
 # ── Content-Type for sitemap ──────────────────────────
 [[headers]]
@@ -63,20 +63,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# ── Service Worker — MUST always be fresh, never cached ──────
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Service-Worker-Allowed = "/"
-
 # ── No-cache for HTML (always fetch latest) ──────────
 [[headers]]
   for = "/*.html"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
-# ── Security headers on everything else ───────────────
+# ── Security headers on everything ────────────────────
 [[headers]]
   for = "/*"
   [headers.values]

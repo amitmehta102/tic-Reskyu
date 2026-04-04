@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.orders
+﻿package com.reskyu.consumer.ui.orders
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -26,7 +26,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-// ── OrderCard palette — exact merchant brand ──────────────────────────────────────
 private val OC_Surface         = Color.White
 private val OC_Text            = Color(0xFF0C1E13)   // GreenDark
 private val OC_TextSub         = Color(0xFF5A7A65)   // muted sage (keep)
@@ -34,17 +33,6 @@ private val OC_Outline         = Color(0xFFB0CABB)   // soft outline (keep)
 private val OC_Primary         = Color(0xFF52B788)   // GreenAccent — price / icon
 private val OC_DividerAlpha    = Color(0xFFD4EDDA)   // light green divider (keep)
 
-/**
- * OrderCard — premium redesign
- *
- * Features:
- *  - Left accent stripe (color-coded by status)
- *  - Business name + status badge header
- *  - Food item title
- *  - For UPCOMING: pickup code + countdown timer
- *  - Price row: amount paid + savings strikethrough
- *  - Order date + payment ID (tappable to expand)
- */
 @Composable
 fun OrderCard(
     claim: Claim,
@@ -70,7 +58,6 @@ fun OrderCard(
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
 
-            // ── Left accent stripe ────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .width(5.dp)
@@ -86,7 +73,6 @@ fun OrderCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
 
-                // ── Header: store + status badge ──────────────────────────────
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -113,7 +99,6 @@ fun OrderCard(
                     StatusBadge(status = claim.status)
                 }
 
-                // ── Food item ─────────────────────────────────────────────────
                 Text(
                     claim.heroItem,
                     style = MaterialTheme.typography.titleSmall,
@@ -122,14 +107,12 @@ fun OrderCard(
                     lineHeight = 18.sp
                 )
 
-                // ── Pickup code (UPCOMING only) ────────────────────────────────
                 if (claim.status == "PENDING_PICKUP") {
                     PickupCodeRow(claim = claim)
                 }
 
                 HorizontalDivider(color = OC_DividerAlpha)
 
-                // ── Pricing row ───────────────────────────────────────────────
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -155,7 +138,6 @@ fun OrderCard(
                         }
                     }
 
-                    // Savings badge
                     if (savedAmount > 0) {
                         Box(
                             modifier = Modifier
@@ -175,7 +157,6 @@ fun OrderCard(
                     }
                 }
 
-                // ── Date row ─────────────────────────────────────────────────
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -198,7 +179,6 @@ fun OrderCard(
                         )
                     }
 
-                    // Expand/collapse chevron — hidden for current orders (they open a dialog)
                     if (onCardClick == null) {
                         Icon(
                             if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
@@ -209,7 +189,6 @@ fun OrderCard(
                     }
                 }
 
-                // ── REFUNDED status note ──────────────────────────────────────
                 if (claim.status == "REFUNDED") {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -224,7 +203,6 @@ fun OrderCard(
                     }
                 }
 
-                // ── Star rating (past orders only) ────────────────────────────
                 if (claim.status != "PENDING_PICKUP") {
                     RatingRow(
                         rating = userRating,
@@ -235,7 +213,6 @@ fun OrderCard(
                     )
                 }
 
-                // ── Expandable detail section ─────────────────────────────────
                 AnimatedVisibility(
                     visible = expanded,
                     enter = expandVertically(),
@@ -266,11 +243,8 @@ fun OrderCard(
     }
 }
 
-// ── Pickup Code Row ────────────────────────────────────────────────────────────
-
 @Composable
 private fun PickupCodeRow(claim: Claim) {
-    // Show last 6 chars of paymentId as the "pickup code"
     val code = claim.paymentId.takeLast(6).uppercase()
     val countdownText = countdownText(
         if (claim.pickupDeadlineMs > 0) claim.pickupDeadlineMs
@@ -321,8 +295,6 @@ private fun PickupCodeRow(claim: Claim) {
     }
 }
 
-// ── Detail Row ─────────────────────────────────────────────────────────────────
-
 @Composable
 private fun DetailRow(label: String, value: String) {
     Row(
@@ -342,8 +314,6 @@ private fun DetailRow(label: String, value: String) {
         )
     }
 }
-
-// ── Status Badge ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun StatusBadge(status: String) {
@@ -371,8 +341,6 @@ private fun StatusBadge(status: String) {
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 private fun statusAccentColor(status: String): Color = when (status) {
     "PENDING_PICKUP" -> Color(0xFFFB923C)   // soft amber-orange
     "COMPLETED"      -> Color(0xFF34D399)   // soft emerald green
@@ -391,8 +359,6 @@ private fun countdownText(pickupDeadlineMs: Long): String {
     val m = TimeUnit.MILLISECONDS.toMinutes(left) % 60
     return if (h > 0) "Pick up within ${h}h ${m}m" else "Pick up within ${m}m!"
 }
-
-// ── Star Rating Row ────────────────────────────────────────────────────────────
 
 @Composable
 fun RatingRow(

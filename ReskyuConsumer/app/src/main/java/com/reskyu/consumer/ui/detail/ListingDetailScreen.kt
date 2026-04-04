@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.detail
+﻿package com.reskyu.consumer.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -30,23 +30,6 @@ import com.reskyu.consumer.ui.components.DietaryChip
 import com.reskyu.consumer.ui.navigation.Screen
 import java.util.concurrent.TimeUnit
 
-/**
- * ListingDetailScreen
- *
- * Full-detail view of a single food listing.
- *
- * Layout:
- *  ┌── Full-width hero image (with back button overlay) ──────────────┐
- *  │   Scrollable body:                                               │
- *  │    · Business name + dietary chip + rating row                   │
- *  │    · Hero item title + description row                           │
- *  │    · Pricing pill (discounted + crossed original + savings %)    │
- *  │    · Info rows: meals left, location, expiry                     │
- *  │    · Divider                                                     │
- *  │    · Impact card: CO₂ saved estimate, money saved                │
- *  └──────────────────────────────────────────────────────────────────┘
- *  Sticky bottom bar: "Claim Now — ₹X" button
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingDetailScreen(
@@ -88,12 +71,10 @@ fun ListingDetailScreen(
                 val isOpen = l.status == "OPEN" && l.mealsLeft > 0 && timeLeftMs > 0
                 val co2Saved = 2.5  // kg per meal (configurable)
 
-                // Quantity state — drives the stepper in the bottom bar and impact card
                 var quantity     by remember { mutableStateOf(1) }
                 val maxQty       = l.mealsLeft.coerceAtLeast(1)
                 val totalPayable = l.discountedPrice * quantity
 
-                // ── Scrollable content ────────────────────────────────────────
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -101,7 +82,6 @@ fun ListingDetailScreen(
                         .padding(bottom = 152.dp) // space for quantity stepper + claim button
                 ) {
 
-                    // ── Hero Image ────────────────────────────────────────────
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -125,7 +105,6 @@ fun ListingDetailScreen(
                             }
                         }
 
-                        // Gradient scrim at bottom of image
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -141,7 +120,6 @@ fun ListingDetailScreen(
                                 )
                         )
 
-                        // Back button
                         IconButton(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier
@@ -158,8 +136,26 @@ fun ListingDetailScreen(
                             )
                         }
 
-                        // Discount badge
-                        if (discountPct > 0) {
+                        if (l.isMysteryBox) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                                    .background(
+                                        color = Color(0xFF5C35C7),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    "🎁 Mystery Box" + if (l.boxType.isNotBlank())
+                                        " · ${l.boxType.lowercase().replaceFirstChar { it.uppercase() }}" else "",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else if (discountPct > 0) {
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -180,13 +176,11 @@ fun ListingDetailScreen(
                         }
                     }
 
-                    // ── Body Content ──────────────────────────────────────────
                     Column(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
 
-                        // Business name + dietary chip row
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -201,49 +195,91 @@ fun ListingDetailScreen(
                             DietaryChip(tag = DietaryTag.valueOf(l.dietaryTag))
                         }
 
-                        // Hero item title
-                        Text(
-                            text = l.heroItem,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
+                        if (l.isMysteryBox) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "🎁 Mystery Box",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF5C35C7)
+                                )
+                                if (l.heroItem.isNotBlank()) {
+                                    Surface(color = Color(0xFFF3EEFF), shape = RoundedCornerShape(8.dp)) {
+                                        Text(
+                                            "💬 Hint: ${l.heroItem.trim()}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color(0xFF5C35C7),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    "Contents vary — you'll discover what's inside at pickup.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = l.heroItem,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
 
-                        // ── Pricing ───────────────────────────────────────────
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                text = "₹${l.discountedPrice.toInt()}",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "₹${l.originalPrice.toInt()}",
-                                style = MaterialTheme.typography.titleMedium,
-                                textDecoration = TextDecoration.LineThrough,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (discountPct > 0) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Save ₹${(l.originalPrice - l.discountedPrice).toInt()}",
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                        if (l.isMysteryBox) {
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = "₹${l.discountedPrice.toInt()}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF5C35C7)
+                                )
+                                if (l.priceRangeMin > 0 || l.priceRangeMax > 0) {
+                                    Surface(color = Color(0xFFF3EEFF), shape = RoundedCornerShape(4.dp)) {
+                                        Text(
+                                            text = "Worth ₹${l.priceRangeMin.toInt()}–₹${l.priceRangeMax.toInt()}",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF5C35C7),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = "₹${l.discountedPrice.toInt()}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "₹${l.originalPrice.toInt()}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textDecoration = TextDecoration.LineThrough,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (discountPct > 0) {
+                                    Surface(color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(4.dp)) {
+                                        Text(
+                                            text = "Save ₹${(l.originalPrice - l.discountedPrice).toInt()}",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                 }
                             }
                         }
 
                         HorizontalDivider()
 
-                        // ── Info rows ─────────────────────────────────────────
                         InfoRow(
                             icon = "🍽️",
                             label = "Portions available",
@@ -272,7 +308,6 @@ fun ListingDetailScreen(
 
                         HorizontalDivider()
 
-                        // ── Impact Card ───────────────────────────────────────
                         Surface(
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             shape = MaterialTheme.shapes.medium,
@@ -295,7 +330,6 @@ fun ListingDetailScreen(
                             }
                         }
 
-                        // Sold out / cancelled notice
                         if (!isOpen) {
                             Surface(
                                 color = MaterialTheme.colorScheme.errorContainer,
@@ -317,7 +351,6 @@ fun ListingDetailScreen(
                     }
                 }
 
-                // ── Sticky Bottom Bar (quantity stepper + claim) ──────────────────
                 Box(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
@@ -332,13 +365,11 @@ fun ListingDetailScreen(
                                 .padding(horizontal = 20.dp, vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // ── Portions stepper + reactive total ────────────────
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // [Portions label] [−] [qty] [+]
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -386,7 +417,6 @@ fun ListingDetailScreen(
                                     }
                                 }
 
-                                // Reactive total
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         "₹${totalPayable.toInt()}",
@@ -405,7 +435,6 @@ fun ListingDetailScreen(
                                 }
                             }
 
-                            // ── Claim button (full width) ──────────────────────────
                             Button(
                                 onClick = {
                                     navController.navigate(
@@ -428,8 +457,6 @@ fun ListingDetailScreen(
         }
     }
 }
-
-// ── Helper Composables ─────────────────────────────────────────────────────────
 
 @Composable
 private fun InfoRow(

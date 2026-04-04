@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.profile
+﻿package com.reskyu.consumer.ui.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,7 +31,6 @@ import com.reskyu.consumer.data.model.DietaryTag
 import com.reskyu.consumer.data.model.ImpactStats
 import com.reskyu.consumer.ui.navigation.Screen
 
-// ── Profile screen palette ────────────────────────────────────────────────────
 private val PRBackground  = Color(0xFFF2F8F4)
 private val PRSurface     = Color.White
 private val PRText        = Color(0xFF0C1E13)
@@ -44,7 +43,6 @@ private val PRError       = Color(0xFFD32F2F)
 private val PRLight       = Color(0xFF95D5B2)
 private val PRGrad        = listOf(Color(0xFF0C1E13), Color(0xFF163823), Color(0xFF1F5235))
 
-// ── Dietary tag chips used in Notification Prefs ──────────────────────────────
 private val NotifTags = listOf(
     DietaryTag.VEG     to "Veg 🥗",
     DietaryTag.NON_VEG to "Non-Veg 🍗",
@@ -53,7 +51,6 @@ private val NotifTags = listOf(
     DietaryTag.SWEETS  to "Sweets 🍮"
 )
 
-// ── Radius options ─────────────────────────────────────────────────────────────
 private val RadiusOptions = listOf(2, 5, 10, 20, 50)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +93,6 @@ fun ProfileScreen(
                 .background(PRBackground)
         ) {
 
-            // ── Dark gradient header ──────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -131,14 +127,12 @@ fun ProfileScreen(
                 }
             }
 
-            // ── Scrollable body ───────────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
 
-                // ── Compact identity card ─────────────────────────────────────
                 if (isLoading) {
                     Box(
                         Modifier
@@ -162,7 +156,6 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            // ── Avatar circle ─────────────────────────────────
                             val initials = user?.name
                                 ?.split(" ")
                                 ?.mapNotNull { it.firstOrNull()?.uppercaseChar() }
@@ -183,7 +176,6 @@ fun ProfileScreen(
                                 )
                             }
 
-                            // ── Name / email / phone ──────────────────────────
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     user?.name ?: "Reskyu User",
@@ -210,7 +202,6 @@ fun ProfileScreen(
                                 }
                             }
 
-                            // ── Edit icon button ──────────────────────────────
                             FilledIconButton(
                                 onClick = { showEditSheet = true },
                                 modifier = Modifier.size(38.dp),
@@ -225,7 +216,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // ── Impact stats ──────────────────────────────────────────────
                 val stats = user?.impactStats ?: ImpactStats()
 
                 Spacer(Modifier.height(8.dp))
@@ -248,7 +238,6 @@ fun ProfileScreen(
                     ProfileImpactCard("🏆", "${stats.totalMealsRescued}", "Total Orders", Modifier.weight(1f))
                 }
 
-                // ── Preferences ───────────────────────────────────────────────
                 Spacer(Modifier.height(24.dp))
                 ProfileSectionLabel("PREFERENCES")
                 Spacer(Modifier.height(8.dp))
@@ -279,7 +268,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // ── Legal & App ───────────────────────────────────────────────
                 Spacer(Modifier.height(18.dp))
                 ProfileSectionLabel("LEGAL & APP")
                 Spacer(Modifier.height(8.dp))
@@ -308,7 +296,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // ── Sign Out ──────────────────────────────────────────────────
                 Spacer(Modifier.height(24.dp))
                 Surface(
                     modifier        = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -332,7 +319,6 @@ fun ProfileScreen(
         }
     }
 
-    // ── Edit Profile bottom sheet ──────────────────────────────────────────────
     if (showEditSheet) {
         EditProfileSheet(
             currentName  = user?.name  ?: "",
@@ -347,7 +333,6 @@ fun ProfileScreen(
         )
     }
 
-    // ── Notification Preferences bottom sheet ──────────────────────────────────
     if (showNotifPrefsSheet) {
         NotificationPrefsSheet(
             currentPrefs = user?.notificationPrefs ?: emptyList(),
@@ -359,7 +344,6 @@ fun ProfileScreen(
         )
     }
 
-    // ── Location / Radius bottom sheet ────────────────────────────────────────
     if (showLocationSheet) {
         LocationSettingsSheet(
             currentRadius = user?.discoveryRadiusKm ?: 2,
@@ -371,7 +355,6 @@ fun ProfileScreen(
         )
     }
 
-    // ── Privacy Policy bottom sheet ───────────────────────────────────────────
     if (showPrivacySheet) {
         PrivacyPolicySheet(
             content   = privacyPolicy,
@@ -380,7 +363,6 @@ fun ProfileScreen(
         )
     }
 
-    // ── Sign Out dialog ───────────────────────────────────────────────────────
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
@@ -420,8 +402,6 @@ fun ProfileScreen(
     }
 }
 
-// ── Section label ──────────────────────────────────────────────────────────────
-
 @Composable
 private fun ProfileSectionLabel(text: String) {
     Row(
@@ -439,8 +419,6 @@ private fun ProfileSectionLabel(text: String) {
         HorizontalDivider(modifier = Modifier.weight(1f), color = PRDivider, thickness = 1.dp)
     }
 }
-
-// ── Impact card ────────────────────────────────────────────────────────────────
 
 @Composable
 private fun ProfileImpactCard(emoji: String, value: String, label: String, modifier: Modifier = Modifier) {
@@ -461,8 +439,6 @@ private fun ProfileImpactCard(emoji: String, value: String, label: String, modif
         }
     }
 }
-
-// ── Settings row ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun ProfileSettingsRow(
@@ -499,8 +475,6 @@ private fun ProfileSettingsRow(
     }
 }
 
-// ── Notification Preferences Sheet ────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NotificationPrefsSheet(
@@ -522,7 +496,6 @@ private fun NotificationPrefsSheet(
                 style = MaterialTheme.typography.bodySmall, color = PRTextSub
             )
 
-            // Tag toggle chips
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 NotifTags.forEach { (tag, label) ->
                     val isOn = tag.name in selected
@@ -558,7 +531,6 @@ private fun NotificationPrefsSheet(
                 }
             }
 
-            // All-categories note
             if (selected.isEmpty()) {
                 Surface(color = Color(0xFFE8F5EE), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -583,8 +555,6 @@ private fun NotificationPrefsSheet(
     }
 }
 
-// ── Location Settings Sheet ────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocationSettingsSheet(
@@ -606,7 +576,6 @@ private fun LocationSettingsSheet(
                 style = MaterialTheme.typography.bodySmall, color = PRTextSub
             )
 
-            // Radius grid — 3 columns on row 1, 2 columns on row 2
             val rows = RadiusOptions.chunked(3)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 rows.forEach { rowItems ->
@@ -646,7 +615,6 @@ private fun LocationSettingsSheet(
                                 }
                             }
                         }
-                        // Fill empty spots in the last row so layout stays aligned
                         repeat(3 - rowItems.size) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
@@ -654,7 +622,6 @@ private fun LocationSettingsSheet(
                 }
             }
 
-            // Info note
             Surface(color = Color(0xFFE8F5EE), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Rounded.Info, null, Modifier.size(15.dp), tint = PRPriceGreen)
@@ -679,8 +646,6 @@ private fun LocationSettingsSheet(
     }
 }
 
-// ── Privacy Policy Sheet ───────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PrivacyPolicySheet(
@@ -695,7 +660,6 @@ private fun PrivacyPolicySheet(
         modifier = Modifier.fillMaxHeight(0.85f)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Fixed title bar
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -708,7 +672,6 @@ private fun PrivacyPolicySheet(
             }
             HorizontalDivider(color = PRDivider)
 
-            // Scrollable content
             when {
                 isLoading -> {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
@@ -746,8 +709,6 @@ private fun PrivacyPolicySheet(
         }
     }
 }
-
-// ── Edit Profile Bottom Sheet ──────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

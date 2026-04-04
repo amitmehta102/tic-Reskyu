@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.claim
+﻿package com.reskyu.consumer.ui.claim
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -27,19 +27,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.*
 import java.util.concurrent.TimeUnit
 
-/**
- * ClaimViewModel  — Razorpay-enabled checkout orchestrator
- *
- * Payment flow:
- *  1. [initiatePayment]    → POST /payment/create-order to Node.js → get rzpOrderId
- *  2. [openCheckoutEvent]  → emits event → ClaimScreen opens Razorpay SDK sheet
- *  3. [onPaymentSuccess]   → called by MainActivity's PaymentResultListener
- *                         → POST /payment/verify → if ok → createClaim() + updateImpactStats()
- *  4. [onPaymentFailed]    → called by MainActivity on failure
- *
- * The ClaimScreen observes [openCheckoutEvent] and delegates to MainActivity
- * for the actual Razorpay Activity interaction (SDK requires Activity).
- */
 class ClaimViewModel(application: Application) : AndroidViewModel(application) {
 
     private val listingRepository      = ListingRepository()
@@ -56,14 +43,11 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
     private val _paymentState = MutableStateFlow<PaymentState>(PaymentState.Idle)
     val paymentState: StateFlow<PaymentState> = _paymentState.asStateFlow()
 
-    /** Emits the Razorpay orderId when the checkout sheet should be opened */
     private val _openCheckoutEvent = MutableSharedFlow<RazorpayCheckoutEvent>()
     val openCheckoutEvent: SharedFlow<RazorpayCheckoutEvent> = _openCheckoutEvent.asSharedFlow()
 
-    /** Cached orderId from create-order response, needed for verification */
     private var pendingOrderId: String? = null
 
-    /** Quantity chosen by the user on the checkout screen */
     private var pendingQuantity: Int = 1
 
     fun loadListing(listingId: String) {
@@ -72,9 +56,6 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Step 1: Create a Razorpay order on the server, then signal ClaimScreen to open checkout.
-     */
     fun initiatePayment(listing: Listing, quantity: Int = 1) {
         if (_paymentState.value == PaymentState.Processing) return
         _paymentState.value = PaymentState.Processing
@@ -108,16 +89,11 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Step 3: Called by MainActivity.onPaymentSuccess() after Razorpay confirms.
-     * Verifies the payment signature via Node.js, then creates Firestore claim.
-     */
     fun onPaymentSuccess(paymentId: String, signature: String, listing: Listing) {
         viewModelScope.launch {
             try {
                 val orderId = pendingOrderId ?: "order_DEV"
 
-                // Verify payment unless it's a dev stub
                 val isDevMode = orderId == "order_DEV" || paymentId.startsWith("pay_DEV")
                 if (!isDevMode) {
                     val verifyResponse = api.verifyPayment(
@@ -136,13 +112,11 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
                 val qty    = pendingQuantity.coerceAtLeast(1)
                 val uid    = try { authRepository.requireUid() } catch (_: Exception) { "dev_user_${System.currentTimeMillis()}" }
 
-                // Compute distance-aware pickup deadline
                 val (userLat, userLng) = try { locationRepository.getCurrentLocation() }
                     catch (_: Exception) { Pair(LocationRepository.DEFAULT_LAT, LocationRepository.DEFAULT_LNG) }
                 val distanceKm     = haversineKm(userLat, userLng, listing.lat, listing.lng)
                 val pickupDeadline = computePickupDeadline(listing, distanceKm)
 
-                // Write claim atomically in Firestore
                 val claim = Claim(
                     userId           = uid,
                     merchantId       = listing.merchantId,
@@ -162,13 +136,11 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
                     claimRepository.createClaim(claim)
                 } catch (_: Exception) { paymentId }
 
-                // Update impact stats (scaled by quantity)
                 try {
                     val saved = (listing.originalPrice - listing.discountedPrice) * qty
                     userRepository.updateImpactStats(uid, saved)
                 } catch (_: Exception) {}
 
-                // Write an in-app notification to Firestore
                 try {
                     notificationRepository.writeOrderConfirmedNotification(uid, listing.businessName)
                 } catch (_: Exception) {}
@@ -191,17 +163,6 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
         pendingQuantity  = 1
     }
 
-    // ── Pickup deadline computation ──────────────────────────────────────────────
-
-    /**
-     * Returns the epoch-ms at which the pickup window closes.
-     *
-     * Rules:
-     *  - If listing expiry is > 1 hour away  → use listing expiry + travel buffer
-     *  - If listing expiry is ≤ 1 hour away  → give the user 1 hour from now + travel buffer
-     *
-     * Travel buffer = 5 min per km to the restaurant, capped at 30 min.
-     */
     private fun computePickupDeadline(listing: Listing, distanceKm: Double): Long {
         val nowMs = System.currentTimeMillis()
         val expiryMs = listing.expiresAt.toDate().time
@@ -226,7 +187,6 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
     }
 }
 
-/** Event data sent from ClaimViewModel to ClaimScreen → MainActivity to open Razorpay checkout */
 data class RazorpayCheckoutEvent(
     val orderId: String,
     val amount: Int,        // in paise

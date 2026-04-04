@@ -1,4 +1,4 @@
-package com.reskyu.consumer.data.repository
+﻿package com.reskyu.consumer.data.repository
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,18 +11,6 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
-/**
- * NotificationRepository
- *
- * Manages in-app notifications stored in Firestore at:
- *  /users/{uid}/notifications/{notifId}
- *
- * Notifications are written by the app itself (no Cloud Functions required):
- *  - On claim success → ORDER_CONFIRMED notification
- *  - On nearby drop → NEW_DROP notification (future)
- *
- * In dev mode (uid unavailable) falls back to in-memory sample data.
- */
 class NotificationRepository {
 
     private val db = FirebaseFirestore.getInstance()
@@ -30,12 +18,6 @@ class NotificationRepository {
     fun notifCollection(uid: String) =
         db.collection("users").document(uid).collection("notifications")
 
-    // ── Real Firestore Listener ───────────────────────────────────────────────
-
-    /**
-     * Real-time Flow of the user's notification documents, newest first.
-     * Falls back to empty list on error.
-     */
     fun observeNotifications(uid: String): Flow<List<AppNotification>> = callbackFlow {
         val reg = notifCollection(uid)
             .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -57,22 +39,15 @@ class NotificationRepository {
                             type      = NotificationType.valueOf(
                                 doc.getString("type") ?: "SYSTEM"
                             ),
-                            // Populate deepLink so AlertRow can navigate to the listing
                             deepLink  = doc.getString("listingId")
                         )
                     } catch (_: Exception) { null }
                 }
-                // Return actual list (may be empty) — do NOT fall back to dev samples
-                // for authenticated users; they should see an empty state
                 trySend(notifications)
             }
         awaitClose { reg.remove() }
     }
 
-    /**
-     * Writes an "Order Confirmed" notification to Firestore.
-     * Called by ClaimViewModel after a successful claim transaction.
-     */
     suspend fun writeOrderConfirmedNotification(uid: String, businessName: String) {
         val doc = mapOf(
             "title"     to "✅ Order Confirmed!",
@@ -84,21 +59,13 @@ class NotificationRepository {
         notifCollection(uid).add(doc).await()
     }
 
-    /**
-     * Marks a single notification as read.
-     */
     suspend fun markAsRead(uid: String, notifId: String) {
         notifCollection(uid).document(notifId).update("isRead", true).await()
     }
 
-    /**
-     * Deletes a notification document (swipe to dismiss).
-     */
     suspend fun dismiss(uid: String, notifId: String) {
         notifCollection(uid).document(notifId).delete().await()
     }
-
-    // ── Dev fallback ─────────────────────────────────────────────────────────
 
     fun devSampleNotifications(): List<AppNotification> {
         val now = System.currentTimeMillis()

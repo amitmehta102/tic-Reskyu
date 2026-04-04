@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.components
+﻿package com.reskyu.consumer.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,17 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/**
- * ReskyuButton
- *
- * Standardized primary CTA button used throughout the app.
- * Applies the app's primary color, rounded corners, and consistent height.
- *
- * @param text      Button label text
- * @param onClick   Click callback
- * @param modifier  Optional layout modifier
- * @param enabled   Whether the button is interactive (default: true)
- */
 @Composable
 fun ReskyuButton(
     text: String,
