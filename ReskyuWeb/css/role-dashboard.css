@@ -338,4 +338,87 @@
   .form-row         { grid-template-columns: 1fr; }
   .surplus-grid     { grid-template-columns: 1fr; }
   .milestones-grid  { grid-template-columns: 1fr 1fr; }
+  /* leave space for bottom mobile nav */
+  .dash-main        { padding-bottom: 80px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FEATURE 6 — Skeleton Loading Screens
+   ═══════════════════════════════════════════════════════════ */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(254,250,242,.05) 25%,
+    rgba(254,250,242,.12) 50%,
+    rgba(254,250,242,.05) 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 8px;
+}
+
+/* Skeleton stat card */
+.skel-stat-card {
+  background: rgba(254,250,242,.03);
+  border: 1px solid rgba(254,250,242,.07);
+  border-radius: 16px; padding: 24px 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.skel-icon  { width: 36px; height: 36px; border-radius: 50%; }
+.skel-num   { width: 60px; height: 28px; border-radius: 6px; }
+.skel-label { width: 100px; height: 14px; border-radius: 4px; }
+
+/* Skeleton listing card */
+.skel-listing {
+  background: rgba(254,250,242,.03);
+  border: 1px solid rgba(254,250,242,.07);
+  border-radius: 16px; padding: 20px 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 12px;
+}
+.skel-title  { width: 55%; height: 18px; border-radius: 5px; }
+.skel-meta   { width: 80%; height: 13px; border-radius: 4px; }
+.skel-meta-sm{ width: 40%; height: 13px; border-radius: 4px; }
+
+/* Skeleton header */
+.skel-header-wrap { display: flex; align-items: center; gap: 20px; }
+.skel-avatar { width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0; }
+.skel-name-block { display: flex; flex-direction: column; gap: 10px; }
+.skel-greeting { width: 80px;  height: 13px; border-radius: 4px; }
+.skel-name     { width: 200px; height: 28px; border-radius: 7px; }
+.skel-badge    { width: 140px; height: 22px; border-radius: 50px; }
+
+/* ═══════════════════════════════════════════════════════════
+   FEATURE 8 — Mobile Bottom Tab Navigation
+   ═══════════════════════════════════════════════════════════ */
+.mobile-tab-bar {
+  display: none; /* shown only on mobile via media query */
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
+  background: rgba(14,10,31,.97);
+  border-top: 1px solid rgba(254,250,242,.1);
+  backdrop-filter: blur(20px);
+  padding: 8px 0 env(safe-area-inset-bottom, 8px);
+}
+.mobile-tab-bar-inner {
+  display: flex; justify-content: space-around; align-items: stretch;
+}
+.mobile-tab-btn {
+  flex: 1; background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 8px 4px;
+  font-family: var(--font-head); font-size: .62rem; font-weight: 700;
+  color: rgba(254,250,242,.35);
+  letter-spacing: .04em; text-transform: uppercase;
+  transition: color .2s; border-radius: 8px;
+}
+.mobile-tab-btn .mtab-icon { font-size: 1.3rem; line-height: 1; }
+.mobile-tab-btn.active { color: var(--orange); }
+.mobile-tab-btn:active { background: rgba(254,250,242,.05); }
+
+@media (max-width: 768px) {
+  .mobile-tab-bar { display: block; }
 }

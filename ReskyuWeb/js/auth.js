@@ -48,6 +48,7 @@
             user.updateProfile({ displayName: name }),
             db.collection(USERS_COL).doc(user.uid).set({
               uid: user.uid, name: name, email: email, role: role,
+              onboarded: false,   // triggers onboarding overlay on first dashboard visit
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
           ]);

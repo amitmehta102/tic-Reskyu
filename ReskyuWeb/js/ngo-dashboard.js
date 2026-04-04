@@ -28,9 +28,12 @@
     loadCollections(user.uid);
   });
 
-  // ── Tab Navigation ────────────────────────────────────────
+  // ── Tab Navigation (syncs mobile bottom bar too) ─────────────
   window.switchTab = function (tabId) {
     document.querySelectorAll('.role-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.mobile-tab-btn').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabId);
     });
     document.querySelectorAll('.role-panel').forEach(p => {
@@ -39,7 +42,7 @@
       else             { p.classList.remove('active'); p.setAttribute('hidden', ''); }
     });
   };
-  document.querySelectorAll('.role-tab').forEach(t => {
+  document.querySelectorAll('.role-tab, .mobile-tab-btn').forEach(t => {
     t.addEventListener('click', () => switchTab(t.dataset.tab));
   });
 
@@ -67,6 +70,11 @@
 
       loadingEl.style.display = 'none';
       mainEl.removeAttribute('hidden');
+
+      // Trigger onboarding for new users (Feature 7)
+      if (window.Onboarding) {
+        Onboarding.checkAndShow(user, db);
+      }
     });
   }
 
@@ -187,10 +195,12 @@
         db.collection('listings').doc(selectedListing.listingId).update({ status: 'claimed' })
           .catch(() => {});
       }
+      if (window.Toast) Toast.success('Claimed! Check My Collections for pickup details.');
       msg.style.color = '#7BE08A';
       msg.textContent = '✅ Claimed! Check "My Collections" for pickup details.';
       setTimeout(closeClaimModal, 1800);
     }).catch(err => {
+      if (window.Toast) Toast.error('Could not claim: ' + err.message);
       msg.style.color = '#F5A623';
       msg.textContent = '⚠ ' + err.message;
     }).finally(() => {

@@ -25,18 +25,24 @@
     loadListings(user.uid);
   });
 
-  // ── Tab Navigation ────────────────────────────────────────
+  // ── Tab Navigation (syncs mobile bottom bar too) ─────────────
   window.switchTab = function (tabId) {
+    // Desktop top tabs
     document.querySelectorAll('.role-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabId);
     });
+    // Mobile bottom bar
+    document.querySelectorAll('.mobile-tab-btn').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === tabId);
+    });
+    // Panels
     document.querySelectorAll('.role-panel').forEach(p => {
       const id = 'tab-' + tabId;
       if (p.id === id) { p.classList.add('active'); p.removeAttribute('hidden'); }
       else             { p.classList.remove('active'); p.setAttribute('hidden', ''); }
     });
   };
-  document.querySelectorAll('.role-tab').forEach(t => {
+  document.querySelectorAll('.role-tab, .mobile-tab-btn').forEach(t => {
     t.addEventListener('click', () => switchTab(t.dataset.tab));
   });
 
@@ -200,12 +206,14 @@
         createdAt:      firebase.firestore.FieldValue.serverTimestamp()
       });
     }).then(() => {
+      if (window.Toast) Toast.success('Listing published! Now visible to students & NGOs.');
       listingMsg.style.color = '#7BE08A';
-      listingMsg.textContent = '✅ Listing published! It\'s now visible to students and NGOs.';
+      listingMsg.textContent = '✅ Listing published!';
       listingForm.reset();
       pricePreview.setAttribute('hidden', '');
       setTimeout(() => switchTab('listings'), 1800);
     }).catch(err => {
+      if (window.Toast) Toast.error('Could not publish: ' + err.message);
       listingMsg.style.color = '#F5A623';
       listingMsg.textContent = '⚠ Error: ' + err.message;
     }).finally(() => {
