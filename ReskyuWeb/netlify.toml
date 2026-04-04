@@ -57,6 +57,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# ── Service Worker — MUST always be fresh, never cached ──────
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+
 # ── No-cache for HTML (always fetch latest) ──────────
 [[headers]]
   for = "/*.html"
