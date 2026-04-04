@@ -70,11 +70,6 @@
 
       loadingEl.style.display = 'none';
       mainEl.removeAttribute('hidden');
-
-      // Trigger onboarding for new users
-      if (window.Onboarding) {
-        Onboarding.checkAndShow(user, db);
-      }
     });
   }
 

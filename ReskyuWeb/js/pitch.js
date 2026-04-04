@@ -427,7 +427,7 @@
             signupMsg.style.color = '#7BE08A';
             signupMsg.textContent = '🎉 Account created! Welcome to RESKYU.';
             signupForm.reset();
-            setTimeout(() => { closeModal(); window.location.href = 'dashboard.html'; }, 1000);
+            setTimeout(closeModal, 1600);
           })
           .catch(err => {
             signupMsg.style.color = '#F5A623';

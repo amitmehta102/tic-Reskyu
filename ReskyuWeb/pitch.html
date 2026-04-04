@@ -357,7 +357,7 @@
       </div>
     </div>
 
-    <div class="hero-stats" id="hero-stats">
+    <div class="hero-stats">
       <div class="hero-stat">
         <div class="hero-stat-num">35–45%</div>
         <div class="hero-stat-label">of restaurant food wasted daily</div>
@@ -451,7 +451,7 @@
 
 
       <div class="why-center-image fade-up">
-        <img src="img/food_bag.webp" alt="RESKYU rescue bag" class="why-bag-img" />
+        <img src="img/food_bag.png" alt="RESKYU rescue bag" class="why-bag-img" />
       </div>
 
       <div class="why-col why-col-right">
@@ -720,63 +720,12 @@
         </a>
       </div>
       <div class="footer-legal">
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="terms.html">Terms</a>
-        <a href="contact.html">Contact</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
       </div>
     </div>
   </footer>
-
-  <!-- ════ SCROLL TO TOP BUTTON ════ -->
-  <button id="scroll-top-btn" aria-label="Scroll to top" hidden style="
-    position:fixed;bottom:28px;right:28px;z-index:900;
-    width:44px;height:44px;border-radius:50%;
-    background:var(--orange);color:var(--teal);
-    border:none;cursor:pointer;font-size:1.2rem;
-    box-shadow:0 4px 16px rgba(245,166,35,.4);
-    transition:opacity .3s,transform .3s;
-    display:flex;align-items:center;justify-content:center;
-  ">↑</button>
-
-  <!-- ════ THEME TOGGLE ════ -->
-  <button id="theme-toggle" aria-label="Toggle dark/light mode" style="
-    position:fixed;bottom:28px;right:80px;z-index:900;
-    width:44px;height:44px;border-radius:50%;
-    background:rgba(254,250,242,.1);color:var(--cream);
-    border:1px solid rgba(254,250,242,.15);cursor:pointer;
-    font-size:1.1rem;display:flex;align-items:center;justify-content:center;
-    transition:background .2s;
-  ">🌙</button>
-
-  <!-- ════ PWA INSTALL BANNER ════ -->
-  <div id="pwa-banner" hidden style="
-    position:fixed;bottom:0;left:0;right:0;z-index:800;
-    background:var(--teal2);border-top:1px solid rgba(254,250,242,.1);
-    display:flex;align-items:center;justify-content:space-between;
-    padding:14px 24px;gap:16px;
-  ">
-    <p style="margin:0;font-size:.9rem;color:var(--cream)">📱 <strong>Install RESKYU</strong> — quick access from your home screen</p>
-    <div style="display:flex;gap:10px;flex-shrink:0">
-      <button id="pwa-install-btn" style="padding:8px 18px;border-radius:999px;background:var(--orange);color:var(--teal);border:none;cursor:pointer;font-weight:700;font-size:.85rem">Install</button>
-      <button id="pwa-dismiss-btn" style="padding:8px 14px;border-radius:999px;background:transparent;color:rgba(254,250,242,.5);border:1px solid rgba(254,250,242,.15);cursor:pointer;font-size:.85rem">✕</button>
-    </div>
-  </div>
-
-  <!-- ════ COOKIE CONSENT BANNER ════ -->
-  <div id="cookie-banner" hidden style="
-    position:fixed;bottom:0;left:0;right:0;z-index:850;
-    background:var(--teal3);border-top:1px solid rgba(254,250,242,.1);
-    display:flex;align-items:center;justify-content:space-between;
-    padding:16px 28px;gap:16px;flex-wrap:wrap;
-  ">
-    <p style="margin:0;font-size:.85rem;color:rgba(254,250,242,.75);max-width:600px">
-      🍪 We use cookies to improve your experience and save waitlist entries. <a href="privacy.html" style="color:var(--orange)">Privacy Policy</a>
-    </p>
-    <div style="display:flex;gap:10px;flex-shrink:0">
-      <button id="cookie-accept" style="padding:9px 20px;border-radius:999px;background:var(--orange);color:var(--teal);border:none;cursor:pointer;font-weight:700;font-size:.85rem">Accept</button>
-      <button id="cookie-decline" style="padding:9px 16px;border-radius:999px;background:transparent;color:rgba(254,250,242,.5);border:1px solid rgba(254,250,242,.15);cursor:pointer;font-size:.85rem">Decline</button>
-    </div>
-  </div>
 
   <!-- ════ AUTH MODAL ════ -->
   <div id="auth-modal" class="auth-modal" role="dialog" aria-modal="true" aria-label="Login or Sign Up" hidden>
@@ -895,8 +844,7 @@
     Loading is handled by js/auth-loader.js below.
   -->
   <script>
-    // Firebase loader — loads SDK scripts SEQUENTIALLY to avoid race conditions
-    // (firebase-auth-compat depends on firebase-app-compat being fully initialised)
+    // Lazy Firebase loader — fires when Login or Signup button is clicked
     (function () {
       var loaded = false;
       var FIREBASE_SCRIPTS = [
@@ -905,43 +853,35 @@
         'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js'
       ];
 
-      function loadScriptSequentially(scripts, index, finalCallback) {
-        if (index >= scripts.length) {
-          finalCallback();
-          return;
-        }
-        var s = document.createElement('script');
-        s.src = scripts[index];
-        s.onload = function () {
-          loadScriptSequentially(scripts, index + 1, finalCallback);
-        };
-        s.onerror = function () {
-          console.error('[RESKYU] Failed to load Firebase script:', scripts[index]);
-        };
-        document.body.appendChild(s);
-      }
-
       function loadFirebase(callback) {
         if (loaded) { if (callback) callback(); return; }
+        var remaining = FIREBASE_SCRIPTS.length;
 
-        loadScriptSequentially(FIREBASE_SCRIPTS, 0, function () {
-          // All three SDK files loaded in order — now load config, then auth
-          var cfg = document.createElement('script');
-          cfg.src = 'js/firebase-config.js';
-          cfg.onload = function () {
-            var auth = document.createElement('script');
-            auth.src = 'js/auth.js';
-            auth.onload = function () {
-              loaded = true;
-              if (callback) callback();
-            };
-            document.body.appendChild(auth);
+        FIREBASE_SCRIPTS.forEach(function (src, i) {
+          var s = document.createElement('script');
+          s.src = src;
+          s.onload = function () {
+            if (--remaining === 0) {
+              // Load config then auth logic in sequence
+              var cfg = document.createElement('script');
+              cfg.src = 'js/firebase-config.js';
+              cfg.onload = function () {
+                var auth = document.createElement('script');
+                auth.src = 'js/auth.js';
+                auth.onload = function () {
+                  loaded = true;
+                  if (callback) callback();
+                };
+                document.body.appendChild(auth);
+              };
+              document.body.appendChild(cfg);
+            }
           };
-          document.body.appendChild(cfg);
+          document.body.appendChild(s);
         });
       }
 
-      // Load Firebase immediately on DOMContentLoaded so auth is ready before user clicks
+      // Load Firebase immediately so RESKYU_LOGIN is ready before user clicks Login
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () { loadFirebase(); });
       } else {
