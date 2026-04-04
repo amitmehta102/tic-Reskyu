@@ -11,12 +11,9 @@
 [![Razorpay](https://img.shields.io/badge/Razorpay-UPI%20Payments-072654?style=for-the-badge)](https://razorpay.com)
 [![Web](https://img.shields.io/badge/Web-HTML%20%7C%20JS%20%7C%20Firebase-F7DF1E?style=for-the-badge&logo=javascript)](https://reskyu-app.netlify.app)
 
-> **20–25% of restaurant food is wasted daily in India.**  
-> **₹80,000 Crore+ lost to food waste every year.**  
-> **1 in 5 Indians faces food insecurity.**  
-> We built RESKYU to close that gap — in real time, with zero logistics.
+> **20–25% of restaurant food is wasted daily in India.** > **₹80,000 Crore+ lost to food waste every year.** > **1 in 5 Indians faces food insecurity.** > We built RESKYU to close that gap — in real time, with zero logistics.
 
-🌐 **Live Demo:** [reskyu.netlify.app](https://reskyu.netlify.app)
+🌐 **Live Demo:** [reskyu.netlify.app](https://reskyu.netlify.app) &nbsp;|&nbsp; 📱 **Consumer App:** [Download APK](https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuConsumerV1.0/ReskyuConsumer.apk) &nbsp;|&nbsp; 🏪 **Merchant App:** [Download APK](https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuMerchantV1.0/ReskyuMerchant.apk)
 
 </div>
 
