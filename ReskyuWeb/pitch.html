@@ -180,182 +180,12 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap"
     rel="stylesheet" />
-
-  <!-- ── FEATURE 16: Critical CSS inlined ─────────────────
-       Only the above-the-fold styles are here so the hero
-       renders without waiting for pitch.css download.
-       Full stylesheet loads asynchronously below.
-  ──────────────────────────────────────────────────────── -->
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --teal:#0E0A1F;--teal2:#1A1535;--teal3:#241E48;
-      --cream:#FEFAF2;--cream2:#F7F2E8;
-      --orange:#F5A623;--orange2:#FFD060;
-      --dark:#0A0716;
-      --muted-teal:rgba(254,250,242,.55);
-      --font-head:'Space Grotesk',sans-serif;
-      --font-body:'DM Sans',sans-serif;
-      --radius:14px;--radius-pill:999px;
-    }
-    html{scroll-behavior:smooth}
-    body{
-      background:var(--teal);color:var(--cream);
-      font-family:var(--font-body);overflow-x:hidden;
-      line-height:1.65;opacity:0;transition:opacity .4s ease;
-    }
-    body.loaded{opacity:1}
-    img{display:block;max-width:100%}
-    a{text-decoration:none;color:inherit}
-    ul{list-style:none}
-    #progress-bar{
-      position:fixed;top:0;left:0;height:3px;width:0%;z-index:9999;
-      background:linear-gradient(90deg,var(--orange),var(--orange2));
-      transition:width .1s linear;
-    }
-    #navbar{
-      position:fixed;top:0;left:0;right:0;z-index:1000;
-      display:flex;align-items:center;justify-content:space-between;
-      padding:0 48px;height:72px;background:transparent;
-      transition:background .3s ease,height .3s ease,box-shadow .3s ease;
-    }
-    #navbar.scrolled{
-      background:var(--teal);
-      box-shadow:0 2px 24px rgba(0,0,0,.18);
-    }
-    .nav-logo{
-      font-family:var(--font-head);font-weight:800;
-      font-size:22px;letter-spacing:.08em;color:var(--cream);
-    }
-    .nav-logo em{color:var(--orange);font-style:normal}
-    .nav-links{
-      display:flex;align-items:center;gap:40px;
-      position:absolute;left:50%;transform:translateX(-50%);
-    }
-    .nav-links a{
-      font-size:.9rem;font-weight:500;
-      color:rgba(254,250,242,.65);transition:color .2s;
-    }
-    .nav-right{display:flex;align-items:center;gap:24px}
-    .nav-cta{
-      padding:10px 24px;border-radius:var(--radius-pill);
-      background:var(--cream);color:var(--teal);
-      font-family:var(--font-head);font-weight:700;
-      font-size:.88rem;cursor:pointer;border:none;
-    }
-    .hamburger{display:none;flex-direction:column;gap:5px;
-      cursor:pointer;background:none;border:none;padding:4px;}
-    .hamburger span{
-      width:22px;height:2px;background:var(--cream);
-      transition:all .3s;border-radius:2px;display:block;
-    }
-    #hero{
-      background:url('img/hero_bg.webp') center center/cover no-repeat;
-      background-color:var(--teal);
-      min-height:100vh;display:flex;flex-direction:column;
-      justify-content:space-between;padding:120px 80px 0;
-      position:relative;overflow:hidden;
-    }
-    #hero::after{
-      content:'';position:absolute;inset:0;z-index:0;
-      background:linear-gradient(105deg,rgba(14,10,31,.88) 0%,rgba(14,10,31,.72) 50%,rgba(14,10,31,.50) 100%);
-      pointer-events:none;
-    }
-    #hero::before{
-      content:'';position:absolute;inset:0;z-index:1;
-      background:
-        radial-gradient(ellipse 65% 55% at 18% 55%,rgba(245,166,35,.13) 0%,transparent 60%),
-        radial-gradient(ellipse 45% 40% at 82% 28%,rgba(139,92,246,.12) 0%,transparent 55%);
-      pointer-events:none;
-    }
-    .hero-inner{
-      display:flex;flex-direction:column;align-items:flex-start;
-      justify-content:center;flex:1;max-width:760px;
-      margin:0 auto;width:100%;padding-bottom:60px;
-      position:relative;z-index:2;
-    }
-    .hero-eyebrow{
-      display:inline-flex;align-items:center;gap:8px;
-      font-size:11px;font-weight:700;letter-spacing:.18em;
-      text-transform:uppercase;color:var(--orange);margin-bottom:24px;
-    }
-    .hero-headline{
-      font-family:var(--font-head);font-weight:800;
-      font-size:clamp(3.8rem,7vw,7rem);line-height:.95;
-      letter-spacing:-.03em;text-transform:uppercase;color:var(--cream);
-    }
-    .hero-headline-accent{color:var(--orange)}
-    .hero-sub{
-      font-size:clamp(1rem,1.5vw,1.15rem);color:var(--muted-teal);
-      margin:28px 0 0;max-width:500px;line-height:1.75;
-    }
-    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:40px}
-    .btn-cream{
-      padding:16px 36px;border-radius:var(--radius-pill);
-      background:var(--cream);color:var(--teal);
-      font-family:var(--font-head);font-weight:700;
-      font-size:.95rem;cursor:pointer;border:none;display:inline-block;
-    }
-    .btn-outline-cream{
-      padding:16px 36px;border-radius:var(--radius-pill);
-      background:transparent;color:var(--cream);
-      border:2px solid rgba(254,250,242,.3);
-      font-family:var(--font-head);font-weight:600;
-      font-size:.95rem;cursor:pointer;display:inline-block;
-    }
-    .fade-up{opacity:0;transform:translateY(28px);transition:opacity .6s,transform .6s}
-    .fade-up.visible{opacity:1;transform:translateY(0)}
-  </style>
-
-  <!-- Full CSS loads async — does NOT block first paint (Feature 16) -->
-  <link rel="stylesheet" href="css/pitch.css"
-        media="print" onload="this.media='all'" />
-  <noscript><link rel="stylesheet" href="css/pitch.css" /></noscript>
+  <link rel="stylesheet" href="css/pitch.css" />
 </head>
 
 <body>
 
   <div id="progress-bar"></div>
-
-  <!-- ══ PWA INSTALL BANNER (#6) ══════════════════════════ -->
-  <div id="pwa-banner" class="pwa-banner" hidden aria-live="polite" role="banner">
-    <div class="pwa-banner-inner">
-      <div class="pwa-banner-left">
-        <span class="pwa-icon">📲</span>
-        <div>
-          <div class="pwa-title">Install RESKYU App</div>
-          <div class="pwa-sub">Add to your home screen for instant access to nearby surplus food.</div>
-        </div>
-      </div>
-      <div class="pwa-banner-right">
-        <button class="pwa-install-btn" id="pwa-install-btn">Install</button>
-        <button class="pwa-dismiss-btn" id="pwa-dismiss-btn" aria-label="Dismiss">✕</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ SCROLL TO TOP (#7) ════════════════════════════════ -->
-  <button id="scroll-top-btn" class="scroll-top-btn" aria-label="Back to top" hidden>
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 14V4M4 9l5-5 5 5"/>
-    </svg>
-  </button>
-
-  <!-- ══ COOKIE CONSENT (#8) ════════════════════════════════ -->
-  <div id="cookie-banner" class="cookie-banner" hidden role="dialog" aria-label="Cookie consent">
-    <div class="cookie-banner-inner">
-      <span class="cookie-icon">🍪</span>
-      <p class="cookie-text">
-        We use cookies and Google Analytics to improve your experience.
-        Your data is never sold.
-        <a href="privacy.html" class="cookie-link">Learn more</a>
-      </p>
-      <div class="cookie-actions">
-        <button class="cookie-accept" id="cookie-accept">Accept All</button>
-        <button class="cookie-decline" id="cookie-decline">Decline</button>
-      </div>
-    </div>
-  </div>
 
 
   <nav id="navbar">
@@ -397,21 +227,21 @@
       </div>
     </div>
 
-    <div class="hero-stats" id="hero-stats">
+    <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-num" data-count-to="45" data-count-prefix="" data-count-suffix="%" data-count-label="35–">35–45%</div>
+        <div class="hero-stat-num">35–45%</div>
         <div class="hero-stat-label">of restaurant food wasted daily</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num" data-count-to="85" data-count-prefix="₹" data-count-suffix="K Cr+">₹85K Cr+</div>
+        <div class="hero-stat-num">₹85K Cr+</div>
         <div class="hero-stat-label">lost to food waste every year</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num" data-count-to="5" data-count-prefix="1 in " data-count-suffix="">1 in 5</div>
+        <div class="hero-stat-num">1 in 5</div>
         <div class="hero-stat-label">Indians face food insecurity</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num" data-count-glow>~Zero</div>
+        <div class="hero-stat-num">~Zero</div>
         <div class="hero-stat-label">delivery emissions — walkable pickup</div>
       </div>
     </div>
@@ -741,7 +571,7 @@
         <a href="#why">Why RESKYU</a>
         <a href="#how">How It Works</a>
         <a href="#audiences">For You</a>
-        <a href="contact.html">Contact</a>
+        <a href="#cta">Contact</a>
       </nav>
       <p class="footer-tagline">Rescuing food. Feeding India. Zero waste.</p>
     </div>
@@ -760,9 +590,9 @@
         </a>
       </div>
       <div class="footer-legal">
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="terms.html">Terms</a>
-        <a href="contact.html">Contact</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
       </div>
     </div>
   </footer>
@@ -893,72 +723,57 @@
         'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js'
       ];
 
+      function loadScriptSequentially(scripts, index, finalCallback) {
+        if (index >= scripts.length) { finalCallback(); return; }
+        var s = document.createElement('script');
+        s.src = scripts[index];
+        s.onload = function () {
+          loadScriptSequentially(scripts, index + 1, finalCallback);
+        };
+        s.onerror = function () {
+          console.error('[RESKYU] Failed to load:', scripts[index]);
+        };
+        document.body.appendChild(s);
+      }
+
       function loadFirebase(callback) {
         if (loaded) { if (callback) callback(); return; }
-        var remaining = FIREBASE_SCRIPTS.length;
 
-        FIREBASE_SCRIPTS.forEach(function (src, i) {
-          var s = document.createElement('script');
-          s.src = src;
-          s.onload = function () {
-            if (--remaining === 0) {
-              // Load config then auth logic in sequence
-              var cfg = document.createElement('script');
-              cfg.src = 'js/firebase-config.js';
-              cfg.onload = function () {
-                var auth = document.createElement('script');
-                auth.src = 'js/auth.js';
-                auth.onload = function () {
-                  loaded = true;
-                  if (callback) callback();
-                };
-                document.body.appendChild(auth);
-              };
-              document.body.appendChild(cfg);
-            }
+        // Load all 3 SDK scripts in ORDER (app → auth → firestore)
+        // so firebase-app-compat is always ready before the others run
+        loadScriptSequentially(FIREBASE_SCRIPTS, 0, function () {
+          var cfg = document.createElement('script');
+          cfg.src = 'js/firebase-config.js';
+          cfg.onload = function () {
+            var auth = document.createElement('script');
+            auth.src = 'js/auth.js';
+            auth.onload = function () {
+              loaded = true;
+              if (callback) callback();
+            };
+            document.body.appendChild(auth);
           };
-          document.body.appendChild(s);
+          document.body.appendChild(cfg);
         });
       }
 
-      // ── Load Firebase immediately on DOMContentLoaded ────────────────
-      // (was deferred 3s which caused "not configured yet" if user clicked fast)
-      window._loadFirebase = loadFirebase;
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () { loadFirebase(); });
+      // Preload Firebase in the background after 3 seconds of idle
+      // (so it's ready quickly but doesn't block initial paint)
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(function () { loadFirebase(); }, { timeout: 3000 });
       } else {
-        loadFirebase();
+        setTimeout(function () { loadFirebase(); }, 3000);
       }
+
+      // Also trigger immediately on auth button clicks (in case idle hasn't fired)
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('#open-login, #open-signup, .auth-switch-btn, .auth-google-btn');
+        if (btn) loadFirebase();
+      }, { passive: true });
+
+      window._loadFirebase = loadFirebase;
     })();
   </script>
-
-  <!-- Feature 15: Service Worker registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' })
-          .then(function (reg) {
-            console.log('[RESKYU SW] Registered, scope:', reg.scope);
-          })
-          .catch(function (err) {
-            console.warn('[RESKYU SW] Registration failed:', err);
-          });
-      });
-    }
-  </script>
-
-  <!-- Theme toggle FAB -->
-  <button
-    id="theme-toggle"
-    class="theme-fab"
-    aria-label="Toggle light/dark mode"
-    title="Switch theme"
-  >
-    <span class="theme-fab-icon theme-fab-moon">🌙</span>
-    <span class="theme-fab-icon theme-fab-sun">☀️</span>
-    <span class="theme-fab-label">Theme</span>
-  </button>
 
 </body>
 </html>
