@@ -16,7 +16,9 @@ data class Listing(
     val originalPrice: Double = 0.0,
     val discountedPrice: Double = 0.0,
     val imageUrl: String = "",
-    val geoHash: String = "",               // Copied from merchant for map/list queries
+    val geoHash: String = "",               // Copied from merchant for geo queries
+    val lat: Double = 0.0,                  // Merchant latitude  — for map pins & distance
+    val lng: Double = 0.0,                  // Merchant longitude — for map pins & distance
     val expiresAt: Long = 0L,               // Unix timestamp in milliseconds
     val status: String = ListingStatus.OPEN.name
 )

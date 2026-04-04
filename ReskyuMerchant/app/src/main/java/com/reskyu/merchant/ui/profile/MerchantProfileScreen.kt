@@ -8,6 +8,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.rounded.StarHalf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -173,12 +176,13 @@ fun MerchantProfileScreen(
 
 @Composable
 private fun ProfileHeader(merchant: Merchant?) {
-    val initial    = merchant?.businessName?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
-    // trustScore is 0–100; scale to 0–5 stars
-    val scoreInt   = merchant?.trustScore ?: 0
-    val filled     = (scoreInt / 20).coerceIn(0, 5)
-    val starsText  = "★".repeat(filled) + "☆".repeat(5 - filled)
-    val scoreLabel = if (scoreInt > 0) "$scoreInt / 100" else ""
+    val initial = merchant?.businessName?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+
+    // ── Rating calculation ─────────────────────────────────────────────────
+    val ratingCount = merchant?.ratingCount ?: 0
+    val ratingSum   = merchant?.ratingSum   ?: 0
+    val hasRating   = ratingCount >= 5
+    val avgRating   = if (hasRating) ratingSum.toFloat() / ratingCount else 0f
 
     Box(
         modifier = Modifier
@@ -193,7 +197,7 @@ private fun ProfileHeader(merchant: Merchant?) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Avatar circle
+            // ── Avatar circle ──────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .size(76.dp)
@@ -217,23 +221,11 @@ private fun ProfileHeader(merchant: Merchant?) {
                 color      = Color.White
             )
 
-            // Trust score stars
-            Row(
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text     = starsText,
-                    fontSize = 16.sp,
-                    color    = Color(0xFFFFD166)
-                )
-                if (scoreLabel.isNotEmpty()) {
-                    Text(
-                        text     = scoreLabel,
-                        fontSize = 13.sp,
-                        color    = GreenLight
-                    )
-                }
+            // ── Rating OR "New Restaurant" ─────────────────────────────────
+            if (hasRating) {
+                RatingStars(avg = avgRating, count = ratingCount)
+            } else {
+                NewRestaurantBadge(ratingCount = ratingCount)
             }
 
             // Role badge
@@ -252,6 +244,91 @@ private fun ProfileHeader(merchant: Merchant?) {
                 )
             }
         }
+    }
+}
+
+/**
+ * 5-star rating row using Material vector icons.
+ * Each star is evaluated individually:
+ *   fill ≥ 0.75 → filled   (Star)
+ *   fill ≥ 0.25 → half     (StarHalf)
+ *   fill < 0.25 → empty    (StarBorder)
+ *
+ * This recomposes automatically whenever [avg] or [count] change.
+ */
+@Composable
+private fun RatingStars(avg: Float, count: Int) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // ── 5 individual star icons ────────────────────────────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for (i in 1..5) {
+                    val fill = (avg - (i - 1)).coerceIn(0f, 1f)
+                    val icon = when {
+                        fill >= 0.75f -> Icons.Rounded.Star        // full
+                        fill >= 0.25f -> Icons.Rounded.StarHalf    // half
+                        else          -> Icons.Rounded.StarBorder  // empty
+                    }
+                    Icon(
+                        imageVector        = icon,
+                        contentDescription = null,
+                        tint               = Color(0xFFFFD166),
+                        modifier           = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            // ── Numeric average ────────────────────────────────────────────
+            Text(
+                text       = String.format("%.1f", avg),
+                fontSize   = 17.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color      = Color.White
+            )
+        }
+
+        Text(
+            text     = "Based on $count ratings",
+            fontSize = 11.sp,
+            color    = GreenLight.copy(alpha = 0.75f)
+        )
+    }
+}
+
+/** "New Restaurant" pill shown when ratingCount < 5. */
+@Composable
+private fun NewRestaurantBadge(ratingCount: Int) {
+    val remaining = (5 - ratingCount).coerceAtLeast(0)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFFFFD166).copy(alpha = 0.18f))
+                .padding(horizontal = 14.dp, vertical = 5.dp)
+        ) {
+            Text(
+                text          = "⭐ New Restaurant",
+                fontSize      = 12.sp,
+                color         = Color(0xFFFFD166),
+                letterSpacing = 0.3.sp,
+                fontWeight    = FontWeight.SemiBold
+            )
+        }
+        Text(
+            text     = if (ratingCount == 0) "Get your first rating from customers"
+                       else "$remaining more ${if (remaining == 1) "rating" else "ratings"} to show avg score",
+            fontSize = 11.sp,
+            color    = GreenLight.copy(alpha = 0.65f)
+        )
     }
 }
 

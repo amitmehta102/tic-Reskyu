@@ -56,6 +56,7 @@ fun EsgAnalyticsScreen(
 ) {
     val stats      by viewModel.esgStats.collectAsState()
     val isLoading  by viewModel.isLoading.collectAsState()
+    val isSeeding  by viewModel.isSeeding.collectAsState()
     val surplusIq  by viewModel.surplusIq.collectAsState()
 
     val merchantId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
@@ -84,6 +85,31 @@ fun EsgAnalyticsScreen(
                             .padding(horizontal = 16.dp, vertical = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+
+                        // ── Seeding banner (first launch only) ───────────────
+                        if (isSeeding) {
+                            androidx.compose.foundation.layout.Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                                    .background(GreenDeep)
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier    = Modifier.size(18.dp),
+                                    color       = GreenAccent,
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    text       = "Setting up demo data…",
+                                    color      = Color.White,
+                                    fontSize   = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
 
                         // ① SurplusIQ ─────────────────────────────────────────
                         SurplusIqSection(
@@ -173,9 +199,10 @@ private fun SurplusIqSection(
     onRetry: () -> Unit
 ) {
     when (state) {
-        is SurplusIqUiState.Loading -> SurplusIqLoading()
-        is SurplusIqUiState.Success -> SurplusIqCard(result = state.result)
-        is SurplusIqUiState.Error   -> SurplusIqError(message = state.message, onRetry = onRetry)
+        is SurplusIqUiState.Loading       -> SurplusIqLoading()
+        is SurplusIqUiState.Success       -> SurplusIqCard(result = state.result)
+        is SurplusIqUiState.NewRestaurant -> SurplusIqNewRestaurant(state)
+        is SurplusIqUiState.Error         -> SurplusIqError(message = state.message, onRetry = onRetry)
     }
 }
 
@@ -207,7 +234,7 @@ private fun SurplusIqLoading() {
                     fontWeight    = FontWeight.Bold
                 )
                 Text(
-                    text       = "Analysing your sales data…",
+                    text       = "Analysing your sales data\u2026",
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color      = Color.White
@@ -218,6 +245,89 @@ private fun SurplusIqLoading() {
                     color    = Color.White.copy(alpha = 0.45f)
                 )
             }
+        }
+    }
+}
+
+// New restaurant — not enough data yet
+@Composable
+private fun SurplusIqNewRestaurant(state: SurplusIqUiState.NewRestaurant) {
+    val progress = (state.mealsRescued.toFloat() / state.required).coerceIn(0f, 1f)
+    val remaining = (state.required - state.mealsRescued).coerceAtLeast(0)
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFF1B3A2A)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(text = "\uD83C\uDF31", fontSize = 24.sp)   // 🌱
+                Column {
+                    Text(
+                        text          = "SURPLUSIQ",
+                        fontSize      = 10.sp,
+                        color         = GreenLight,
+                        letterSpacing = 1.5.sp,
+                        fontWeight    = FontWeight.Bold
+                    )
+                    Text(
+                        text       = if (state.mealsRescued == 0)
+                                         "AI prediction unlocks soon!"
+                                     else
+                                         "$remaining more ${if (remaining == 1) "rescue" else "rescues"} to unlock AI!",
+                        fontSize   = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color.White
+                    )
+                }
+            }
+
+            // Progress bar
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress       = { progress },
+                    modifier       = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color          = GreenAccent,
+                    trackColor     = Color.White.copy(alpha = 0.12f)
+                )
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text     = "${state.mealsRescued} meals rescued",
+                        fontSize = 11.sp,
+                        color    = GreenLight.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text     = "Goal: ${state.required}",
+                        fontSize = 11.sp,
+                        color    = GreenLight.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            // Generic tip
+            Text(
+                text      = if (state.mealsRescued == 0)
+                                "Post your first listing to start building your impact story."
+                            else
+                                "Keep listing daily \u2014 Gemini will analyse your trend once you hit ${state.required} rescues.",
+                fontSize  = 12.sp,
+                color     = Color.White.copy(alpha = 0.55f),
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+            )
         }
     }
 }

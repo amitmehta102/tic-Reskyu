@@ -29,11 +29,9 @@ class MerchantClaimRepository {
     fun observeClaimsForMerchant(merchantId: String): Flow<List<MerchantClaim>> = callbackFlow {
         val registration = claimsCollection
             .whereEqualTo("merchantId", merchantId)
-            // orderBy removed — compound filter + orderBy requires a composite index.
-            // Sorting newest-first is done client-side below.
             .addSnapshotListener { snapshot, error ->
                 if (error != null) { close(error); return@addSnapshotListener }
-                val sorted = (snapshot?.toObjects(MerchantClaim::class.java) ?: emptyList())
+                val sorted = (snapshot?.documents?.mapNotNull { mapClaim(it) } ?: emptyList())
                     .sortedByDescending { it.timestamp }
                 trySend(sorted)
             }
@@ -46,9 +44,8 @@ class MerchantClaimRepository {
     suspend fun getClaimsForMerchant(merchantId: String): List<MerchantClaim> {
         val snapshot = claimsCollection
             .whereEqualTo("merchantId", merchantId)
-            // orderBy removed — compound filter + orderBy requires a composite index.
             .get().await()
-        return snapshot.toObjects(MerchantClaim::class.java)
+        return snapshot.documents.mapNotNull { mapClaim(it) }
             .sortedByDescending { it.timestamp }
     }
 
@@ -66,13 +63,44 @@ class MerchantClaimRepository {
 
     // ── Cross-collection lookup ───────────────────────────────────────────────
 
-    /**
-     * Fetches the consumer [User] profile from /users/{uid}.
-     * Returns null if the document does not exist.
-     * Used when the merchant needs context (e.g. name) on a disputed claim.
-     */
+    /** Fetches the consumer User profile from /users/{uid}. */
     suspend fun getUserForClaim(userId: String): User? {
         val snapshot = usersCollection.document(userId).get().await()
         return snapshot.toObject(User::class.java)
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Safely maps a Firestore document to [MerchantClaim].
+     *
+     * Handles timestamp stored as either:
+     *  - com.google.firebase.Timestamp (consumer app / auto-Firestore format)
+     *  - Long (Unix ms — written by our seeder or older versions)
+     */
+    private fun mapClaim(doc: com.google.firebase.firestore.DocumentSnapshot): MerchantClaim? {
+        return try {
+            val rawTs = doc.get("timestamp")
+            val timestampMs: Long = when (rawTs) {
+                is com.google.firebase.Timestamp -> rawTs.toDate().time
+                is Long                          -> rawTs
+                is Number                        -> rawTs.toLong()
+                else                             -> 0L
+            }
+            MerchantClaim(
+                id           = doc.id,
+                userId       = doc.getString("userId")       ?: doc.getString("consumerId") ?: "",
+                merchantId   = doc.getString("merchantId")   ?: "",
+                listingId    = doc.getString("listingId")    ?: "",
+                businessName = doc.getString("businessName") ?: "",
+                heroItem     = doc.getString("heroItem")     ?: "",
+                paymentId    = doc.getString("paymentId")    ?: "",
+                amount       = doc.getDouble("amount")       ?: 0.0,
+                timestamp    = timestampMs,
+                status       = doc.getString("status")       ?: "PENDING_PICKUP"
+            )
+        } catch (e: Exception) {
+            null   // skip malformed documents silently
+        }
     }
 }
