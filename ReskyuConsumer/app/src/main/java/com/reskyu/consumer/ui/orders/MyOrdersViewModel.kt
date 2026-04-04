@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.ui.orders
+package com.reskyu.consumer.ui.orders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+
+import java.util.concurrent.TimeUnit
 
 class MyOrdersViewModel : ViewModel() {
 
@@ -35,6 +37,22 @@ class MyOrdersViewModel : ViewModel() {
                 .collect { claims ->
                     _isLoading.value = false
                     _allClaims.value = claims
+
+                    val now = System.currentTimeMillis()
+                    val expiredIds = claims
+                        .filter { it.status == "PENDING_PICKUP" }
+                        .filter { claim ->
+                            val deadline = if (claim.pickupDeadlineMs > 0) claim.pickupDeadlineMs
+                                           else claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(4)
+                            now > deadline
+                        }
+                        .map { it.id }
+
+                    if (expiredIds.isNotEmpty()) {
+                        launch {
+                            try { claimRepository.markExpiredClaims(expiredIds) } catch (_: Exception) { }
+                        }
+                    }
                 }
         }
     }

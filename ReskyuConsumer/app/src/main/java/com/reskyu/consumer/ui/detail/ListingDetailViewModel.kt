@@ -87,8 +87,8 @@ class ListingDetailViewModel : ViewModel() {
     }
 
     private fun ruleBasedInsight(listing: Listing): String {
-        val discount = if (listing.originalPrice > 0)
-            ((1 - listing.discountedPrice / listing.originalPrice) * 100).toInt() else 0
+        val discount = if (listing.effectiveOriginalPrice > 0)
+            ((1 - listing.discountedPrice / listing.effectiveOriginalPrice) * 100).toInt() else 0
         val dietEmoji = when (listing.dietaryTag) {
             "VEG"     -> "🥗"
             "VEGAN"   -> "🌱"

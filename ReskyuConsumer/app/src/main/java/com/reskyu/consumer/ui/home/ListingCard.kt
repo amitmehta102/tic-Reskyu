@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.ui.home
+package com.reskyu.consumer.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,8 +43,8 @@ fun ListingCard(
     merchantRating: Double? = null,  // avg rating from /merchants collection
     modifier: Modifier = Modifier
 ) {
-    val discountPct = if (listing.originalPrice > 0)
-        ((listing.originalPrice - listing.discountedPrice) / listing.originalPrice * 100).toInt()
+    val discountPct = if (listing.effectiveOriginalPrice > 0)
+        ((listing.effectiveOriginalPrice - listing.discountedPrice) / listing.effectiveOriginalPrice * 100).toInt()
     else 0
 
     val timeLeftMs = listing.expiresAt.toDate().time - System.currentTimeMillis()
@@ -52,14 +52,15 @@ fun ListingCard(
     val isExpiringSoon = timeLeftMs < TimeUnit.HOURS.toMillis(1)
     val distanceText = formatDistance(distanceKm)
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+            shape = MaterialTheme.shapes.medium,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -125,6 +126,25 @@ fun ListingCard(
                         )
                     }
                 }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .background(Color(0xB3000000), RoundedCornerShape(topStart = 8.dp))
+                        .padding(horizontal = 5.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = listing.businessName,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 76.dp)
+                    )
+                }
+
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -134,68 +154,28 @@ fun ListingCard(
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        modifier = Modifier.weight(1f, fill = false)
+                if (merchantRating != null && merchantRating > 0.0) {
+                    Surface(
+                        color = Color(0xFFFFF8E1),
+                        shape = RoundedCornerShape(4.dp)
                     ) {
-                        Text(
-                            text = listing.businessName,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = LC_TextSub,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (merchantRating != null && merchantRating > 0.0) {
-                            Surface(
-                                color = Color(0xFFFFF8E1),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.Star,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(9.dp),
-                                        tint = Color(0xFFFFA000)
-                                    )
-                                    Text(
-                                        text = String.format("%.1f", merchantRating),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFFFA000),
-                                        fontSize = 9.sp
-                                    )
-                                }
-                            }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Star, null,
+                                Modifier.size(10.dp), tint = Color(0xFFFFA000)
+                            )
+                            Text(
+                                text = String.format("%.1f", merchantRating),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFFA000),
+                                fontSize = 10.sp
+                            )
                         }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccessTime,
-                            contentDescription = null,
-                            modifier = Modifier.size(10.dp),
-                            tint = if (isExpiringSoon) LC_Error else LC_Outline
-                        )
-                        Text(
-                            text = expiryText,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isExpiringSoon) LC_Error else LC_Outline,
-                            fontSize = 10.sp
-                        )
                     }
                 }
 
@@ -301,7 +281,7 @@ fun ListingCard(
                                 color = LC_Green
                             )
                             Text(
-                                text = "₹${listing.originalPrice.toInt()}",
+                                text = "₹${listing.effectiveOriginalPrice.toInt()}",
                                 style = MaterialTheme.typography.bodySmall,
                                 textDecoration = TextDecoration.LineThrough,
                                 color = LC_TextSub
@@ -318,6 +298,36 @@ fun ListingCard(
                         )
                     }
                 }
+            }
+        }
+    }
+
+        // ── Expiry timer badge — top-right corner of the card ────────────
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 8.dp, end = 8.dp)
+                .background(
+                    if (isExpiringSoon) Color(0xCCD32F2F) else Color(0xCC1F5235),
+                    RoundedCornerShape(6.dp)
+                )
+                .padding(horizontal = 6.dp, vertical = 3.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.AccessTime, null,
+                    Modifier.size(9.dp), tint = Color.White
+                )
+                Text(
+                    text = expiryText,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 9.sp
+                )
             }
         }
     }

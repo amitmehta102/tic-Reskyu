@@ -455,14 +455,14 @@ private fun OrderBottomSheet(
     onConfirm: (Int) -> Unit     // carries the selected quantity
 ) {
     val sheetState  = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val discountPct = if (listing.originalPrice > 0)
-        ((listing.originalPrice - listing.discountedPrice) / listing.originalPrice * 100).toInt()
+    val discountPct = if (listing.effectiveOriginalPrice > 0)
+        ((listing.effectiveOriginalPrice - listing.discountedPrice) / listing.effectiveOriginalPrice * 100).toInt()
     else 0
     val timeLeftMs = listing.expiresAt.toDate().time - System.currentTimeMillis()
     val maxQty     = listing.mealsLeft.coerceAtLeast(1)
 
     var quantity    by remember { mutableStateOf(1) }
-    val savings     = (listing.originalPrice - listing.discountedPrice) * quantity
+    val savings     = (listing.effectiveOriginalPrice - listing.discountedPrice) * quantity
     val totalPrice  = listing.discountedPrice * quantity
 
     ModalBottomSheet(
@@ -654,7 +654,7 @@ private fun OrderBottomSheet(
                 Spacer(Modifier.height(6.dp))
                 PriceRow("You Pay", "₹${(listing.discountedPrice * quantity).toInt()}", bold = true, valueColor = Color(0xFF5C35C7))
             } else {
-                PriceRow("Original price", "₹${(listing.originalPrice * quantity).toInt()}", strikethrough = true)
+                PriceRow("Original price", "₹${(listing.effectiveOriginalPrice * quantity).toInt()}", strikethrough = true)
                 PriceRow("Discount ($discountPct%)", "-₹${savings.toInt()}", valueColor = RPriceGreen)
                 Spacer(Modifier.height(6.dp))
                 HorizontalDivider(color = Color(0xFFB2DFBB))

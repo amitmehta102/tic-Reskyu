@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.ui.auth
+package com.reskyu.consumer.ui.auth
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.foundation.Image
+import com.reskyu.consumer.R
 import com.reskyu.consumer.data.model.LoginState
 import com.reskyu.consumer.ui.components.LoadingOverlay
 import com.reskyu.consumer.ui.navigation.Screen
@@ -89,7 +92,11 @@ fun LoginScreen(
         ) {
             Spacer(Modifier.height(52.dp))
 
-            Text("🌱", fontSize = 56.sp)
+            Image(
+                painter            = painterResource(id = R.drawable.loginlogo),
+                contentDescription = "Reskyu logo",
+                modifier           = Modifier.size(96.dp)
+            )
             Spacer(Modifier.height(12.dp))
             Text(
                 "Reskyu",
@@ -98,13 +105,6 @@ fun LoginScreen(
                 color = Color.White
             )
             Spacer(Modifier.height(4.dp))
-            Text(
-                "CONSUMER  PORTAL",
-                style = MaterialTheme.typography.labelMedium,
-                color = GreenAccent,
-                letterSpacing = 3.sp,
-                fontWeight = FontWeight.SemiBold
-            )
 
             Spacer(Modifier.height(40.dp))
 

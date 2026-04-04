@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.data.repository
+package com.reskyu.consumer.data.repository
 
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -83,5 +83,12 @@ class ClaimRepository {
 
     suspend fun getClaimById(claimId: String): Claim? {
         return claimsRef.document(claimId).get().await().toObject(Claim::class.java)
+    }
+
+    suspend fun markExpiredClaims(ids: List<String>) {
+        if (ids.isEmpty()) return
+        val batch = db.batch()
+        ids.forEach { id -> batch.update(claimsRef.document(id), "status", "EXPIRED") }
+        batch.commit().await()
     }
 }

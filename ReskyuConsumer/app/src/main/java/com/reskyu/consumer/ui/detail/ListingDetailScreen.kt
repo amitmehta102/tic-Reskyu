@@ -65,8 +65,8 @@ fun ListingDetailScreen(
 
             listing != null -> {
                 val l = listing!!
-                val discountPct = if (l.originalPrice > 0)
-                    ((l.originalPrice - l.discountedPrice) / l.originalPrice * 100).toInt() else 0
+                val discountPct = if (l.effectiveOriginalPrice > 0)
+                    ((l.effectiveOriginalPrice - l.discountedPrice) / l.effectiveOriginalPrice * 100).toInt() else 0
                 val timeLeftMs = l.expiresAt.toDate().time - System.currentTimeMillis()
                 val isOpen = l.status == "OPEN" && l.mealsLeft > 0 && timeLeftMs > 0
                 val co2Saved = 2.5  // kg per meal (configurable)
@@ -258,7 +258,7 @@ fun ListingDetailScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "₹${l.originalPrice.toInt()}",
+                                    text = "₹${l.effectiveOriginalPrice.toInt()}",
                                     style = MaterialTheme.typography.titleMedium,
                                     textDecoration = TextDecoration.LineThrough,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -267,7 +267,7 @@ fun ListingDetailScreen(
                                     Surface(color = MaterialTheme.colorScheme.primaryContainer,
                                         shape = RoundedCornerShape(4.dp)) {
                                         Text(
-                                            text = "Save ₹${(l.originalPrice - l.discountedPrice).toInt()}",
+                                            text = "Save ₹${(l.effectiveOriginalPrice - l.discountedPrice).toInt()}",
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary,
@@ -322,7 +322,7 @@ fun ListingDetailScreen(
                                 VerticalDivider(modifier = Modifier.height(40.dp))
                                 ImpactStat(
                                     emoji = "💰",
-                                    value = "₹${((l.originalPrice - l.discountedPrice) * quantity).toInt()}",
+                                    value = "₹${((l.effectiveOriginalPrice - l.discountedPrice) * quantity).toInt()}",
                                     label = "Money saved"
                                 )
                                 VerticalDivider(modifier = Modifier.height(40.dp))
@@ -428,7 +428,7 @@ fun ListingDetailScreen(
                                         if (quantity > 1)
                                             "₹${l.discountedPrice.toInt()} × $quantity"
                                         else
-                                            "instead of ₹${l.originalPrice.toInt()}",
+                                            "instead of ₹${l.effectiveOriginalPrice.toInt()}",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

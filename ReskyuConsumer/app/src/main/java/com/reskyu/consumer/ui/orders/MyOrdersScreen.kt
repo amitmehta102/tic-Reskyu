@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.ui.orders
+package com.reskyu.consumer.ui.orders
 
 import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
@@ -69,11 +69,21 @@ fun MyOrdersScreen(
     var selectedTab    by remember { mutableStateOf(0) }       // 0=Current, 1=Past
     var selectedOrder  by remember { mutableStateOf<Claim?>(null) }
 
-    val currentOrders   = remember(allClaims) { allClaims.filter { it.status == "PENDING_PICKUP" } }
-    val pastOrders      = remember(allClaims) { allClaims.filter { it.status != "PENDING_PICKUP" } }
+    val now = System.currentTimeMillis()
+
+    fun isExpired(claim: Claim): Boolean {
+        if (claim.status != "PENDING_PICKUP") return false
+        val deadline = if (claim.pickupDeadlineMs > 0) claim.pickupDeadlineMs
+                       else claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(4)
+        return now > deadline
+    }
+
+    val currentOrders   = remember(allClaims) { allClaims.filter { it.status == "PENDING_PICKUP" && !isExpired(it) } }
+    val pastOrders      = remember(allClaims) { allClaims.filter { it.status != "PENDING_PICKUP" || isExpired(it) } }
     val displayedOrders = if (selectedTab == 0) currentOrders else pastOrders
 
-    val totalSaved   = allClaims.sumOf { (it.originalPrice - it.amount).coerceAtLeast(0.0) }
+    val totalSaved = allClaims.sumOf { (it.effectiveOriginalPrice - it.amount).coerceAtLeast(0.0) }
+
     val mealsRescued = allClaims.count { it.status == "COMPLETED" }
 
     selectedOrder?.let { claim ->
@@ -206,9 +216,10 @@ fun MyOrdersScreen(
                 } else {
                     item { Spacer(Modifier.height(4.dp)) }
                     items(displayedOrders, key = { it.id }) { claim ->
-                        val isCurrent = claim.status == "PENDING_PICKUP"
+                        val displayClaim = if (isExpired(claim)) claim.copy(status = "EXPIRED") else claim
+                        val isCurrent = displayClaim.status == "PENDING_PICKUP"
                         OrderCard(
-                            claim       = claim,
+                            claim       = displayClaim,
                             modifier    = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 5.dp),
@@ -225,7 +236,7 @@ fun MyOrdersScreen(
 
 @Composable
 private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
-    val savedAmount = (claim.originalPrice - claim.amount).coerceAtLeast(0.0)
+    val savedAmount = (claim.effectiveOriginalPrice - claim.amount).coerceAtLeast(0.0)
     val pickupCode  = claim.paymentId.takeLast(6).uppercase()
 
     val deadlineMs = claim.pickupDeadlineMs
@@ -353,7 +364,7 @@ private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
                     Spacer(Modifier.height(12.dp))
 
                     DetailRow("Amount Paid",     "₹${claim.amount.toInt()}")
-                    DetailRow("Original Price",  "₹${claim.originalPrice.toInt()}")
+                    DetailRow("Original Price",  "₹${claim.effectiveOriginalPrice.toInt()}")
                     DetailRow("You Saved",       "₹${savedAmount.toInt()}")
                     DetailRow("Date",            formatClaimDate(claim.timestamp))
                     claim.paymentId.takeIf { it.isNotBlank() }?.let {

@@ -1,6 +1,8 @@
-﻿package com.reskyu.consumer.ui.profile
+package com.reskyu.consumer.ui.profile
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -51,7 +53,7 @@ private val NotifTags = listOf(
     DietaryTag.SWEETS  to "Sweets 🍮"
 )
 
-private val RadiusOptions = listOf(2, 5, 10, 20, 50)
+private val RadiusOptions = listOf(2, 4, 6, 8)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -234,7 +236,7 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ProfileImpactCard("💰", "₹${stats.moneySaved.toInt()}", "Money Saved", Modifier.weight(1f))
+                    ProfileImpactCard("💰", "₹${stats.moneySaved.coerceAtLeast(0.0).toInt()}", "Money Saved", Modifier.weight(1f))
                     ProfileImpactCard("🏆", "${stats.totalMealsRescued}", "Total Orders", Modifier.weight(1f))
                 }
 
@@ -284,7 +286,8 @@ fun ProfileScreen(
                             onClick = {
                                 viewModel.loadPrivacyPolicy()
                                 showPrivacySheet = true
-                            }
+                            },
+                            onLongClick = { viewModel.uploadPrivacyPolicy() }
                         )
                         HorizontalDivider(modifier = Modifier.padding(start = 68.dp), color = PRDivider, thickness = 0.5.dp)
                         ProfileSettingsRow(
@@ -441,6 +444,7 @@ private fun ProfileImpactCard(emoji: String, value: String, label: String, modif
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun ProfileSettingsRow(
     icon:        ImageVector,
     label:       String,
@@ -449,9 +453,15 @@ private fun ProfileSettingsRow(
     iconTint:    Color      = PRText,
     labelColor:  Color      = PRText,
     showChevron: Boolean    = true,
+    onLongClick: (() -> Unit)? = null,
     onClick:     () -> Unit
 ) {
-    Surface(onClick = onClick, modifier = Modifier.fillMaxWidth(), color = Color.Transparent) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        color = Color.Transparent
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -653,43 +663,81 @@ private fun PrivacyPolicySheet(
     isLoading: Boolean,
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState       = sheetState,
         containerColor   = PRSurface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        modifier = Modifier.fillMaxHeight(0.85f)
+        shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        dragHandle       = null
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.85f)
+                .navigationBarsPadding()
+        ) {
+            // ── Fixed header ──────────────────────────────────────────────
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Privacy Policy 🔒", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PRText)
+                Text(
+                    "Privacy Policy 🔒",
+                    style      = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color      = PRText
+                )
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Rounded.Close, "Close", tint = PRTextSub)
                 }
             }
             HorizontalDivider(color = PRDivider)
 
+            // ── Scrollable body ───────────────────────────────────────────
             when {
                 isLoading -> {
-                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(
+                        Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             CircularProgressIndicator(color = PRAccent)
                             Text("Loading policy…", style = MaterialTheme.typography.bodySmall, color = PRTextSub)
                         }
                     }
                 }
                 content.isNullOrBlank() -> {
-                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(32.dp)) {
+                    Box(
+                        Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier            = Modifier.padding(32.dp)
+                        ) {
                             Text("🔒", fontSize = 40.sp)
-                            Text("Privacy policy not available yet.", style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold, color = PRText, textAlign = TextAlign.Center)
-                            Text("Please check back later or contact us at support@reskyu.app",
-                                style = MaterialTheme.typography.bodySmall, color = PRTextSub, textAlign = TextAlign.Center)
+                            Text(
+                                "Privacy policy not available yet.",
+                                style      = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = PRText,
+                                textAlign  = TextAlign.Center
+                            )
+                            Text(
+                                "Please check back later or contact us at reskyu123@gmail.com",
+                                style     = MaterialTheme.typography.bodySmall,
+                                color     = PRTextSub,
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 }
@@ -701,7 +749,12 @@ private fun PrivacyPolicySheet(
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = 24.dp, vertical = 16.dp)
                     ) {
-                        Text(content, style = MaterialTheme.typography.bodySmall, color = PRText, lineHeight = 20.sp)
+                        Text(
+                            content,
+                            style      = MaterialTheme.typography.bodySmall,
+                            color      = PRText,
+                            lineHeight = 20.sp
+                        )
                         Spacer(Modifier.height(24.dp))
                     }
                 }

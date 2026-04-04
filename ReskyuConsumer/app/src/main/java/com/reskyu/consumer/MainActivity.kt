@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer
+package com.reskyu.consumer
 
 import android.Manifest
 import android.content.Intent
@@ -8,6 +8,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.reskyu.consumer.BuildConfig
 import androidx.navigation.compose.rememberNavController
 import com.razorpay.PaymentResultListener
 import com.reskyu.consumer.ui.navigation.ReskuNavGraph
@@ -32,7 +36,20 @@ class MainActivity : ComponentActivity(), PaymentResultListener {
         setContent {
             ReskyuConsumerTheme {
                 val navController = rememberNavController()
+
+                // ── Force update check (controlled from Firebase) ─────────────
+                // To trigger: set config/app_config → minVersionCode > current versionCode (1)
+                // To disable: set minVersionCode = 1 (or delete the field)
+                val appConfigRepo = remember { com.reskyu.consumer.data.repository.AppConfigRepository() }
+                val minVersionCode by appConfigRepo.observeMinVersionCode()
+                    .collectAsState(initial = 1)
+                val forceUpdate = minVersionCode > BuildConfig.VERSION_CODE
+
                 ReskuNavGraph(navController = navController)
+
+                if (forceUpdate) {
+                    com.reskyu.consumer.ui.update.ForceUpdateDialog()
+                }
             }
         }
     }
