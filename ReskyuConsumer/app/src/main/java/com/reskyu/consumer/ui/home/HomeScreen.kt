@@ -206,7 +206,7 @@ private fun HomeBanner() {
         color           = Color.White,
         shadowElevation = 2.dp
     ) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Column(modifier = Modifier.statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
             Text(
                 "Today's Food Drops",
                 style = MaterialTheme.typography.headlineSmall,

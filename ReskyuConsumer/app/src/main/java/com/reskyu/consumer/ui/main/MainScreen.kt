@@ -1,6 +1,8 @@
 package com.reskyu.consumer.ui.main
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Notifications
@@ -51,6 +53,7 @@ fun MainScreen(outerNavController: NavController) {
     val innerNavController = rememberNavController()
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),   // screens handle their own insets
         bottomBar = {
             ReskyuBottomNavBar(navController = innerNavController)
         }
@@ -105,7 +108,8 @@ private fun ReskyuBottomNavBar(navController: NavController) {
     NavigationBar(
         containerColor = NavBg,
         contentColor   = NavIconActive,
-        tonalElevation = 0.dp
+        tonalElevation = 0.dp,
+        modifier       = Modifier.navigationBarsPadding()  // fill behind gesture bar
     ) {
         bottomNavItems.forEach { item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true

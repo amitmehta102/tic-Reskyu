@@ -58,39 +58,40 @@ fun MyOrdersScreen(
     val totalSaved   = allClaims.sumOf { (it.originalPrice - it.amount).coerceAtLeast(0.0) }
     val mealsRescued = allClaims.count { it.status == "COMPLETED" }
 
-    PullToRefreshBox(
-        isRefreshing = isLoading,
-        onRefresh    = { viewModel.refresh() },
-        modifier     = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(LBackground)
-        ) {
+    Column(modifier = Modifier.fillMaxSize().background(LBackground)) {
 
-            // ── Clean white header ──────────────────────────────────────────────
-            item {
-                Surface(
-                    modifier       = Modifier.fillMaxWidth(),
-                    color          = LSurface,
-                    shadowElevation = 2.dp
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-                        Text(
-                            "My Orders",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = LText
-                        )
-                        Text(
-                            "Your food rescue history",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = LTextSub
-                        )
-                    }
-                }
+        // ── White Surface header — PINNED (never scrolls) ──────────────────────
+        Surface(
+            modifier        = Modifier.fillMaxWidth(),
+            color           = LSurface,
+            shadowElevation = 2.dp
+        ) {
+            Column(modifier = Modifier.statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                Text(
+                    "My Orders",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = LText
+                )
+                Text(
+                    "Your food rescue history",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LTextSub
+                )
             }
+        }
+
+        // ── Scrollable list below the pinned header ────────────────────────────
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh    = { viewModel.refresh() },
+            modifier     = Modifier.weight(1f)
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(LBackground)
+            ) {
 
             // ── 3 stat chips ────────────────────────────────────────────────────
             item {
@@ -188,9 +189,10 @@ fun MyOrdersScreen(
                     )
                 }
                 item { Spacer(Modifier.height(20.dp)) }
-            }
-        }
-    }
+            }               // end else
+            }               // end LazyColumn
+        }                   // end PullToRefreshBox
+    }                       // end outer Column
 }
 
 // ── Light Pill Tab ─────────────────────────────────────────────────────────────
