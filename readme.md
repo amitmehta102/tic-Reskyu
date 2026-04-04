@@ -3,7 +3,7 @@
 # TEAM RESKYU
 ### *Rescue Food. Feed India. Zero Waste.*
 
-**Technocrats Innovation Challenge 2026 — Social Impact Track**
+**Technocrats Innovation Challenge 2026 — Sustainability Track**
 
 [![Android](https://img.shields.io/badge/Android-Kotlin%20%7C%20Jetpack%20Compose-3DDC84?style=for-the-badge&logo=android)](https://developer.android.com)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%7C%20FCM%20%7C%20Auth-FFCA28?style=for-the-badge&logo=firebase)](https://firebase.google.com)
@@ -11,8 +11,8 @@
 [![Razorpay](https://img.shields.io/badge/Razorpay-UPI%20Payments-072654?style=for-the-badge)](https://razorpay.com)
 [![Web](https://img.shields.io/badge/Web-HTML%20%7C%20JS%20%7C%20Firebase-F7DF1E?style=for-the-badge&logo=javascript)](https://reskyu-app.netlify.app)
 
-> **35–45% of restaurant food is wasted daily in India.**  
-> **₹85,000 Crore+ lost to food waste every year.**  
+> **20–25% of restaurant food is wasted daily in India.**  
+> **₹80,000 Crore+ lost to food waste every year.**  
 > **1 in 5 Indians faces food insecurity.**  
 > We built RESKYU to close that gap — in real time, with zero logistics.
 
@@ -30,7 +30,7 @@ India is caught in a cruel paradox: restaurants discard tonnes of quality food e
 
 ## 💡 Our Solution
 
-**RESKYU** is India's first AI-powered food surplus marketplace that connects restaurants with nearby hungry people — in under 3 minutes, with *zero delivery, zero logistics, and zero waste.*
+**RESKYU** is India's first AI-powered food surplus marketplace that connects restaurants with nearby people — in under 3 minutes, with *zero delivery, zero logistics, and zero waste.*
 
 The flow is elegantly simple:
 
