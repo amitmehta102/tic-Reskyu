@@ -705,18 +705,69 @@
   </div>
 
 
-  <!-- Firebase Compat SDK (v10) -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <!-- pitch.js: deferred so it never blocks rendering -->
+  <script src="js/pitch.js" defer></script>
 
-  <!-- RESKYU Firebase config (add YOUR keys here) -->
-  <script src="js/firebase-config.js"></script>
+  <!--
+    Firebase SDK is lazy-loaded ONLY when the user opens the auth modal.
+    This saves ~600KB on initial page load for users who just browse.
+    Loading is handled by js/auth-loader.js below.
+  -->
+  <script>
+    // Lazy Firebase loader — fires when Login or Signup button is clicked
+    (function () {
+      var loaded = false;
+      var FIREBASE_SCRIPTS = [
+        'https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js',
+        'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js',
+        'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js'
+      ];
 
-  <!-- RESKYU auth logic -->
-  <script src="js/auth.js"></script>
+      function loadFirebase(callback) {
+        if (loaded) { if (callback) callback(); return; }
+        var remaining = FIREBASE_SCRIPTS.length;
 
-  <script src="js/pitch.js"></script>
+        FIREBASE_SCRIPTS.forEach(function (src, i) {
+          var s = document.createElement('script');
+          s.src = src;
+          s.onload = function () {
+            if (--remaining === 0) {
+              // Load config then auth logic in sequence
+              var cfg = document.createElement('script');
+              cfg.src = 'js/firebase-config.js';
+              cfg.onload = function () {
+                var auth = document.createElement('script');
+                auth.src = 'js/auth.js';
+                auth.onload = function () {
+                  loaded = true;
+                  if (callback) callback();
+                };
+                document.body.appendChild(auth);
+              };
+              document.body.appendChild(cfg);
+            }
+          };
+          document.body.appendChild(s);
+        });
+      }
+
+      // Preload Firebase in the background after 3 seconds of idle
+      // (so it's ready quickly but doesn't block initial paint)
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(function () { loadFirebase(); }, { timeout: 3000 });
+      } else {
+        setTimeout(function () { loadFirebase(); }, 3000);
+      }
+
+      // Also trigger immediately on auth button clicks (in case idle hasn't fired)
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('#open-login, #open-signup, .auth-switch-btn, .auth-google-btn');
+        if (btn) loadFirebase();
+      }, { passive: true });
+
+      window._loadFirebase = loadFirebase;
+    })();
+  </script>
+
 </body>
-
 </html>
