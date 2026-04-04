@@ -11,7 +11,7 @@
 (function () {
   'use strict';
 
-  document.addEventListener('DOMContentLoaded', function () {
+  // Script is injected dynamically — DOM is already ready, run immediately
 
     const auth = window.RESKYU_AUTH;
     const db   = window.RESKYU_DB;
@@ -150,7 +150,5 @@
       if (btnLogin)  btnLogin.style.display  = '';
       if (btnSignup) btnSignup.style.display = '';
     }
-
-  }); // end DOMContentLoaded
 
 })();

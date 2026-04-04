@@ -881,19 +881,12 @@
         });
       }
 
-      // Preload Firebase in the background after 3 seconds of idle
-      // (so it's ready quickly but doesn't block initial paint)
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(function () { loadFirebase(); }, { timeout: 3000 });
+      // Load Firebase immediately so RESKYU_LOGIN is ready before user clicks Login
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { loadFirebase(); });
       } else {
-        setTimeout(function () { loadFirebase(); }, 3000);
+        loadFirebase();
       }
-
-      // Also trigger immediately on auth button clicks (in case idle hasn't fired)
-      document.addEventListener('click', function (e) {
-        var btn = e.target.closest('#open-login, #open-signup, .auth-switch-btn, .auth-google-btn');
-        if (btn) loadFirebase();
-      }, { passive: true });
 
       window._loadFirebase = loadFirebase;
     })();
