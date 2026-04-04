@@ -143,9 +143,17 @@ private fun DocumentSnapshot.toListing(): Listing? {
             lat            = getDouble("lat")            ?: 0.0,
             lng            = getDouble("lng")            ?: 0.0,
             expiresAt      = expiresAt,
-            status         = getString("status")         ?: ListingStatus.OPEN.name
+            status         = getString("status")         ?: ListingStatus.OPEN.name,
+
+            // ── Mystery Box fields — MUST be listed here; this mapper bypasses toObject() ──
+            listingType    = getString("listingType")    ?: "STANDARD",
+            boxType        = getString("boxType")        ?: "",
+            priceRangeMin  = getDouble("priceRangeMin")  ?: getLong("priceRangeMin")?.toDouble() ?: 0.0,
+            priceRangeMax  = getDouble("priceRangeMax")  ?: getLong("priceRangeMax")?.toDouble() ?: 0.0,
+            itemCount      = getLong("itemCount")?.toInt() ?: 0
         )
     } catch (e: Exception) {
         null   // skip malformed documents rather than crashing
     }
 }
+

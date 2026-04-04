@@ -550,73 +550,104 @@ private fun OrderBottomSheet(
             HorizontalDivider(color = Color(0xFFB2DFBB))
             Spacer(Modifier.height(14.dp))
 
-            // ── What's in the bag ───────────────────────────────────────────────
+            // ── What's in the bag ───────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.ShoppingBag, null, tint = RGreenAccent, modifier = Modifier.size(18.dp))
-                Text("What's in the bag", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard)
+                Text(
+                    if (listing.isMysteryBox) "What's in the box?" else "What's in the bag",
+                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard
+                )
             }
             Spacer(Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    listing.heroItem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = RGreenOnCard,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Quantity stepper — replaces the static "X left" badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+            if (listing.isMysteryBox) {
+                // Mystery box — show surprise message with hint
+                Surface(
+                    color = Color(0xFFF3EEFF),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    IconButton(
-                        onClick  = { if (quantity > 1) quantity-- },
-                        modifier = Modifier.size(28.dp),
-                        enabled  = quantity > 1
-                    ) {
-                        Icon(
-                            Icons.Rounded.Remove,
-                            contentDescription = "Less",
-                            modifier = Modifier.size(16.dp),
-                            tint = if (quantity > 1) RGreenAccent
-                                   else Color(0xFFB0CABB)
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = RGreenAccent.copy(alpha = 0.12f)
-                    ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            "$quantity",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = RGreenAccent,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            "🎁 It's a surprise!",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF5C35C7)
                         )
+                        Text(
+                            "Contents vary — every box is unique. You'll know when you pick it up!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF7C5CBF)
+                        )
+                        if (listing.heroItem.isNotBlank()) {
+                            Text(
+                                "💬 Hint: ${listing.heroItem.trim()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF5C35C7)
+                            )
+                        }
+                        if (listing.boxType.isNotBlank()) {
+                            Text(
+                                "🏷️ Box type: ${listing.boxType.lowercase().replaceFirstChar { it.uppercase() }}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF7C5CBF)
+                            )
+                        }
                     }
-                    IconButton(
-                        onClick  = { if (quantity < maxQty) quantity++ },
-                        modifier = Modifier.size(28.dp),
-                        enabled  = quantity < maxQty
+                }
+
+            } else {
+                // Standard listing — show item name + stepper in a row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        listing.heroItem,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = RGreenOnCard,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Quantity stepper
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = "More",
-                            modifier = Modifier.size(16.dp),
-                            tint = if (quantity < maxQty) RGreenAccent
-                                   else Color(0xFFB0CABB)
-                        )
+                        IconButton(
+                            onClick  = { if (quantity > 1) quantity-- },
+                            modifier = Modifier.size(28.dp),
+                            enabled  = quantity > 1
+                        ) {
+                            Icon(Icons.Rounded.Remove, contentDescription = "Less",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (quantity > 1) RGreenAccent else Color(0xFFB0CABB))
+                        }
+                        Surface(shape = RoundedCornerShape(6.dp), color = RGreenAccent.copy(alpha = 0.12f)) {
+                            Text("$quantity",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = RGreenAccent,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        }
+                        IconButton(
+                            onClick  = { if (quantity < maxQty) quantity++ },
+                            modifier = Modifier.size(28.dp),
+                            enabled  = quantity < maxQty
+                        ) {
+                            Icon(Icons.Rounded.Add, contentDescription = "More",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (quantity < maxQty) RGreenAccent else Color(0xFFB0CABB))
+                        }
                     }
                 }
             }
 
-            // Availability note below stepper
+            // Availability note — shown for both types
+            Spacer(Modifier.height(6.dp))
             Text(
                 "${listing.mealsLeft} portion${if (listing.mealsLeft != 1) "s" else ""} available",
                 style = MaterialTheme.typography.labelSmall,
@@ -644,12 +675,27 @@ private fun OrderBottomSheet(
             // ── Price breakdown ─────────────────────────────────────────────────
             Text("Price Breakdown", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard)
             Spacer(Modifier.height(8.dp))
-            PriceRow("Original price", "₹${(listing.originalPrice * quantity).toInt()}", strikethrough = true)
-            PriceRow("Discount ($discountPct%)", "-₹${savings.toInt()}", valueColor = RPriceGreen)
-            Spacer(Modifier.height(6.dp))
-            HorizontalDivider(color = Color(0xFFB2DFBB))
-            Spacer(Modifier.height(6.dp))
-            PriceRow("You Pay", "₹${totalPrice.toInt()}", bold = true, valueColor = RPriceGreen)
+            if (listing.isMysteryBox) {
+                // Mystery box: show value range + you pay
+                if (listing.priceRangeMin > 0 || listing.priceRangeMax > 0) {
+                    PriceRow("Box value (est.)", "₹${listing.priceRangeMin.toInt()}–₹${listing.priceRangeMax.toInt()}")
+                }
+                if (listing.itemCount > 0) {
+                    PriceRow("Items in box", "${listing.itemCount} items")
+                }
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = Color(0xFFB2DFBB))
+                Spacer(Modifier.height(6.dp))
+                PriceRow("You Pay", "₹${(listing.discountedPrice * quantity).toInt()}", bold = true, valueColor = Color(0xFF5C35C7))
+            } else {
+                // Standard listing: show discount breakdown
+                PriceRow("Original price", "₹${(listing.originalPrice * quantity).toInt()}", strikethrough = true)
+                PriceRow("Discount ($discountPct%)", "-₹${savings.toInt()}", valueColor = RPriceGreen)
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = Color(0xFFB2DFBB))
+                Spacer(Modifier.height(6.dp))
+                PriceRow("You Pay", "₹${totalPrice.toInt()}", bold = true, valueColor = RPriceGreen)
+            }
 
             Spacer(Modifier.height(20.dp))
 

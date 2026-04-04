@@ -158,8 +158,27 @@ fun ListingDetailScreen(
                             )
                         }
 
-                        // Discount badge
-                        if (discountPct > 0) {
+                        // Discount badge (standard) or Mystery Box badge
+                        if (l.isMysteryBox) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                                    .background(
+                                        color = Color(0xFF5C35C7),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    "🎁 Mystery Box" + if (l.boxType.isNotBlank())
+                                        " · ${l.boxType.lowercase().replaceFirstChar { it.uppercase() }}" else "",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else if (discountPct > 0) {
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -201,42 +220,87 @@ fun ListingDetailScreen(
                             DietaryChip(tag = DietaryTag.valueOf(l.dietaryTag))
                         }
 
-                        // Hero item title
-                        Text(
-                            text = l.heroItem,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
+                        // Hero item title — mystery box shows type + hint, standard shows item name
+                        if (l.isMysteryBox) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "🎁 Mystery Box",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF5C35C7)
+                                )
+                                if (l.heroItem.isNotBlank()) {
+                                    Surface(color = Color(0xFFF3EEFF), shape = RoundedCornerShape(8.dp)) {
+                                        Text(
+                                            "💬 Hint: ${l.heroItem.trim()}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color(0xFF5C35C7),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    "Contents vary — you'll discover what's inside at pickup.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = l.heroItem,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
 
                         // ── Pricing ───────────────────────────────────────────
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                text = "₹${l.discountedPrice.toInt()}",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "₹${l.originalPrice.toInt()}",
-                                style = MaterialTheme.typography.titleMedium,
-                                textDecoration = TextDecoration.LineThrough,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (discountPct > 0) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Save ₹${(l.originalPrice - l.discountedPrice).toInt()}",
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                        if (l.isMysteryBox) {
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = "₹${l.discountedPrice.toInt()}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF5C35C7)
+                                )
+                                if (l.priceRangeMin > 0 || l.priceRangeMax > 0) {
+                                    Surface(color = Color(0xFFF3EEFF), shape = RoundedCornerShape(4.dp)) {
+                                        Text(
+                                            text = "Worth ₹${l.priceRangeMin.toInt()}–₹${l.priceRangeMax.toInt()}",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF5C35C7),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = "₹${l.discountedPrice.toInt()}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "₹${l.originalPrice.toInt()}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textDecoration = TextDecoration.LineThrough,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (discountPct > 0) {
+                                    Surface(color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(4.dp)) {
+                                        Text(
+                                            text = "Save ₹${(l.originalPrice - l.discountedPrice).toInt()}",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -133,9 +133,11 @@ private fun ReskyuBottomNavBar(navController: NavController) {
             NavigationBarItem(
                 selected = selected,
                 onClick = {
+                    if (selected) return@NavigationBarItem  // already here — do nothing
                     navController.navigate(item.screen.route) {
                         popUpTo(Screen.Home.route) { inclusive = false }
                         launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 icon = {

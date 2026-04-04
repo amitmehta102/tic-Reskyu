@@ -99,7 +99,27 @@ fun ListingCard(
                             .background(LC_Surface),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🍱", fontSize = 28.sp)
+                        Text(if (listing.isMysteryBox) "🎁" else "🍱", fontSize = 28.sp)
+                    }
+                }
+
+                // Mystery Box badge — overlaid on image
+                if (listing.isMysteryBox) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .background(
+                                color = Color(0xFF5C35C7),
+                                shape = RoundedCornerShape(bottomEnd = 8.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "🎁 Mystery",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
@@ -201,15 +221,38 @@ fun ListingCard(
                     }
                 }
 
-                // Hero item (main title)
-                Text(
-                    text = listing.heroItem,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = LC_Text,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Hero item (main title) — mystery box shows type, standard shows item name
+                if (listing.isMysteryBox) {
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(
+                            text = "🎁 Mystery Box" + if (listing.boxType.isNotBlank())
+                                " · ${listing.boxType.lowercase().replaceFirstChar { it.uppercase() }}" else "",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF5C35C7),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (listing.heroItem.isNotBlank()) {
+                            Text(
+                                text = "May include: ${listing.heroItem.trim()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = LC_TextSub,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = listing.heroItem,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = LC_Text,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(2.dp))
 
@@ -256,30 +299,50 @@ fun ListingCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "₹${listing.discountedPrice.toInt()}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = LC_Green
-                        )
-                        Text(
-                            text = "₹${listing.originalPrice.toInt()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            textDecoration = TextDecoration.LineThrough,
-                            color = LC_TextSub
-                        )
+                    if (listing.isMysteryBox) {
+                        // Mystery box: show "₹300" you pay + "Worth ₹220–₹350" range
+                        Column {
+                            Text(
+                                text = "₹${listing.discountedPrice.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF5C35C7)
+                            )
+                            if (listing.priceRangeMin > 0 || listing.priceRangeMax > 0) {
+                                Text(
+                                    text = "Worth ₹${listing.priceRangeMin.toInt()}–₹${listing.priceRangeMax.toInt()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LC_TextSub
+                                )
+                            }
+                        }
+                    } else {
+                        // Standard listing: show discounted + strikethrough original
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "₹${listing.discountedPrice.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LC_Green
+                            )
+                            Text(
+                                text = "₹${listing.originalPrice.toInt()}",
+                                style = MaterialTheme.typography.bodySmall,
+                                textDecoration = TextDecoration.LineThrough,
+                                color = LC_TextSub
+                            )
+                        }
                     }
 
-                    // Distance — lower-right, beside pricing
+                    // Distance — lower-right
                     if (distanceText != null) {
                         Text(
                             text = "📍 $distanceText",
                             style = MaterialTheme.typography.labelSmall,
-                            color = LC_Green,
+                            color = if (listing.isMysteryBox) Color(0xFF5C35C7) else LC_Green,
                             fontWeight = FontWeight.Medium
                         )
                     }
