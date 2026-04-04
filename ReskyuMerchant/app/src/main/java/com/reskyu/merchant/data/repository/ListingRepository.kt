@@ -32,7 +32,9 @@ class ListingRepository {
         form:         ListingForm,
         merchantId:   String,
         businessName: String,
-        geoHash:      String
+        geoHash:      String,
+        lat:          Double = 0.0,
+        lng:          Double = 0.0
     ): String {
         val docRef    = listingsCollection.document()
         val expiresAt = System.currentTimeMillis() + (form.expiresInMinutes * 60 * 1000L)
@@ -48,6 +50,8 @@ class ListingRepository {
             discountedPrice = form.discountedPrice,
             imageUrl        = form.imageUrl,
             geoHash         = geoHash,
+            lat             = lat,
+            lng             = lng,
             expiresAt       = expiresAt,
             status          = ListingStatus.OPEN.name
         )
@@ -65,11 +69,9 @@ class ListingRepository {
         val activeStatuses = setOf(ListingStatus.OPEN.name, ListingStatus.CLOSING.name)
         val registration = listingsCollection
             .whereEqualTo("merchantId", merchantId)
-            // whereIn removed — compound filter required a composite index.
-            // Status filtered client-side below; single-field index on merchantId is auto-created.
             .addSnapshotListener { snapshot, error ->
                 if (error != null) { close(error); return@addSnapshotListener }
-                val sorted = (snapshot?.toObjects(Listing::class.java) ?: emptyList())
+                val sorted = (snapshot?.documents?.mapNotNull { mapListing(it) } ?: emptyList())
                     .filter  { it.status in activeStatuses }
                     .sortedBy { it.expiresAt }
                 trySend(sorted)
@@ -84,9 +86,8 @@ class ListingRepository {
         val activeStatuses = setOf(ListingStatus.OPEN.name, ListingStatus.CLOSING.name)
         val snapshot = listingsCollection
             .whereEqualTo("merchantId", merchantId)
-            // whereIn removed — compound filter required a composite index.
             .get().await()
-        return snapshot.toObjects(Listing::class.java)
+        return snapshot.documents.mapNotNull { mapListing(it) }
             .filter { it.status in activeStatuses }
     }
 
@@ -123,5 +124,42 @@ class ListingRepository {
             val newStatus = if (newMeals == 0) ListingStatus.SOLD_OUT.name else ListingStatus.OPEN.name
             transaction.update(ref, mapOf("mealsLeft" to newMeals, "status" to newStatus))
         }.await()
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Safely maps a Firestore document to [Listing].
+     * Handles [expiresAt] stored as Firestore Timestamp or Long (Unix ms).
+     * Unknown extra fields from consumer-side writes are silently ignored.
+     */
+    private fun mapListing(doc: com.google.firebase.firestore.DocumentSnapshot): Listing? {
+        return try {
+            val rawTs = doc.get("expiresAt")
+            val expiresAtMs: Long = when (rawTs) {
+                is com.google.firebase.Timestamp -> rawTs.toDate().time
+                is Long   -> rawTs
+                is Number -> rawTs.toLong()
+                else      -> 0L
+            }
+            Listing(
+                id              = doc.id,
+                merchantId      = doc.getString("merchantId")      ?: "",
+                businessName    = doc.getString("businessName")    ?: "",
+                heroItem        = doc.getString("heroItem")        ?: "",
+                dietaryTag      = doc.getString("dietaryTag")      ?: com.reskyu.merchant.data.model.DietaryTag.VEG.name,
+                mealsLeft       = doc.getLong("mealsLeft")?.toInt() ?: 0,
+                originalPrice   = doc.getDouble("originalPrice")   ?: 0.0,
+                discountedPrice = doc.getDouble("discountedPrice") ?: 0.0,
+                imageUrl        = doc.getString("imageUrl")        ?: "",
+                geoHash         = doc.getString("geoHash")         ?: "",
+                lat             = doc.getDouble("lat")             ?: 0.0,
+                lng             = doc.getDouble("lng")             ?: 0.0,
+                expiresAt       = expiresAtMs,
+                status          = doc.getString("status")          ?: ListingStatus.OPEN.name
+            )
+        } catch (e: Exception) {
+            null
+        }
     }
 }

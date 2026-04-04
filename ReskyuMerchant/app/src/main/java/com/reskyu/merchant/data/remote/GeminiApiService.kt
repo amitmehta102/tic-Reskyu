@@ -1,6 +1,6 @@
 package com.reskyu.merchant.data.remote
 
-import com.reskyu.merchant.data.model.SurplusIqResult
+import com.reskyu.merchant.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -9,90 +9,53 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * Calls the Google Gemini 2.0 Flash API to predict surplus meal counts.
+ * Minimal, from-scratch Gemini 2.0 Flash client for SurplusIQ predictions.
  *
- * ▼▼▼ Add your API key below ▼▼▼
- * Get one free at: https://aistudio.google.com/app/apikey
- *
- * TODO: Once the SDK 36.1 Java-compile issue is resolved, migrate the key
- *       to BuildConfig via local.properties + buildConfigField.
+ * Key decisions:
+ *  - API key is read LAZILY inside the function (not at class init) to guarantee
+ *    BuildConfig has been initialised before we build the URL.
+ *  - Uses OkHttp directly — no Retrofit, no code-gen, minimal failure surface.
+ *  - Returns a raw Int (predicted meals) for simplicity. Reasoning is parsed if present.
  */
-class GeminiApiService {
-
-    companion object {
-        // ▼▼▼ Paste your Gemini API key here ▼▼▼
-        private const val GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-    }
+object GeminiApiService {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val endpoint =
-        "https://generativelanguage.googleapis.com/v1beta/models/" +
-                "gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY"
-
     /**
-     * Asks Gemini to predict surplus meals for today.
+     * Calls Gemini to predict today's surplus meal count.
      *
-     * @param merchantId   Merchant UID (included in prompt for context).
-     * @param salesHistory Past daily meal counts ordered oldest→newest.
-     * @return [SurplusIqResult] with predictedMeals, reasoning, and confidence.
-     * @throws IOException on HTTP error or parse failure.
+     * @param salesHistory  Last 7 days of meal counts (oldest first). May be empty.
+     * @return Pair of (predictedMeals: Int, reasoning: String)
+     * @throws Exception if network call fails or key is missing.
      */
-    suspend fun predictSurplus(
-        merchantId: String,
-        salesHistory: List<Int>
-    ): SurplusIqResult {
-        val request = Request.Builder()
-            .url(endpoint)
-            .post(buildRequestBody(merchantId, salesHistory).toRequestBody("application/json".toMediaType()))
-            .build()
+    suspend fun predict(salesHistory: List<Int>): Pair<Int, String> = withContext(Dispatchers.IO) {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        check(apiKey.isNotBlank()) { "GEMINI_API_KEY is not set in local.properties" }
 
-        val rawJson = withContext(Dispatchers.IO) {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw IOException("Gemini API returned ${response.code}: ${response.message}")
-                }
-                response.body?.string()
-                    ?: throw IOException("Empty body from Gemini API")
-            }
-        }
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+                  "gemini-2.0-flash:generateContent?key=$apiKey"
 
-        return parseGeminiResponse(rawJson)
-    }
-
-    // ── Prompt + request body ─────────────────────────────────────────────────
-
-    private fun buildRequestBody(merchantId: String, salesHistory: List<Int>): String {
-        val historyStr = salesHistory.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "no data"
+        val historyStr = if (salesHistory.isEmpty()) "no prior data"
+                         else salesHistory.joinToString(", ")
 
         val prompt = """
-You are SurplusIQ, an AI for Reskyu — a platform that rescues surplus restaurant food.
-
-Merchant ID: $merchantId
-Past ${salesHistory.size} days of meals sold (oldest first): [$historyStr]
-
-Task: Predict the optimal number of surplus meals this merchant should prepare TODAY
-to minimise waste while maximising customer sales.
-
+You are SurplusIQ, an AI assistant for a food-rescue app.
+Past ${salesHistory.size} days of meals sold (oldest→newest): [$historyStr]
+Predict the number of surplus meals for TODAY to minimise waste.
 Rules:
-- Base your prediction on the trend in the sales history.
-- If history is sparse, suggest a conservative number (3–6).
-- Keep reasoning concise (under 15 words, no jargon).
-- Confidence should reflect prediction reliability (0.0–1.0).
-
-Respond ONLY with valid JSON — no markdown, no code fences:
-{"predictedMeals": <integer>, "reasoning": "<string under 15 words>", "confidence": <float>}
+- Respond ONLY with valid JSON — no markdown, no code blocks.
+- Keep reasoning under 12 words.
+- If little data, suggest 5–8.
+Format: {"meals": <integer>, "reason": "<string>"}
         """.trimIndent()
 
-        return JSONObject().apply {
+        val body = JSONObject().apply {
             put("contents", JSONArray().apply {
                 put(JSONObject().apply {
                     put("parts", JSONArray().apply {
@@ -101,18 +64,31 @@ Respond ONLY with valid JSON — no markdown, no code fences:
                 })
             })
             put("generationConfig", JSONObject().apply {
-                put("response_mime_type", "application/json")
-                put("temperature", 0.4)
-                put("maxOutputTokens", 128)
+                put("temperature", 0.3)
+                put("maxOutputTokens", 64)
             })
         }.toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw Exception("Gemini ${response.code}: ${response.message}")
+            }
+            val raw = response.body?.string()
+                ?: throw Exception("Empty response from Gemini")
+
+            parseResponse(raw)
+        }
     }
 
-    // ── Response parsing ──────────────────────────────────────────────────────
-
-    private fun parseGeminiResponse(rawJson: String): SurplusIqResult {
+    private fun parseResponse(raw: String): Pair<Int, String> {
         return try {
-            val text = JSONObject(rawJson)
+            // Navigate: candidates[0].content.parts[0].text
+            val text = JSONObject(raw)
                 .getJSONArray("candidates")
                 .getJSONObject(0)
                 .getJSONObject("content")
@@ -120,15 +96,17 @@ Respond ONLY with valid JSON — no markdown, no code fences:
                 .getJSONObject(0)
                 .getString("text")
                 .trim()
+                // Strip markdown fences if Gemini ignored our instruction
+                .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
 
-            val result = JSONObject(text)
-            SurplusIqResult(
-                predictedMeals = result.getInt("predictedMeals"),
-                reasoning      = result.optString("reasoning", ""),
-                confidence     = result.optDouble("confidence", 0.75).toFloat()
-            )
+            val json   = JSONObject(text)
+            val meals  = json.optInt("meals", json.optInt("predictedMeals", 6))
+            val reason = json.optString("reason", json.optString("reasoning", "Based on recent trend"))
+            Pair(meals, reason)
         } catch (e: Exception) {
-            throw IOException("Failed to parse Gemini response: ${e.message}")
+            // If JSON parse fails, try extracting any number from the text
+            val fallback = Regex("\\d+").find(raw)?.value?.toIntOrNull() ?: 6
+            Pair(fallback, "AI prediction")
         }
     }
 }

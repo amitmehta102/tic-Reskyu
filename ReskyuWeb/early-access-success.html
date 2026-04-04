@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>You're on the list! — RESKYU</title>
+  <meta name="description" content="You've joined the RESKYU early access waitlist. We'll notify you as soon as we launch in your city." />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0E0A1F" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0A1F'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='16' font-weight='900' fill='%23F5A623' font-family='Arial'%3ER%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark: #0E0A1F;
+      --dark2: #1A1535;
+      --dark3: #241E48;
+      --cream: #FEFAF2;
+      --orange: #F5A623;
+      --orange2: #FFD060;
+      --green: #7BE08A;
+      --muted: rgba(254,250,242,.55);
+      --border: rgba(254,250,242,.09);
+      --font-head: 'Space Grotesk', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    html { height: 100%; }
+    body {
+      background: var(--dark);
+      color: var(--cream);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 20% 30%, rgba(123,224,138,.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 45% at 80% 70%, rgba(245,166,35,.07) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 60% at 50% 100%, rgba(139,92,246,.06) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 68px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(14,10,31,.8); backdrop-filter: blur(20px);
+    }
+    .nav-logo {
+      font-family: var(--font-head); font-weight: 800;
+      font-size: 1.2rem; letter-spacing: .08em;
+      color: var(--cream); text-decoration: none;
+    }
+    .nav-logo em { color: var(--orange); font-style: normal; }
+    .nav-back {
+      font-size: .85rem; color: var(--muted);
+      text-decoration: none; transition: color .2s;
+    }
+    .nav-back:hover { color: var(--cream); }
+
+    /* ── Main ── */
+    main {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 60px 24px; position: relative; z-index: 1;
+    }
+
+    .success-wrap {
+      max-width: 600px; width: 100%; text-align: center;
+    }
+
+    /* ── Checkmark animation ── */
+    .check-ring {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: rgba(123,224,138,.12);
+      border: 2px solid rgba(123,224,138,.35);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 36px;
+      animation: pop-in .5s cubic-bezier(.175,.885,.32,1.275) both;
+      box-shadow: 0 0 40px rgba(123,224,138,.15);
+    }
+    .check-ring svg {
+      width: 48px; height: 48px;
+    }
+    .check-ring svg path {
+      stroke-dasharray: 60;
+      stroke-dashoffset: 60;
+      animation: draw-check .45s .3s ease forwards;
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    @keyframes draw-check {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* ── Eyebrow ── */
+    .success-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(123,224,138,.1);
+      border: 1px solid rgba(123,224,138,.25);
+      border-radius: 50px; padding: 5px 18px;
+      font-size: .75rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--green); margin-bottom: 20px;
+      animation: fade-up .5s .15s ease both;
+    }
+
+    /* ── Headline ── */
+    .success-headline {
+      font-family: var(--font-head); font-weight: 900;
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      letter-spacing: -.03em; line-height: .95;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      animation: fade-up .5s .25s ease both;
+    }
+    .success-headline em {
+      color: var(--orange); font-style: normal;
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    /* ── Body ── */
+    .success-body {
+      color: var(--muted); font-size: 1.05rem; line-height: 1.75;
+      max-width: 460px; margin: 0 auto 40px;
+      animation: fade-up .5s .35s ease both;
+    }
+    .success-body strong { color: var(--cream); }
+
+    /* ── Steps card ── */
+    .next-steps {
+      background: rgba(254,250,242,.04);
+      border: 1px solid rgba(254,250,242,.09);
+      border-radius: 20px; padding: 28px 32px;
+      text-align: left; margin-bottom: 36px;
+      animation: fade-up .5s .45s ease both;
+    }
+    .next-steps-title {
+      font-family: var(--font-head); font-weight: 800;
+      font-size: .85rem; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--orange);
+      margin-bottom: 20px;
+    }
+    .step-row {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 14px 0; border-bottom: 1px solid rgba(254,250,242,.06);
+    }
+    .step-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(245,166,35,.12); border: 1px solid rgba(245,166,35,.25);
+      color: var(--orange); font-family: var(--font-head);
+      font-weight: 800; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-text { flex: 1; }
+    .step-label {
+      font-family: var(--font-head); font-weight: 700;
+      font-size: .9rem; color: var(--cream); margin-bottom: 3px;
+    }
+    .step-desc { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+
+    /* ── Actions ── */
+    .success-actions {
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+      animation: fade-up .5s .55s ease both;
+    }
+    .btn-primary {
+      padding: 15px 36px; border-radius: 50px;
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      color: var(--dark); font-family: var(--font-head);
+      font-weight: 800; font-size: .95rem;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 4px 20px rgba(245,166,35,.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(245,166,35,.45); }
+    .btn-outline {
+      padding: 15px 36px; border-radius: 50px;
+      background: transparent; color: var(--cream);
+      border: 2px solid rgba(254,250,242,.2);
+      font-family: var(--font-head); font-weight: 700;
+      font-size: .95rem; text-decoration: none;
+      transition: border-color .2s, background .2s;
+    }
+    .btn-outline:hover { border-color: rgba(254,250,242,.5); background: rgba(254,250,242,.05); }
+
+    /* ── Share nudge ── */
+    .share-nudge {
+      margin-top: 36px; padding-top: 28px;
+      border-top: 1px solid var(--border);
+      animation: fade-up .5s .65s ease both;
+    }
+    .share-nudge p {
+      font-size: .82rem; color: var(--muted); margin-bottom: 14px;
+    }
+    .share-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .share-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 20px; border-radius: 50px;
+      background: rgba(254,250,242,.05);
+      border: 1px solid rgba(254,250,242,.1);
+      color: var(--cream); font-size: .8rem; font-weight: 600;
+      font-family: var(--font-head); cursor: pointer;
+      transition: background .2s, border-color .2s;
+      text-decoration: none;
+    }
+    .share-btn:hover { background: rgba(254,250,242,.1); border-color: rgba(254,250,242,.2); }
+
+    /* ── Confetti particles ── */
+    .confetti-wrap {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none; overflow: hidden;
+    }
+    .particle {
+      position: absolute; top: -10px;
+      width: 8px; height: 8px; border-radius: 2px;
+      animation: fall linear infinite;
+      opacity: 0;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 20px 48px; text-align: center;
+      font-size: .78rem; color: var(--muted);
+    }
+    footer a { color: var(--orange); text-decoration: none; }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      nav, footer { padding: 0 20px; }
+      .next-steps { padding: 20px; }
+      .success-actions { flex-direction: column; }
+      .btn-primary, .btn-outline { text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Confetti -->
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+
+  <!-- Nav -->
+  <nav>
+    <a href="pitch.html" class="nav-logo">RES<em>KYU</em></a>
+    <a href="pitch.html" class="nav-back">← Back to Home</a>
+  </nav>
+
+  <!-- Main -->
+  <main>
+    <div class="success-wrap">
+
+      <!-- Animated check -->
+      <div class="check-ring">
+        <svg viewBox="0 0 48 48" fill="none" stroke="#7BE08A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 24 L20 34 L38 14" />
+        </svg>
+      </div>
+
+      <span class="success-eyebrow">✅ You're on the list</span>
+
+      <h1 class="success-headline">
+        WE'LL SEE<br />
+        YOU <em>SOON.</em>
+      </h1>
+
+      <p class="success-body">
+        Thanks for joining the RESKYU early access waitlist!<br />
+        We're rolling out city by city — <strong>you'll be among the first to know</strong> when we launch near you.
+      </p>
+
+      <!-- Next Steps -->
+      <div class="next-steps">
+        <div class="next-steps-title">What Happens Next</div>
+
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <div class="step-label">Check Your Inbox</div>
+            <div class="step-desc">We've noted your email. Keep an eye out for a confirmation and early access invite.</div>
+          </div>
+        </div>
+
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <div class="step-label">We Launch City by City</div>
+            <div class="step-desc">We're starting in Delhi NCR and expanding fast. Your city is likely next on the list.</div>
+          </div>
+        </div>
+
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <div class="step-label">Start Rescuing Food</div>
+            <div class="step-desc">Once live, browse nearby surplus, claim at 50–80% off, and pick up in minutes — zero delivery.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="success-actions">
+        <a href="pitch.html" class="btn-primary">Explore RESKYU →</a>
+        <a href="contact.html" class="btn-outline">Partner With Us</a>
+      </div>
+
+      <!-- Share -->
+      <div class="share-nudge">
+        <p>Know a restaurant or NGO that should join? Spread the word 🙌</p>
+        <div class="share-btns">
+          <a class="share-btn" id="share-whatsapp" href="#" target="_blank" rel="noopener">
+            <span>💬</span> WhatsApp
+          </a>
+          <a class="share-btn" id="share-twitter" href="#" target="_blank" rel="noopener">
+            <span>🐦</span> Twitter / X
+          </a>
+          <button class="share-btn" id="copy-link-btn">
+            <span>🔗</span> Copy Link
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    © 2026 RESKYU ·
+    <a href="privacy.html">Privacy</a> ·
+    <a href="terms.html">Terms</a> ·
+    <a href="contact.html">Contact</a>
+  </footer>
+
+  <script>
+    // ── Confetti burst ─────────────────────────────────────────
+    (function () {
+      const colors = ['#F5A623','#FFD060','#7BE08A','#FEFAF2','#8B5CF6','#60A5FA'];
+      const wrap = document.getElementById('confetti-wrap');
+      const count = 55;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'particle';
+        el.style.cssText = [
+          'left:' + (Math.random() * 100) + '%',
+          'background:' + colors[Math.floor(Math.random() * colors.length)],
+          'width:' + (6 + Math.random() * 6) + 'px',
+          'height:' + (6 + Math.random() * 6) + 'px',
+          'border-radius:' + (Math.random() > .5 ? '50%' : '2px'),
+          'animation-duration:' + (2.5 + Math.random() * 3) + 's',
+          'animation-delay:' + (Math.random() * 1.5) + 's',
+        ].join(';');
+        wrap.appendChild(el);
+      }
+      // Stop confetti after 6s to save memory
+      setTimeout(() => { wrap.remove(); }, 6000);
+    })();
+
+    // ── Parse email from URL ────────────────────────────────────
+    var params = new URLSearchParams(window.location.search);
+    var email  = params.get('email');
+    if (email) {
+      var bodyEl = document.querySelector('.success-body');
+      if (bodyEl) {
+        bodyEl.innerHTML = bodyEl.innerHTML.replace(
+          'Thanks for joining the RESKYU early access waitlist!',
+          'Thanks for joining, <strong style="color:var(--orange)">' + email + '</strong>!'
+        );
+      }
+    }
+
+    // ── Share buttons ───────────────────────────────────────────
+    var siteUrl = 'https://reskyu-app.netlify.app';
+    var shareText = encodeURIComponent('Just joined RESKYU — India\'s food surplus marketplace! Rescue restaurant meals at 50–80% off 🍱 Zero waste. Zero delivery. Check it out:');
+
+    document.getElementById('share-whatsapp').href =
+      'https://wa.me/?text=' + shareText + '%20' + encodeURIComponent(siteUrl);
+
+    document.getElementById('share-twitter').href =
+      'https://twitter.com/intent/tweet?text=' + shareText + '&url=' + encodeURIComponent(siteUrl);
+
+    document.getElementById('copy-link-btn').addEventListener('click', function () {
+      navigator.clipboard.writeText(siteUrl).then(function () {
+        var btn = document.getElementById('copy-link-btn');
+        btn.innerHTML = '<span>✅</span> Copied!';
+        setTimeout(function () {
+          btn.innerHTML = '<span>🔗</span> Copy Link';
+        }, 2000);
+      }).catch(function () {
+        // Fallback
+        var ta = document.createElement('textarea');
+        ta.value = siteUrl; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      });
+    });
+  </script>
+</body>
+</html>

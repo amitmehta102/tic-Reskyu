@@ -1,6 +1,17 @@
 package com.reskyu.consumer.ui.home
 
+import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.Canvas as AndroidCanvas
+import android.graphics.Color as AndroidColor
+import android.graphics.Paint as AndroidPaint
+import android.graphics.Point
+import android.graphics.drawable.BitmapDrawable
+import android.os.Handler
+import android.os.Looper
 import android.view.MotionEvent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -12,9 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.ShoppingBag
 import androidx.compose.material3.*
@@ -31,8 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.reskyu.consumer.NotificationDeepLinkBus
 import com.reskyu.consumer.data.model.DietaryTag
 import com.reskyu.consumer.data.model.Listing
 import com.reskyu.consumer.ui.navigation.Screen
@@ -41,6 +56,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Overlay
 import java.util.concurrent.TimeUnit
 import kotlin.math.*
 
@@ -52,9 +68,6 @@ private val RPriceGreen   = Color(0xFF1A9E45)   // slightly darker green for pri
 private val RGreenSurface = Color(0xFFEBF7EE)   // very light mint background
 private val RGreenOnCard  = Color(0xFF133922)   // forest green text on cards
 
-private const val USER_LAT = 23.2599
-private const val USER_LNG = 77.4126
-
 private val MAP_HEIGHT_COLLAPSED = 150.dp
 private val MAP_HEIGHT_EXPANDED  = 340.dp
 
@@ -63,20 +76,56 @@ private val MAP_HEIGHT_EXPANDED  = 340.dp
 fun HomeScreen(
     innerNavController: NavController,
     outerNavController: NavController,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+            LocalContext.current.applicationContext as android.app.Application
+        )
+    )
 ) {
     val listings       by viewModel.listings.collectAsState()
     val isLoading      by viewModel.isLoading.collectAsState()
     val error          by viewModel.error.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val userLat        by viewModel.userLat.collectAsState()
+    val userLng        by viewModel.userLng.collectAsState()
 
     val displayedListings = remember(listings, selectedFilter) {
         listings.filter { l -> selectedFilter == null || l.dietaryTag == selectedFilter?.name }
     }
 
     var mapExpanded by remember { mutableStateOf(false) }
-
     var selectedListing by remember { mutableStateOf<Listing?>(null) }
+
+    // ── GPS permission ────────────────────────────────────────────────────────
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                   || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        viewModel.onLocationPermissionResult(granted)
+    }
+
+    // Request location on first composition
+    LaunchedEffect(Unit) {
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    // ── Notification deep link: navigate directly to listing when tapped ───────
+    val pendingListingId by NotificationDeepLinkBus.pendingListingId.collectAsState()
+    LaunchedEffect(pendingListingId) {
+        pendingListingId?.let { listingId ->
+            NotificationDeepLinkBus.consume()  // clear first to prevent loop
+            outerNavController.navigate(
+                com.reskyu.consumer.ui.navigation.Screen.DetailListing.createRoute(listingId)
+            )
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Animate map height between collapsed and expanded
     val mapHeight by animateDpAsState(
@@ -96,6 +145,8 @@ fun HomeScreen(
         // ── Fixed: OSM map (animated height, interactive) ──────────────────────
         OsmMapCard(
             listings      = listings,
+            userLat       = userLat,
+            userLng       = userLng,
             mapHeight     = mapHeight,
             isExpanded    = mapExpanded,
             onMarkerClick = { outerNavController.navigate(Screen.DetailListing.createRoute(it.id)) },
@@ -171,7 +222,7 @@ fun HomeScreen(
                     else -> items(displayedListings, key = { it.id }) { listing ->
                         ListingCard(
                             listing    = listing,
-                            distanceKm = haversineKm(USER_LAT, USER_LNG, listing.lat, listing.lng)
+                            distanceKm = haversineKm(userLat, userLng, listing.lat, listing.lng)
                                 .takeIf { listing.lat != 0.0 },
                             onClick    = { selectedListing = listing },
                             modifier   = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -184,14 +235,14 @@ fun HomeScreen(
         }
     }
 
-    // ── Order Bottom Sheet ────────────────────────────────────────────────────
+    // ── Order Bottom Sheet ──────────────────────────────────────────────
     selectedListing?.let { listing ->
         OrderBottomSheet(
             listing   = listing,
             onDismiss = { selectedListing = null },
-            onConfirm = {
+            onConfirm = { qty ->
                 selectedListing = null
-                outerNavController.navigate(Screen.DetailListing.createRoute(listing.id))
+                outerNavController.navigate(Screen.Claim.createRoute(listing.id, qty))
             }
         )
     }
@@ -227,6 +278,8 @@ private fun HomeBanner() {
 @Composable
 private fun OsmMapCard(
     listings: List<Listing>,
+    userLat: Double,
+    userLng: Double,
     mapHeight: androidx.compose.ui.unit.Dp,
     isExpanded: Boolean,
     onMarkerClick: (Listing) -> Unit,
@@ -234,6 +287,9 @@ private fun OsmMapCard(
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { Configuration.getInstance().userAgentValue = context.packageName }
+
+    val radarOverlay = remember { RadarPulseOverlay(GeoPoint(userLat, userLng)) }
+    LaunchedEffect(userLat, userLng) { radarOverlay.updateCenter(GeoPoint(userLat, userLng)) }
 
     Box(
         modifier = Modifier
@@ -252,12 +308,11 @@ private fun OsmMapCard(
                 factory  = { ctx ->
                     MapView(ctx).apply {
                         setTileSource(TileSourceFactory.MAPNIK)
-                        setMultiTouchControls(true)       // pinch-to-zoom + pan
-                        setBuiltInZoomControls(false)     // no +/- buttons
-                        controller.setZoom(14.5)
-                        controller.setCenter(GeoPoint(USER_LAT, USER_LNG))
+                        setMultiTouchControls(true)
+                        setBuiltInZoomControls(false)
+                        controller.setZoom(15.0)
+                        controller.setCenter(GeoPoint(userLat, userLng))
                         isTilesScaledToDpi = true
-                        // Let map handle its own scroll; allow parent to take over when needed
                         setOnTouchListener { v, event ->
                             when (event.action) {
                                 MotionEvent.ACTION_DOWN,
@@ -267,14 +322,19 @@ private fun OsmMapCard(
                             }
                             false
                         }
+                        radarOverlay.startAnimation(this)
                     }
                 },
                 update = { mapView ->
+                    val userPoint = GeoPoint(userLat, userLng)
+                    mapView.controller.setCenter(userPoint)
                     mapView.overlays.clear()
+                    mapView.overlays.add(radarOverlay)
                     mapView.overlays.add(Marker(mapView).apply {
-                        position = GeoPoint(USER_LAT, USER_LNG)
+                        position = userPoint
                         title    = "You are here"
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        icon     = userLocationIcon(context)
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     })
                     listings.filter { it.lat != 0.0 || it.lng != 0.0 }.forEach { listing ->
                         mapView.overlays.add(Marker(mapView).apply {
@@ -287,6 +347,7 @@ private fun OsmMapCard(
                     mapView.invalidate()
                 }
             )
+            DisposableEffect(Unit) { onDispose { radarOverlay.stopAnimation() } }
         }
 
         // ── Expand / Collapse chip — ONLY button that triggers resize ──────────
@@ -374,14 +435,19 @@ fun formatDistance(km: Double?): String? {
 private fun OrderBottomSheet(
     listing: Listing,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: (Int) -> Unit     // carries the selected quantity
 ) {
     val sheetState  = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val discountPct = if (listing.originalPrice > 0)
         ((listing.originalPrice - listing.discountedPrice) / listing.originalPrice * 100).toInt()
     else 0
     val timeLeftMs = listing.expiresAt.toDate().time - System.currentTimeMillis()
-    val savings    = listing.originalPrice - listing.discountedPrice
+    val maxQty     = listing.mealsLeft.coerceAtLeast(1)
+
+    // Quantity state — drives stepper and all price rows
+    var quantity    by remember { mutableStateOf(1) }
+    val savings     = (listing.originalPrice - listing.discountedPrice) * quantity
+    val totalPrice  = listing.discountedPrice * quantity
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -450,18 +516,71 @@ private fun OrderBottomSheet(
             }
             Spacer(Modifier.height(8.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(listing.heroItem, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = RGreenOnCard, modifier = Modifier.weight(1f))
-                Surface(shape = RoundedCornerShape(50), color = if (listing.mealsLeft <= 2) Color(0xFFFFF3E0) else Color(0xFFD4EAD9)) {
-                    Text(
-                        "${listing.mealsLeft} left",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (listing.mealsLeft <= 2) Color(0xFFE65100) else RGreenOnCard,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    listing.heroItem,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = RGreenOnCard,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Quantity stepper — replaces the static "X left" badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconButton(
+                        onClick  = { if (quantity > 1) quantity-- },
+                        modifier = Modifier.size(28.dp),
+                        enabled  = quantity > 1
+                    ) {
+                        Icon(
+                            Icons.Rounded.Remove,
+                            contentDescription = "Less",
+                            modifier = Modifier.size(16.dp),
+                            tint = if (quantity > 1) RGreenAccent
+                                   else Color(0xFFB0CABB)
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = RGreenAccent.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            "$quantity",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = RGreenAccent,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick  = { if (quantity < maxQty) quantity++ },
+                        modifier = Modifier.size(28.dp),
+                        enabled  = quantity < maxQty
+                    ) {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = "More",
+                            modifier = Modifier.size(16.dp),
+                            tint = if (quantity < maxQty) RGreenAccent
+                                   else Color(0xFFB0CABB)
+                        )
+                    }
                 }
             }
+
+            // Availability note below stepper
+            Text(
+                "${listing.mealsLeft} portion${if (listing.mealsLeft != 1) "s" else ""} available",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (listing.mealsLeft <= 2) Color(0xFFE65100) else Color(0xFF888888)
+            )
 
             if (timeLeftMs > 0) {
                 Spacer(Modifier.height(4.dp))
@@ -484,24 +603,25 @@ private fun OrderBottomSheet(
             // ── Price breakdown ─────────────────────────────────────────────────
             Text("Price Breakdown", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard)
             Spacer(Modifier.height(8.dp))
-            PriceRow("Original price", "₹${listing.originalPrice.toInt()}", strikethrough = true)
+            PriceRow("Original price", "₹${(listing.originalPrice * quantity).toInt()}", strikethrough = true)
             PriceRow("Discount ($discountPct%)", "-₹${savings.toInt()}", valueColor = RPriceGreen)
             Spacer(Modifier.height(6.dp))
             HorizontalDivider(color = Color(0xFFB2DFBB))
             Spacer(Modifier.height(6.dp))
-            PriceRow("You Pay", "₹${listing.discountedPrice.toInt()}", bold = true, valueColor = RPriceGreen)
+            PriceRow("You Pay", "₹${totalPrice.toInt()}", bold = true, valueColor = RPriceGreen)
 
             Spacer(Modifier.height(20.dp))
 
             // ── Confirm Payment ─────────────────────────────────────────────────
             Button(
-                onClick  = onConfirm,
+                onClick  = { onConfirm(quantity) },
                 modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape    = RoundedCornerShape(16.dp),
                 colors   = ButtonDefaults.buttonColors(containerColor = RGreenAccent)
             ) {
                 Text(
-                    "Confirm Payment  ·  ₹${listing.discountedPrice.toInt()}",
+                    "Confirm Payment  ·  ₹${totalPrice.toInt()}" +
+                        if (quantity > 1) "  (×$quantity)" else "",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -533,3 +653,81 @@ private fun PriceRow(
     }
 }
 
+// ── Radar Pulse Overlay ───────────────────────────────────────────────────────
+private class RadarPulseOverlay(
+    private var center: GeoPoint,
+    private val radiusMeters: Double = 2000.0
+) : Overlay() {
+
+    private var animProgress = 0f
+    private var attachedMap: MapView? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private val ticker  = object : Runnable {
+        override fun run() {
+            animProgress = (animProgress + 0.02f) % 1f
+            attachedMap?.invalidate()
+            handler.postDelayed(this, 50L)
+        }
+    }
+
+    fun startAnimation(map: MapView) { attachedMap = map; handler.post(ticker) }
+    fun stopAnimation()              { handler.removeCallbacks(ticker); attachedMap = null }
+    fun updateCenter(c: GeoPoint)    { center = c }
+
+    override fun draw(canvas: android.graphics.Canvas, mapView: MapView, shadow: Boolean) {
+        if (shadow) return
+        val proj = mapView.projection
+        val sp   = Point(); proj.toPixels(center, sp)
+        val cx = sp.x.toFloat(); val cy = sp.y.toFloat()
+
+        // Radius in pixels
+        val off = GeoPoint(
+            center.latitude,
+            center.longitude + radiusMeters / (111_320.0 * cos(Math.toRadians(center.latitude)))
+        )
+        val op = Point(); proj.toPixels(off, op)
+        val rPx = abs(op.x - sp.x).toFloat()
+
+        // Faint fill
+        canvas.drawCircle(cx, cy, rPx, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            style = AndroidPaint.Style.FILL; color = AndroidColor.argb(18, 45, 198, 83)
+        })
+        // Border ring
+        canvas.drawCircle(cx, cy, rPx, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            style = AndroidPaint.Style.STROKE; strokeWidth = 2.5f
+            color = AndroidColor.argb(140, 45, 198, 83)
+        })
+        // 3 pulsing rings
+        for (i in 0..2) {
+            val phase = (animProgress + i / 3f) % 1f
+            canvas.drawCircle(cx, cy, rPx * 0.40f * phase,
+                AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+                    style = AndroidPaint.Style.STROKE
+                    strokeWidth = 3.5f - 2f * phase
+                    color = AndroidColor.argb((220 * (1f - phase)).toInt(), 45, 198, 83)
+                })
+        }
+    }
+}
+
+// ── User Location Icon ────────────────────────────────────────────────────────
+private fun userLocationIcon(context: android.content.Context): BitmapDrawable {
+    val dp = context.resources.displayMetrics.density
+    val sz = (52 * dp).toInt()
+    val bm = Bitmap.createBitmap(sz, sz, Bitmap.Config.ARGB_8888)
+    val cv = AndroidCanvas(bm)
+    val cx = sz / 2f; val cy = sz / 2f
+    // Glow halo
+    cv.drawCircle(cx, cy, sz * 0.46f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.argb(55, 220, 40, 40); style = AndroidPaint.Style.FILL
+    })
+    // White ring
+    cv.drawCircle(cx, cy, sz * 0.30f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.WHITE; style = AndroidPaint.Style.FILL
+    })
+    // Red dot
+    cv.drawCircle(cx, cy, sz * 0.20f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.rgb(210, 35, 35); style = AndroidPaint.Style.FILL
+    })
+    return BitmapDrawable(context.resources, bm)
+}

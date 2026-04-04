@@ -4,6 +4,17 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// Read GEMINI_API_KEY from local.properties using line-based parsing
+// (java.util.Properties is not reliably available in KTS scripts)
+fun readLocalProperty(key: String): String {
+    val f = rootProject.file("local.properties")
+    if (!f.exists()) return ""
+    return f.readLines()
+        .firstOrNull { it.startsWith("$key=") }
+        ?.substringAfter("=")
+        ?.trim() ?: ""
+}
+val geminiApiKey: String = readLocalProperty("GEMINI_API_KEY")
 
 
 android {
@@ -22,7 +33,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Inject Gemini API key from local.properties into BuildConfig
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
+
 
     buildTypes {
         release {
@@ -39,6 +54,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true   // enables BuildConfig.GEMINI_API_KEY
     }
 }
 

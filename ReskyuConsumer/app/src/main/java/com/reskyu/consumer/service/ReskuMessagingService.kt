@@ -1,81 +1,124 @@
 package com.reskyu.consumer.service
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.reskyu.consumer.data.model.AppNotification
-import com.reskyu.consumer.data.repository.NotificationRepository
-import java.util.UUID
+import com.reskyu.consumer.MainActivity
+import com.reskyu.consumer.NotificationDeepLinkBus
+import com.reskyu.consumer.R
+import kotlin.random.Random
 
 /**
  * ReskuMessagingService
  *
- * Firebase Cloud Messaging (FCM) receiver service.
- * Handles two scenarios:
- *  1. [onMessageReceived]  : App is in the FOREGROUND — we handle and display manually
- *  2. [onNewToken]         : FCM token refreshed — send new token to your backend/Firestore
+ * Handles FCM messages in ALL app states:
  *
- * Registration in AndroidManifest.xml (required):
- *   <service
- *       android:name=".service.ReskuMessagingService"
- *       android:exported="false">
- *       <intent-filter>
- *           <action android:name="com.google.firebase.MESSAGING_EVENT" />
- *       </intent-filter>
- *   </service>
+ *  ┌───────────────────┬───────────────────────────────────────────────────┐
+ *  │ App state         │ What happens                                      │
+ *  ├───────────────────┼───────────────────────────────────────────────────┤
+ *  │ FOREGROUND        │ onMessageReceived() called → show local notif     │
+ *  │                   │  + write to Firestore notifications subcollection │
+ *  │ BACKGROUND/KILLED │ Android system shows notification automatically   │
+ *  │                   │ onMessageReceived() NOT called in this state      │
+ *  │                   │ (FCM handles it via notification payload)          │
+ *  └───────────────────┴───────────────────────────────────────────────────┘
  *
- * Notification data payload (from Cloud Function or Firestore trigger):
- *   {
- *     "title": "New drop near you!",
- *     "body": "Bhopal Bakery just listed pastries for ₹200",
- *     "deepLink": "detail/listing_789"
- *   }
+ * Notification channel is created here and in ReskyuApplication.
  */
 class ReskuMessagingService : FirebaseMessagingService() {
 
-    // TODO: Use Hilt/DI for proper singleton injection
-    private val notificationRepository = NotificationRepository()
+    private val db   = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
-    /**
-     * Called when an FCM message is received while the app is in the FOREGROUND.
-     * We add it to [NotificationRepository] so it appears in the Notifications screen.
-     *
-     * For background messages, FCM handles display automatically using
-     * the notification payload's title/body fields.
-     */
+    companion object {
+        const val CHANNEL_ID   = "reskyu_drops"
+        const val CHANNEL_NAME = "Food Drops"
+    }
+
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        val title = message.notification?.title ?: message.data["title"] ?: "Reskyu"
-        val body  = message.notification?.body  ?: message.data["body"] ?: ""
-        val deepLink = message.data["deepLink"]
+        val title     = message.notification?.title ?: message.data["title"] ?: "Reskyu"
+        val body      = message.notification?.body  ?: message.data["body"]  ?: ""
+        val type      = message.data["type"] ?: "SYSTEM"
+        val listingId = message.data["listingId"]   // may be null for non-drop notifications
 
-        val notification = AppNotification(
-            id = UUID.randomUUID().toString(),
-            title = title,
-            body = body,
-            timestamp = System.currentTimeMillis(),
-            isRead = false,
-            deepLink = deepLink
-        )
+        // 1. Show a local push notification (required for FOREGROUND state)
+        showLocalNotification(title, body, listingId)
 
-        notificationRepository.addNotification(notification)
-
-        // TODO: Show a local notification using NotificationCompat.Builder
-        //       so the user sees it even while using the app
+        // 2. Write to Firestore so it appears in the Alerts screen in real-time
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("users").document(uid)
+            .collection("notifications")
+            .add(
+                mapOf(
+                    "title"     to title,
+                    "body"      to body,
+                    "type"      to type,
+                    "timestamp" to Timestamp.now(),
+                    "isRead"    to false
+                )
+            )
     }
 
-    /**
-     * Called when the FCM registration token is refreshed.
-     * You must save this token to the user's Firestore document so
-     * the backend can send targeted push notifications.
-     *
-     * Firestore path to update: /users/{uid}/fcmToken: "new_token"
-     *
-     * @param token  The new FCM registration token
-     */
+    private fun showLocalNotification(title: String, body: String, listingId: String? = null) {
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        createNotificationChannel(notificationManager)
+
+        // Carry listingId so MainActivity can open the listing detail screen directly
+        val tapIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            if (!listingId.isNullOrBlank()) {
+                putExtra(NotificationDeepLinkBus.EXTRA_LISTING_ID, listingId)
+            }
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)   // uses your app icon
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)                   // dismisses on tap
+            .setContentIntent(pendingIntent)
+            .build()
+
+        // Use a random ID so multiple notifications stack rather than replace
+        notificationManager.notify(Random.nextInt(), notification)
+    }
+
+    private fun createNotificationChannel(manager: NotificationManager) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Nearby food drop alerts from Reskyu"
+                enableVibration(true)
+            }
+            manager.createNotificationChannel(channel)
+        }
+    }
+
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // TODO: Save token to Firestore: /users/{uid} → fcmToken: token
-        // viewModelScope is not available here; use a WorkManager task or coroutineScope
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("users").document(uid).update("fcmToken", token)
     }
 }

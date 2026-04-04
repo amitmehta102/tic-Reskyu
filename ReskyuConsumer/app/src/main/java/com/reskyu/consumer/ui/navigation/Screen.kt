@@ -34,8 +34,8 @@ sealed class Screen(val route: String) {
         fun createRoute(listingId: String) = "detail/$listingId"
     }
 
-    object Claim : Screen("claim/{listingId}") {
-        fun createRoute(listingId: String) = "claim/$listingId"
+    object Claim : Screen("claim/{listingId}?quantity={quantity}") {
+        fun createRoute(listingId: String, quantity: Int = 1) = "claim/$listingId?quantity=$quantity"
     }
 
     object Confirmation : Screen("confirmation/{claimId}") {

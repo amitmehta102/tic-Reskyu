@@ -14,5 +14,7 @@ data class Merchant(
     val lng: Double = 0.0,
     val geoHash: String = "",
     val lastPredictionDate: String = "",    // AI Cache: "2026-04-03"
-    val lastPredictionMeals: Int = 0        // AI Cache: predicted meal count
+    val lastPredictionMeals: Int = 0,       // AI Cache: predicted meal count
+    val ratingCount: Int = 0,               // Total number of consumer ratings received
+    val ratingSum: Int = 0                  // Sum of all rating values (1–5 per rating)
 )

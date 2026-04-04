@@ -58,7 +58,7 @@ class EsgRepository {
         // ── Meals rescued per day ─────────────────────────────────────────────
         val weeklyMeals = FloatArray(7) { 0f }
         completedDocs.forEach { doc ->
-            val ts = doc.getLong("timestamp") ?: return@forEach
+            val ts = safeTimestamp(doc) ?: return@forEach
             if (ts >= weekStartMs) {
                 val idx = ((ts - weekStartMs) / dayMs).toInt().coerceIn(0, 6)
                 weeklyMeals[idx] += 1f
@@ -68,7 +68,7 @@ class EsgRepository {
         // ── Revenue per day ───────────────────────────────────────────────────
         val weeklyRevenue = FloatArray(7) { 0f }
         completedDocs.forEach { doc ->
-            val ts = doc.getLong("timestamp") ?: return@forEach
+            val ts = safeTimestamp(doc) ?: return@forEach
             if (ts >= weekStartMs) {
                 val idx = ((ts - weekStartMs) / dayMs).toInt().coerceIn(0, 6)
                 weeklyRevenue[idx] += (doc.getDouble("amount") ?: 0.0).toFloat()
@@ -76,20 +76,30 @@ class EsgRepository {
         }
 
         // ── Sales Loss Recovery Rate per day ──────────────────────────────────
-        // Recovery rate = (completed claims on that day / total claims on that day) * 100
-        // Shows how successfully listings converted into actual rescues each day.
         val totalClaimsByDay = FloatArray(7) { 0f }
         allDocs.forEach { doc ->
-            val ts = doc.getLong("timestamp") ?: return@forEach
+            val ts = safeTimestamp(doc) ?: return@forEach
             if (ts >= weekStartMs) {
                 val idx = ((ts - weekStartMs) / dayMs).toInt().coerceIn(0, 6)
                 totalClaimsByDay[idx] += 1f
             }
         }
+
         val recoveryRate = FloatArray(7) { i ->
             val total = totalClaimsByDay[i]
             if (total > 0f) ((weeklyMeals[i] / total) * 100f).coerceIn(0f, 100f) else 0f
         }
+
+        // ── Top selling items ──────────────────────────────────────────────────
+        // Group completed claims by heroItem, count them, sort descending, top 5
+        val topSellingItems = completedDocs
+            .mapNotNull { it.getString("heroItem")?.trim()?.ifBlank { null } }
+            .groupingBy { it }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .take(5)
+            .associate { it.key to it.value }
 
         return EsgStats(
             totalMealsRescued  = totalMeals,
@@ -100,7 +110,24 @@ class EsgRepository {
             weeklyRevenue      = weeklyRevenue.toList(),
             recoveryRateWeekly = recoveryRate.toList(),
             completedOrders    = totalMeals,
-            disputedOrders     = disputedCount
+            disputedOrders     = disputedCount,
+            topSellingItems    = topSellingItems
         )
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Reads the 'timestamp' field safely, handling both:
+     * - com.google.firebase.Timestamp (stored by consumer app / Firestore server)
+     * - Long (Unix ms  — stored by our seeder)
+     */
+    private fun safeTimestamp(doc: com.google.firebase.firestore.DocumentSnapshot): Long? {
+        return when (val raw = doc.get("timestamp")) {
+            is com.google.firebase.Timestamp -> raw.toDate().time
+            is Long   -> raw
+            is Number -> raw.toLong()
+            else      -> null
+        }
     }
 }

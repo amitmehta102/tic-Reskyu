@@ -19,12 +19,29 @@
   const navAnchors  = document.querySelectorAll('.nav-links a[href^="#"]');
 
   // ── Scroll: progress bar + navbar states ─────────────
+  const scrollTopBtn = document.getElementById('scroll-top-btn');
+
   function onScroll() {
     const scrollTop = window.scrollY;
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
     progressBar.style.width = (scrollTop / docHeight * 100) + '%';
     navbar.classList.toggle('scrolled', scrollTop > 40);
     setActiveLink();
+    // Scroll-to-top button visibility
+    if (scrollTopBtn) {
+      if (scrollTop > 400) {
+        scrollTopBtn.removeAttribute('hidden');
+        scrollTopBtn.classList.add('visible');
+      } else {
+        scrollTopBtn.classList.remove('visible');
+        // Hide after fade-out
+        setTimeout(() => {
+          if (!scrollTopBtn.classList.contains('visible')) {
+            scrollTopBtn.setAttribute('hidden', '');
+          }
+        }, 320);
+      }
+    }
   }
 
   // ── Active nav link by section in view ───────────────
@@ -128,23 +145,20 @@
       formMsg.textContent = '⏳ Saving...';
       formMsg.style.color = 'var(--muted-teal)';
 
-      // Save to Firestore if Firebase ready, else just show success
+      // Save to Firestore if Firebase ready, else just redirect
       const savePromise = (typeof window.RESKYU_SAVE_WAITLIST === 'function')
         ? window.RESKYU_SAVE_WAITLIST(val)
         : Promise.resolve();
 
       savePromise
         .then(() => {
-          formMsg.textContent = '🎉 You\'re on the list! We\'ll be in touch soon.';
-          formMsg.style.color = '#7BE08A';
-          input.value = '';
+          // Redirect to dedicated success/confirmation page
+          window.location.href = 'early-access-success.html?email=' + encodeURIComponent(val);
         })
         .catch(err => {
           console.error('[RESKYU Waitlist]', err);
-          // Still show success to user (don't block on DB error)
-          formMsg.textContent = '🎉 You\'re on the list! We\'ll be in touch soon.';
-          formMsg.style.color = '#7BE08A';
-          input.value = '';
+          // Still redirect on DB error — don't block the user
+          window.location.href = 'early-access-success.html?email=' + encodeURIComponent(val);
         });
     });
   }
@@ -186,6 +200,24 @@
       modal.setAttribute('hidden', '');
       document.body.style.overflow = '';
     }, 280);
+  }
+
+  // Polls until window[fnName] is ready or timeout expires
+  function waitForFirebase(fnName, timeoutMs, callback) {
+    if (typeof window[fnName] === 'function') {
+      callback(window[fnName]); return;
+    }
+    var elapsed = 0;
+    var interval = setInterval(function () {
+      elapsed += 200;
+      if (typeof window[fnName] === 'function') {
+        clearInterval(interval);
+        callback(window[fnName]);
+      } else if (elapsed >= timeoutMs) {
+        clearInterval(interval);
+        callback(null); // timed out
+      }
+    }, 200);
   }
 
   if (openLogin)  openLogin.addEventListener('click',  () => openModal('tab-login'));
@@ -326,25 +358,28 @@
         loginMsg.style.color = '#F5A623'; return;
       }
 
-      loginMsg.textContent = '⏳ Logging in…';
+      loginMsg.textContent = '⏳ Connecting…';
       loginMsg.style.color = 'rgba(254,250,242,.5)';
 
-      if (typeof window.RESKYU_LOGIN !== 'function') {
-        loginMsg.textContent = '⚠ Firebase not configured yet. See firebase-config.js';
-        loginMsg.style.color = '#F5A623'; return;
-      }
-
-      window.RESKYU_LOGIN(email, pass)
-        .then(() => {
-          loginMsg.style.color = '#7BE08A';
-          loginMsg.textContent = '✓ Welcome back!';
-          loginForm.reset();
-          setTimeout(() => { closeModal(); window.location.href = 'dashboard.html'; }, 900);
-        })
-        .catch(err => {
-          loginMsg.style.color = '#F5A623';
-          loginMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
-        });
+      // Wait up to 8s for Firebase to finish loading, then proceed
+      waitForFirebase('RESKYU_LOGIN', 8000, function (loginFn) {
+        if (!loginFn) {
+          loginMsg.textContent = '⚠ Could not connect to authentication service. Please refresh and try again.';
+          loginMsg.style.color = '#F5A623'; return;
+        }
+        loginMsg.textContent = '⏳ Logging in…';
+        loginFn(email, pass)
+          .then(() => {
+            loginMsg.style.color = '#7BE08A';
+            loginMsg.textContent = '✓ Welcome back!';
+            loginForm.reset();
+            setTimeout(() => { closeModal(); window.location.href = 'dashboard.html'; }, 900);
+          })
+          .catch(err => {
+            loginMsg.style.color = '#F5A623';
+            loginMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
+          });
+      });
     });
   }
 
@@ -377,25 +412,28 @@
         signupMsg.style.color = '#F5A623'; return;
       }
 
-      signupMsg.textContent = '⏳ Creating your account…';
+      signupMsg.textContent = '⏳ Connecting…';
       signupMsg.style.color = 'rgba(254,250,242,.5)';
 
-      if (typeof window.RESKYU_SIGNUP !== 'function') {
-        signupMsg.textContent = '⚠ Firebase not configured yet. See firebase-config.js';
-        signupMsg.style.color = '#F5A623'; return;
-      }
-
-      window.RESKYU_SIGNUP(name, email, pass, role)
-        .then(() => {
-          signupMsg.style.color = '#7BE08A';
-          signupMsg.textContent = '🎉 Account created! Welcome to RESKYU.';
-          signupForm.reset();
-          setTimeout(closeModal, 1600);
-        })
-        .catch(err => {
-          signupMsg.style.color = '#F5A623';
-          signupMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
-        });
+      // Wait up to 8s for Firebase to finish loading, then proceed
+      waitForFirebase('RESKYU_SIGNUP', 8000, function (signupFn) {
+        if (!signupFn) {
+          signupMsg.textContent = '⚠ Could not connect. Please refresh and try again.';
+          signupMsg.style.color = '#F5A623'; return;
+        }
+        signupMsg.textContent = '⏳ Creating your account…';
+        signupFn(name, email, pass, role)
+          .then(() => {
+            signupMsg.style.color = '#7BE08A';
+            signupMsg.textContent = '🎉 Account created! Welcome to RESKYU.';
+            signupForm.reset();
+            setTimeout(closeModal, 1600);
+          })
+          .catch(err => {
+            signupMsg.style.color = '#F5A623';
+            signupMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
+          });
+      });
     });
   }
 
@@ -414,4 +452,215 @@
     return messages[code] || 'Something went wrong. Please try again.';
   }
 
+})();
+
+/* ════════════════════════════════════════════
+   SCROLL TO TOP — click handler (#7)
+════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var btn = document.getElementById('scroll-top-btn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+
+/* ════════════════════════════════════════════
+   PWA INSTALL PROMPT (#6)
+   Captures beforeinstallprompt, shows custom
+   banner, remembers dismiss for 30 days.
+════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var DISMISS_KEY  = 'reskyu_pwa_dismissed';
+  var deferredPrompt = null;
+  var banner  = document.getElementById('pwa-banner');
+  var installBtn = document.getElementById('pwa-install-btn');
+  var dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+  if (!banner) return;
+
+  // Don't show if dismissed within 30 days
+  var dismissed = localStorage.getItem(DISMISS_KEY);
+  if (dismissed && Date.now() - parseInt(dismissed, 10) < 30 * 86400000) return;
+
+  // Capture the install event
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show banner after a short delay so it doesn't pop immediately
+    setTimeout(function () {
+      banner.removeAttribute('hidden');
+    }, 3000);
+  });
+
+  // Install button
+  if (installBtn) {
+    installBtn.addEventListener('click', function () {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function (result) {
+        if (result.outcome === 'accepted') {
+          banner.setAttribute('hidden', '');
+          localStorage.setItem(DISMISS_KEY, Date.now().toString());
+        }
+        deferredPrompt = null;
+      });
+    });
+  }
+
+  // Dismiss button
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', function () {
+      banner.setAttribute('hidden', '');
+      localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    });
+  }
+
+  // Hide once installed
+  window.addEventListener('appinstalled', function () {
+    banner.setAttribute('hidden', '');
+  });
+})();
+
+/* ════════════════════════════════════════════
+   COOKIE CONSENT BANNER (#8)
+   Shows once, stores choice in localStorage.
+   'accepted' → analytics can run
+   'declined' → analytics disabled
+════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var COOKIE_KEY = 'reskyu_cookie_consent';
+  var banner     = document.getElementById('cookie-banner');
+  var acceptBtn  = document.getElementById('cookie-accept');
+  var declineBtn = document.getElementById('cookie-decline');
+
+  if (!banner) return;
+
+  // Already decided — don't show again
+  if (localStorage.getItem(COOKIE_KEY)) return;
+
+  // Show banner after 1.5s
+  var showTimer = setTimeout(function () {
+    banner.removeAttribute('hidden');
+  }, 1500);
+
+  function dismiss(choice) {
+    clearTimeout(showTimer);
+    localStorage.setItem(COOKIE_KEY, choice);
+    banner.setAttribute('hidden', '');
+  }
+
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', function () {
+      dismiss('accepted');
+      // Tell Google Analytics consent was given (if GA is loaded)
+      if (typeof gtag === 'function') {
+        gtag('consent', 'update', {
+          analytics_storage: 'granted',
+        });
+      }
+    });
+  }
+
+  if (declineBtn) {
+    declineBtn.addEventListener('click', function () {
+      dismiss('declined');
+    });
+  }
+})();
+
+/* ════════════════════════════════════════════
+   DARK / LIGHT MODE TOGGLE (#10)
+════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var THEME_KEY = 'reskyu_theme';
+  var html      = document.documentElement;
+  var toggleBtn = document.getElementById('theme-toggle');
+
+  // Apply saved preference immediately (before paint)
+  var saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'light') html.classList.add('light-mode');
+
+  if (!toggleBtn) return;
+
+  toggleBtn.addEventListener('click', function () {
+    // Briefly disable transitions for instant swap
+    html.style.transition = 'background .35s ease, color .35s ease';
+    html.classList.toggle('light-mode');
+    var isLight = html.classList.contains('light-mode');
+    localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+    // Remove inline transition after swap is done
+    setTimeout(function () { html.style.transition = ''; }, 400);
+  });
+})();
+
+/* ════════════════════════════════════════════
+   HERO STAT COUNTER ANIMATION (#11)
+   Runs when hero-stats scrolls into view.
+   Each [data-count-to] element counts up from 0.
+   [data-count-glow] elements get a glow reveal.
+════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var statsSection = document.getElementById('hero-stats');
+  if (!statsSection) return;
+
+  var animated = false;
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function countUp(el) {
+    var to      = parseInt(el.dataset.countTo, 10);
+    var prefix  = el.dataset.countPrefix  || '';
+    var suffix  = el.dataset.countSuffix  || '';
+    var label   = el.dataset.countLabel   || ''; // e.g. "35–" prepended before the animated number
+    var dur     = 1400; // ms
+    var start   = null;
+
+    el.classList.add('stat-animated');
+
+    function tick(ts) {
+      if (!start) start = ts;
+      var elapsed = ts - start;
+      var progress = Math.min(elapsed / dur, 1);
+      var current  = Math.round(easeOut(progress) * to);
+      el.textContent = prefix + label + current + suffix;
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = prefix + label + to + suffix; // Ensure exact final value
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function runAnimations() {
+    if (animated) return;
+    animated = true;
+
+    var nums = statsSection.querySelectorAll('.hero-stat-num');
+    nums.forEach(function (el, i) {
+      var delay = i * 120;
+      if (el.hasAttribute('data-count-glow')) {
+        setTimeout(function () { el.classList.add('stat-animated'); }, delay);
+      } else if (el.dataset.countTo) {
+        setTimeout(function () { countUp(el); }, delay);
+      }
+    });
+  }
+
+  // Trigger when stats strip enters viewport
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) { runAnimations(); obs.disconnect(); }
+    }, { threshold: 0.5 });
+    obs.observe(statsSection);
+  } else {
+    // Fallback: run immediately
+    runAnimations();
+  }
 })();

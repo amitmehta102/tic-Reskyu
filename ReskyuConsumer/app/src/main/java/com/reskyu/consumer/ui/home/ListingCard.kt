@@ -157,16 +157,33 @@ fun ListingCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     DietaryChip(tag = DietaryTag.valueOf(listing.dietaryTag))
-                    Text(
-                        text = "${listing.mealsLeft} left",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = when {
-                            listing.mealsLeft <= 1 -> LC_Error
-                            listing.mealsLeft <= 3 -> Color(0xFFE65100)
-                            else -> LC_TextSub
-                        }
-                    )
+
+                    // Meals-left urgency chip
+                    val (chipBg, chipText, chipLabel) = when {
+                        listing.mealsLeft <= 1 -> Triple(
+                            Color(0xFFFFEBEE), LC_Error, "🔥 Last 1!"
+                        )
+                        listing.mealsLeft <= 3 -> Triple(
+                            Color(0xFFFFF3E0), Color(0xFFE65100),
+                            "⚡ ${listing.mealsLeft} left"
+                        )
+                        else -> Triple(
+                            Color(0xFFE8F5E9), LC_TextSub,
+                            "${listing.mealsLeft} left"
+                        )
+                    }
+                    Surface(
+                        color = chipBg,
+                        shape = MaterialTheme.shapes.extraSmall
+                    ) {
+                        Text(
+                            text = chipLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = chipText,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(2.dp))

@@ -1,7 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+}
+
+// Read local.properties for BuildConfig injection
+val localProperties = Properties().also { props ->
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) props.load(localFile.inputStream())
 }
 
 android {
@@ -20,6 +28,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // ── BuildConfig fields from local.properties ───────────────────────────
+        buildConfigField("String", "GEMINI_API_KEY",
+            "\"${localProperties["GEMINI_API_KEY"] ?: ""}\"")
+        buildConfigField("String", "RAZORPAY_KEY_ID",
+            "\"${localProperties["RAZORPAY_KEY_ID"] ?: ""}\"")
+        buildConfigField("String", "NODE_API_BASE_URL",
+            "\"${localProperties["NODE_API_BASE_URL"] ?: "https://cold-candies-lose.loca.lt"}\"")
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME",
+            "\"${localProperties["CLOUDINARY_CLOUD_NAME"] ?: "dt6a3k4pv"}\"")
     }
 
     buildTypes {
@@ -37,6 +55,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true   // required for BuildConfig fields
     }
 }
 
@@ -48,6 +67,20 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-messaging")
+
+    // ── Retrofit (Node.js backend calls) ──────────────────────────────────────
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // ── Razorpay ──────────────────────────────────────────────────────────────
+    implementation("com.razorpay:checkout:1.6.33")
+
+    // ── Google Generative AI (Gemini) ─────────────────────────────────────────
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+    // ── Location (GPS) ────────────────────────────────────────────────────────
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     // ── Compose Core ──────────────────────────────────────────────────────────
     implementation(libs.androidx.core.ktx)
@@ -73,6 +106,7 @@ dependencies {
 
     // ── Maps (OpenStreetMap via osmdroid — free, no API key needed) ───────────
     implementation(libs.osmdroid)
+
 
     // ── Tests ─────────────────────────────────────────────────────────────────
     testImplementation(libs.junit)

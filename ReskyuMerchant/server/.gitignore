@@ -1,8 +1,0 @@
-# Secret credentials — NEVER commit this
-.env
-
-# Node dependencies
-node_modules/
-
-# Temp upload directory
-/tmp/uploads/

@@ -270,6 +270,18 @@
             </div>
             <button class="dash-btn-outline" id="generate-report-btn">📄 Download ESG Report</button>
           </div>
+
+          <!-- Chart.js Trend Chart -->
+          <div class="dash-card" style="margin-top:0">
+            <div class="dash-card-header">
+              <span class="dash-card-icon">📈</span>
+              <h2 class="dash-card-title">Meals Rescued — Last 7 Days</h2>
+            </div>
+            <p class="dash-card-desc" style="margin-bottom:20px">Daily trend of meals rescued from your listings.</p>
+            <div style="position:relative;height:220px">
+              <canvas id="meals-chart" aria-label="Meals rescued last 7 days" role="img"></canvas>
+            </div>
+          </div>
         </div>
 
         <!-- ── TAB: PROFILE ── -->
@@ -338,6 +350,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/onboarding.js"></script>

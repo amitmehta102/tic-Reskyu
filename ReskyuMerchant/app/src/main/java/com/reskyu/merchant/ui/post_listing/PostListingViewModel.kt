@@ -104,7 +104,9 @@ class PostListingViewModel(app: Application) : AndroidViewModel(app) {
                     form         = form,
                     merchantId   = merchantId,
                     businessName = merchant?.businessName ?: "",
-                    geoHash      = merchant?.geoHash      ?: ""
+                    geoHash      = merchant?.geoHash      ?: "",
+                    lat          = merchant?.lat          ?: 0.0,
+                    lng          = merchant?.lng          ?: 0.0
                 )
 
                 // ── Listing written to Firestore — mark as Live immediately ────

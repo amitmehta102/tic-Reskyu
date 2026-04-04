@@ -54,9 +54,10 @@ fun EsgAnalyticsScreen(
     navController: NavController,
     viewModel: EsgAnalyticsViewModel = viewModel()
 ) {
-    val stats      by viewModel.esgStats.collectAsState()
-    val isLoading  by viewModel.isLoading.collectAsState()
-    val surplusIq  by viewModel.surplusIq.collectAsState()
+    val stats           by viewModel.esgStats.collectAsState()
+    val isLoading       by viewModel.isLoading.collectAsState()
+    val isNewRestaurant by viewModel.isNewRestaurant.collectAsState()
+    val surplusIq       by viewModel.surplusIq.collectAsState()
 
     val merchantId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
 
@@ -78,57 +79,70 @@ fun EsgAnalyticsScreen(
 
                 // ── Body ──────────────────────────────────────────────────────
                 item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                    // While loading, show nothing — the LoadingOverlay handles it
+                    if (isLoading) return@item
 
-                        // ① SurplusIQ ─────────────────────────────────────────
-                        SurplusIqSection(
-                            state    = surplusIq,
-                            onRetry  = { viewModel.retryPrediction(merchantId) }
-                        )
-
-                        // ② Metric grid ───────────────────────────────────────
-                        SectionLabel("Total Impact")
-
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    if (isNewRestaurant) {
+                        // ── New restaurant empty state ─────────────────────────
+                        NewRestaurantEmptyState()
+                    } else {
+                        // ── Real data content ─────────────────────────────────
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            ImpactMetricCard("🍱", "Meals Rescued",   "${stats.totalMealsRescued}",                   Color(0xFF2D6A4F), Modifier.weight(1f))
-                            ImpactMetricCard("🌍", "CO₂ Saved",       "${stats.co2SavedKg.toInt()} kg",               Color(0xFF457B9D), Modifier.weight(1f))
+                            // ① SurplusIQ
+                            SurplusIqSection(
+                                state   = surplusIq,
+                                onRetry = { viewModel.retryPrediction(merchantId) }
+                            )
+
+                            // ② Metric grid
+                            SectionLabel("Total Impact")
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                ImpactMetricCard("🍱", "Meals Rescued",  "${stats.totalMealsRescued}",              Color(0xFF2D6A4F), Modifier.weight(1f))
+                                ImpactMetricCard("🌍", "CO₂ Saved",      "${stats.co2SavedKg.toInt()} kg",          Color(0xFF457B9D), Modifier.weight(1f))
+                            }
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                ImpactMetricCard("🗑️", "Waste Diverted", "${stats.foodWasteReducedKg.toInt()} kg", Color(0xFFE76F51), Modifier.weight(1f))
+                                ImpactMetricCard("💰", "Revenue Earned",  "₹${stats.totalRevenue.toInt()}",         GreenAccent,       Modifier.weight(1f))
+                            }
+
+                            // ③ Weekly meals chart
+                            SectionLabel("Weekly Performance")
+                            WeeklyBarChart(weeklyData = stats.weeklyData)
+
+                            // ③b Top selling items
+                            if (stats.topSellingItems.isNotEmpty()) {
+                                SectionLabel("Top Selling Items")
+                                TopSellingItemsCard(items = stats.topSellingItems)
+                            }
+
+                            // ④ Daily Revenue chart
+                            SectionLabel("Daily Revenue (₹)")
+                            RevenueBarChart(weeklyRevenue = stats.weeklyRevenue)
+
+                            // ⑤ Sales Loss Recovery Rate
+                            SectionLabel("Sales Loss Recovery Rate")
+                            RecoveryRateChart(recoveryRate = stats.recoveryRateWeekly)
+
+                            // ⑥ Order Outcome breakdown
+                            SectionLabel("Order Outcomes")
+                            OrderOutcomeCard(
+                                completed = stats.completedOrders,
+                                disputed  = stats.disputedOrders
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            ImpactMetricCard("🗑️", "Waste Diverted",  "${stats.foodWasteReducedKg.toInt()} kg",       Color(0xFFE76F51), Modifier.weight(1f))
-                            ImpactMetricCard("💰", "Revenue Earned",   "₹${stats.totalRevenue.toInt()}",              GreenAccent,       Modifier.weight(1f))
-                        }
-
-                        // ③ Weekly meals chart ────────────────────────────────
-                        SectionLabel("Weekly Performance")
-                        WeeklyBarChart(weeklyData = stats.weeklyData)
-
-                        // ④ Daily Revenue chart ───────────────────────────────
-                        SectionLabel("Daily Revenue (₹)")
-                        RevenueBarChart(weeklyRevenue = stats.weeklyRevenue)
-
-                        // ⑤ Sales Loss Recovery Rate ──────────────────────────
-                        SectionLabel("Sales Loss Recovery Rate")
-                        RecoveryRateChart(recoveryRate = stats.recoveryRateWeekly)
-
-                        // ⑥ Order Outcome breakdown ───────────────────────────
-                        SectionLabel("Order Outcomes")
-                        OrderOutcomeCard(
-                            completed = stats.completedOrders,
-                            disputed  = stats.disputedOrders
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
@@ -165,6 +179,57 @@ private fun EsgHeader() {
     }
 }
 
+// ── New Restaurant empty state ─────────────────────────────────────────────────
+
+@Composable
+private fun NewRestaurantEmptyState() {
+    Box(
+        modifier         = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 48.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(text = "🌱", fontSize = 56.sp)
+
+            Text(
+                text       = "New Restaurant",
+                fontSize   = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color(0xFF1B4332)
+            )
+
+            Text(
+                text      = "No sales data yet.\nStart listing surplus food to see your impact analytics here.",
+                fontSize  = 14.sp,
+                color     = Color(0xFF6B7280),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Small tip chip
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF52B788).copy(alpha = 0.12f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text      = "📋  Post a listing → complete an order → unlock insights",
+                    fontSize  = 12.sp,
+                    color     = Color(0xFF2D6A4F),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
 // ── SurplusIQ Section (Loading / Success / Error) ─────────────────────────────
 
 @Composable
@@ -173,9 +238,10 @@ private fun SurplusIqSection(
     onRetry: () -> Unit
 ) {
     when (state) {
-        is SurplusIqUiState.Loading -> SurplusIqLoading()
-        is SurplusIqUiState.Success -> SurplusIqCard(result = state.result)
-        is SurplusIqUiState.Error   -> SurplusIqError(message = state.message, onRetry = onRetry)
+        is SurplusIqUiState.Loading       -> SurplusIqLoading()
+        is SurplusIqUiState.Success       -> SurplusIqCard(result = state.result)
+        is SurplusIqUiState.NewRestaurant -> SurplusIqNewRestaurant(state)
+        is SurplusIqUiState.Error         -> SurplusIqError(message = state.message, onRetry = onRetry)
     }
 }
 
@@ -207,7 +273,7 @@ private fun SurplusIqLoading() {
                     fontWeight    = FontWeight.Bold
                 )
                 Text(
-                    text       = "Analysing your sales data…",
+                    text       = "Analysing your sales data\u2026",
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color      = Color.White
@@ -218,6 +284,89 @@ private fun SurplusIqLoading() {
                     color    = Color.White.copy(alpha = 0.45f)
                 )
             }
+        }
+    }
+}
+
+// New restaurant — not enough data yet
+@Composable
+private fun SurplusIqNewRestaurant(state: SurplusIqUiState.NewRestaurant) {
+    val progress = (state.mealsRescued.toFloat() / state.required).coerceIn(0f, 1f)
+    val remaining = (state.required - state.mealsRescued).coerceAtLeast(0)
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFF1B3A2A)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(text = "\uD83C\uDF31", fontSize = 24.sp)   // 🌱
+                Column {
+                    Text(
+                        text          = "SURPLUSIQ",
+                        fontSize      = 10.sp,
+                        color         = GreenLight,
+                        letterSpacing = 1.5.sp,
+                        fontWeight    = FontWeight.Bold
+                    )
+                    Text(
+                        text       = if (state.mealsRescued == 0)
+                                         "AI prediction unlocks soon!"
+                                     else
+                                         "$remaining more ${if (remaining == 1) "rescue" else "rescues"} to unlock AI!",
+                        fontSize   = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color.White
+                    )
+                }
+            }
+
+            // Progress bar
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress       = { progress },
+                    modifier       = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color          = GreenAccent,
+                    trackColor     = Color.White.copy(alpha = 0.12f)
+                )
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text     = "${state.mealsRescued} meals rescued",
+                        fontSize = 11.sp,
+                        color    = GreenLight.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text     = "Goal: ${state.required}",
+                        fontSize = 11.sp,
+                        color    = GreenLight.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            // Generic tip
+            Text(
+                text      = if (state.mealsRescued == 0)
+                                "Post your first listing to start building your impact story."
+                            else
+                                "Keep listing daily \u2014 Gemini will analyse your trend once you hit ${state.required} rescues.",
+                fontSize  = 12.sp,
+                color     = Color.White.copy(alpha = 0.55f),
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+            )
         }
     }
 }
@@ -472,11 +621,20 @@ private fun WeeklyBarChart(weeklyData: List<Float>) {
 }
 
 private fun BarChart.applyChartStyle(data: List<Float>) {
+    val maxVal  = data.maxOrNull() ?: 0f
     val entries = data.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
+    val colors  = data.map { v ->
+        if (v == maxVal && maxVal > 0f)
+            AndroidColor.parseColor("#1B4332")   // peak day  — dark green
+        else
+            AndroidColor.parseColor("#52B788")   // other days — accent green
+    }
     val dataSet = BarDataSet(entries, "").apply {
-        color          = AndroidColor.parseColor("#52B788")
+        setColors(colors)
         highLightColor = AndroidColor.parseColor("#2D6A4F")
-        setDrawValues(false)
+        setDrawValues(true)
+        valueTextColor = AndroidColor.parseColor("#374151")
+        valueTextSize  = 9f
     }
     this.data = BarData(dataSet).apply { barWidth = 0.55f }
 
@@ -509,6 +667,87 @@ private fun BarChart.applyChartStyle(data: List<Float>) {
     }
     axisRight.isEnabled = false
     invalidate()
+}
+
+// ── Top selling items card ────────────────────────────────────────────────────
+
+@Composable
+private fun TopSellingItemsCard(items: Map<String, Int>) {
+    val list   = items.entries.toList()   // already sorted descending from repository
+    val maxVal = list.firstOrNull()?.value?.toFloat() ?: 1f
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            list.forEachIndexed { idx, (name, count) ->
+                val fraction = count.toFloat() / maxVal
+                val isTop    = idx == 0
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier              = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            // Rank emoji — gold trophy for #1, medal for #2/#3
+                            Text(
+                                text     = when (idx) {
+                                    0 -> "🥇"
+                                    1 -> "🥈"
+                                    2 -> "🥉"
+                                    else -> "  ${idx + 1}."
+                                },
+                                fontSize = if (idx < 3) 16.sp else 13.sp
+                            )
+                            Text(
+                                text       = name,
+                                fontSize   = 14.sp,
+                                fontWeight = if (isTop) FontWeight.Bold else FontWeight.Normal,
+                                color      = if (isTop) Color(0xFF1B4332) else Color(0xFF374151)
+                            )
+                        }
+                        Text(
+                            text       = "$count sold",
+                            fontSize   = 13.sp,
+                            fontWeight = if (isTop) FontWeight.Bold else FontWeight.Medium,
+                            color      = if (isTop) Color(0xFF52B788) else Color(0xFF9CA3AF)
+                        )
+                    }
+
+                    // Horizontal progress bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xFFF3F4F6))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(
+                                    if (isTop) Color(0xFF1B4332)
+                                    else       Color(0xFF52B788).copy(alpha = 0.6f)
+                                )
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ── Revenue Bar Chart ──────────────────────────────────────────────────────────

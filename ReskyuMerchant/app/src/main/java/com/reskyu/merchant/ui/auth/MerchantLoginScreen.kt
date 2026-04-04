@@ -238,39 +238,9 @@ fun MerchantLoginScreen(
                 color    = Color.White.copy(alpha = 0.12f),
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "DEV MODE",
-                color         = Color.White.copy(alpha = 0.22f),
-                fontSize      = 9.sp,
-                letterSpacing = 2.sp,
-                fontWeight    = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(2.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = {
-                    navController.navigate(Screen.DASHBOARD) {
-                        popUpTo(Screen.LOGIN) { inclusive = true }
-                    }
-                }) {
-                    Text("⚡ Skip Login", color = Color.White.copy(0.35f), fontSize = 11.sp)
-                }
-                Text(
-                    "·",
-                    color    = Color.White.copy(0.20f),
-                    fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                )
-                TextButton(onClick = {
-                    navController.navigate(Screen.ONBOARDING) {
-                        popUpTo(Screen.LOGIN) { inclusive = false }
-                    }
-                }) {
-                    Text("🧭 Onboarding", color = Color.White.copy(0.35f), fontSize = 11.sp)
-                }
-            }
             Spacer(Modifier.height(24.dp))
         }
+
 
         LoadingOverlay(isVisible = loginState is LoginState.Loading)
     }
