@@ -64,4 +64,13 @@ class UserRepository {
             )
         ).await()
     }
+
+    /**
+     * Updates the user's editable profile fields (name, phone).
+     */
+    suspend fun updateProfile(uid: String, name: String, phone: String) {
+        usersRef.document(uid).update(
+            mapOf("name" to name, "phone" to phone)
+        ).await()
+    }
 }

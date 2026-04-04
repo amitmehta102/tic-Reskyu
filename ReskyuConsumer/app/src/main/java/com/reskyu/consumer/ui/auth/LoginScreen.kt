@@ -7,22 +7,20 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Email
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Phone
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -31,20 +29,32 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.reskyu.consumer.data.model.LoginState
 import com.reskyu.consumer.ui.components.LoadingOverlay
 import com.reskyu.consumer.ui.navigation.Screen
 
+// ── Theme colors matching the Reskyu Merchant app ─────────────────────────────
+
+private val GreenDark    = Color(0xFF0A2E1A)   // deep forest green background
+private val GreenMid     = Color(0xFF0D3D22)   // slightly lighter band
+private val GreenAccent  = Color(0xFF2DC653)   // vibrant button green
+private val GreenSurface = Color(0xFFE8F5ED)   // light mint card background
+private val GreenOnCard  = Color(0xFF1B4332)   // text on card
+private val GreenSubtle  = Color(0xFF4CAF50)   // tab indicator / muted accent
+
 /**
- * LoginScreen
+ * LoginScreen — Reskyu Consumer
  *
- * Unified auth screen supporting two methods:
- *  Tab 0 — Phone (OTP): 2-step, phone number then 6-digit code
- *  Tab 1 — Email: toggle between Sign In and Sign Up (adds Name field)
- *
- * On success → navigates to [Screen.Main], clearing the auth back stack.
+ * Full Reskyu brand theme:
+ *  ── Deep forest green gradient background (top-to-bottom)
+ *  ── 🌱 Sprout icon + "Reskyu" white bold heading
+ *  ── "CONSUMER PORTAL" spacious teal subtitle
+ *  ── Floating mint-green card with auth form
+ *  ── Bright green primary button
+ *  ── Dev bypass link at bottom
  */
 @Composable
 fun LoginScreen(
@@ -52,25 +62,21 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel()
 ) {
     val loginState by viewModel.loginState.collectAsState()
-    val otpSent by viewModel.otpSent.collectAsState()
-    val focusManager = LocalFocusManager.current
-    val otpFocusRequester = remember { FocusRequester() }
+    val otpSent    by viewModel.otpSent.collectAsState()
+    val focusManager       = LocalFocusManager.current
+    val otpFocusRequester  = remember { FocusRequester() }
 
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("📱  Phone", "✉️  Email")
+    var selectedTab      by remember { mutableIntStateOf(0) }
+    val tabs              = listOf("📱  Phone", "✉️  Email")
 
-    // Email form state
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var isSignUp by remember { mutableStateOf(false) }
+    var email            by remember { mutableStateOf("") }
+    var password         by remember { mutableStateOf("") }
+    var name             by remember { mutableStateOf("") }
+    var passwordVisible  by remember { mutableStateOf(false) }
+    var isSignUp         by remember { mutableStateOf(false) }
+    var phoneNumber      by remember { mutableStateOf("") }
+    var otp              by remember { mutableStateOf("") }
 
-    // Phone form state
-    var phoneNumber by remember { mutableStateOf("") }
-    var otp by remember { mutableStateOf("") }
-
-    // Navigate on success
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
             navController.navigate(Screen.Main.route) {
@@ -78,22 +84,19 @@ fun LoginScreen(
             }
         }
     }
-
-    // Auto-focus OTP field
     LaunchedEffect(otpSent) {
         if (otpSent) try { otpFocusRequester.requestFocus() } catch (_: Exception) {}
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // ── Coloured header band ──────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.35f)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-        )
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(GreenDark, GreenMid, Color(0xFF0F4828))
+                )
+            )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -101,37 +104,59 @@ fun LoginScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(72.dp))
+            Spacer(Modifier.height(72.dp))
 
             // ── Branding ──────────────────────────────────────────────────────
+            Text("🌱", fontSize = 56.sp)
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = "Welcome to Reskyu 🍱",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                "Reskyu",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = "Rescue surplus food. Save money.\nHelp the planet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                "CONSUMER  PORTAL",
+                style = MaterialTheme.typography.labelMedium,
+                color = GreenAccent,
+                letterSpacing = 3.sp,
+                fontWeight = FontWeight.SemiBold
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(44.dp))
 
             // ── Auth Card ─────────────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                colors = CardDefaults.cardColors(containerColor = GreenSurface)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
+
+                    Text(
+                        if (selectedTab == 1 && isSignUp) "Create Account"
+                        else "Welcome back",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = GreenOnCard
+                    )
+                    Text(
+                        if (selectedTab == 1 && isSignUp)
+                            "Join Reskyu and start rescuing food"
+                        else
+                            "Sign in to rescue food near you",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF4B7A5A),
+                        modifier = Modifier.padding(bottom = 20.dp)
+                    )
 
                     // Tab selector
                     TabRow(
                         selectedTabIndex = selectedTab,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = Color(0xFFD4EAD9),
+                        contentColor = GreenAccent
                     ) {
                         tabs.forEachIndexed { index, title ->
                             Tab(
@@ -144,18 +169,20 @@ fun LoginScreen(
                                 },
                                 text = {
                                     Text(
-                                        text = title,
+                                        title,
                                         style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Normal
+                                        fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (selectedTab == index) GreenOnCard
+                                                else Color(0xFF4B7A5A)
                                     )
                                 }
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(Modifier.height(20.dp))
 
-                    // ── Phone Tab ─────────────────────────────────────────────
+                    // ── Phone Tab ──────────────────────────────────────────────
                     if (selectedTab == 0) {
                         PhoneAuthSection(
                             phoneNumber = phoneNumber,
@@ -165,23 +192,14 @@ fun LoginScreen(
                             otpSent = otpSent,
                             otpFocusRequester = otpFocusRequester,
                             loginState = loginState,
-                            onSendOtp = {
-                                focusManager.clearFocus()
-                                viewModel.sendOtp(phoneNumber)
-                            },
-                            onVerifyOtp = {
-                                focusManager.clearFocus()
-                                viewModel.verifyOtp(otp)
-                            },
-                            onResend = {
-                                otp = ""
-                                viewModel.resetOtp()
-                                viewModel.sendOtp(phoneNumber)
-                            }
+                            accentColor = GreenAccent,
+                            onSendOtp = { focusManager.clearFocus(); viewModel.sendOtp(phoneNumber) },
+                            onVerifyOtp = { focusManager.clearFocus(); viewModel.verifyOtp(otp) },
+                            onResend = { otp = ""; viewModel.resetOtp(); viewModel.sendOtp(phoneNumber) }
                         )
                     }
 
-                    // ── Email Tab ─────────────────────────────────────────────
+                    // ── Email Tab ──────────────────────────────────────────────
                     if (selectedTab == 1) {
                         EmailAuthSection(
                             name = name,
@@ -194,49 +212,42 @@ fun LoginScreen(
                             onTogglePasswordVisible = { passwordVisible = !passwordVisible },
                             isSignUp = isSignUp,
                             loginState = loginState,
+                            accentColor = GreenAccent,
                             onAction = {
                                 focusManager.clearFocus()
                                 if (isSignUp) viewModel.signUpWithEmail(name, email, password)
                                 else viewModel.signInWithEmail(email, password)
                             },
-                            onToggleMode = {
-                                isSignUp = !isSignUp
-                                viewModel.resetState()
-                            }
+                            onToggleMode = { isSignUp = !isSignUp; viewModel.resetState() }
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(Modifier.height(20.dp))
+
             Text(
-                text = "By continuing, you agree to our Terms & Privacy Policy.",
+                "By continuing, you agree to our Terms & Privacy Policy.",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = Color(0xFF7DBF96),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // ── DEV BYPASS — remove before production ─────────────────────────
-            OutlinedButton(
+            // ── Dev bypass ─────────────────────────────────────────────────────
+            TextButton(
                 onClick = { viewModel.devBypass() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                )
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    "⚡ Skip Login (Dev Mode)",
-                    style = MaterialTheme.typography.labelMedium
+                    "⚡ Dev Mode — Skip Login",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF7DBF96)
                 )
             }
-            // ── END DEV BYPASS ────────────────────────────────────────────────
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
         }
 
         if (loginState is LoginState.Loading) LoadingOverlay()
@@ -254,31 +265,32 @@ private fun PhoneAuthSection(
     otpSent: Boolean,
     otpFocusRequester: FocusRequester,
     loginState: LoginState,
+    accentColor: Color,
     onSendOtp: () -> Unit,
     onVerifyOtp: () -> Unit,
     onResend: () -> Unit
 ) {
+    val fieldColors = greenFieldColors()
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
             value = phoneNumber,
             onValueChange = onPhoneChange,
             label = { Text("Phone Number") },
             placeholder = { Text("+91 98765 43210") },
-            leadingIcon = { Icon(Icons.Rounded.Phone, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Rounded.Phone, null) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !otpSent,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Phone,
-                imeAction = ImeAction.Done
-            ),
-            shape = MaterialTheme.shapes.medium
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
+            shape = RoundedCornerShape(14.dp),
+            colors = fieldColors
         )
 
         AnimatedVisibility(
             visible = otpSent,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-            exit = fadeOut()
+            enter  = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+            exit   = fadeOut()
         ) {
             OutlinedTextField(
                 value = otp,
@@ -287,18 +299,16 @@ private fun PhoneAuthSection(
                 placeholder = { Text("••••••") },
                 modifier = Modifier.fillMaxWidth().focusRequester(otpFocusRequester),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.NumberPassword,
-                    imeAction = ImeAction.Done
-                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onVerifyOtp() }),
-                shape = MaterialTheme.shapes.medium
+                shape = RoundedCornerShape(14.dp),
+                colors = fieldColors
             )
         }
 
         if (loginState is LoginState.Error) {
             Text(
-                text = (loginState as LoginState.Error).message,
+                loginState.message,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -309,15 +319,23 @@ private fun PhoneAuthSection(
             enabled = loginState !is LoginState.Loading &&
                     if (!otpSent) phoneNumber.isNotBlank() else otp.length == 6,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = MaterialTheme.shapes.medium
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor         = accentColor,
+                contentColor           = Color.White,
+                disabledContainerColor = Color(0xFF2DC653).copy(alpha = 0.35f),
+                disabledContentColor   = Color.White.copy(alpha = 0.6f)
+            )
         ) {
-            Text(if (!otpSent) "Send OTP" else "Verify & Continue",
-                style = MaterialTheme.typography.labelLarge)
+            Text(
+                if (!otpSent) "Send OTP" else "Verify & Continue",
+                style = MaterialTheme.typography.labelLarge
+            )
         }
 
         AnimatedVisibility(visible = otpSent) {
             TextButton(onClick = onResend, modifier = Modifier.fillMaxWidth()) {
-                Text("Didn't receive OTP? Resend")
+                Text("Didn't receive OTP? Resend", color = accentColor)
             }
         }
     }
@@ -337,26 +355,29 @@ private fun EmailAuthSection(
     onTogglePasswordVisible: () -> Unit,
     isSignUp: Boolean,
     loginState: LoginState,
+    accentColor: Color,
     onAction: () -> Unit,
     onToggleMode: () -> Unit
 ) {
+    val fieldColors = greenFieldColors()
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-        // Name field — only for Sign Up
         AnimatedVisibility(
             visible = isSignUp,
             enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
-            exit = fadeOut()
+            exit  = fadeOut()
         ) {
             OutlinedTextField(
                 value = name,
                 onValueChange = onNameChange,
                 label = { Text("Full Name") },
-                leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Rounded.Person, null) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                shape = MaterialTheme.shapes.medium
+                shape = RoundedCornerShape(14.dp),
+                colors = fieldColors
             )
         }
 
@@ -364,45 +385,39 @@ private fun EmailAuthSection(
             value = email,
             onValueChange = onEmailChange,
             label = { Text("Email") },
-            leadingIcon = { Icon(Icons.Rounded.Email, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Rounded.Email, null) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            shape = MaterialTheme.shapes.medium
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            shape = RoundedCornerShape(14.dp),
+            colors = fieldColors
         )
 
         OutlinedTextField(
             value = password,
             onValueChange = onPasswordChange,
             label = { Text("Password") },
-            leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Rounded.Lock, null) },
             trailingIcon = {
                 IconButton(onClick = onTogglePasswordVisible) {
                     Icon(
-                        imageVector = if (passwordVisible) Icons.Rounded.VisibilityOff
-                                      else Icons.Rounded.Visibility,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                        contentDescription = if (passwordVisible) "Hide" else "Show"
                     )
                 }
             },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            visualTransformation = if (passwordVisible) VisualTransformation.None
-                                   else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onAction() }),
-            shape = MaterialTheme.shapes.medium
+            shape = RoundedCornerShape(14.dp),
+            colors = fieldColors
         )
 
         if (loginState is LoginState.Error) {
             Text(
-                text = (loginState as LoginState.Error).message,
+                loginState.message,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -414,21 +429,48 @@ private fun EmailAuthSection(
                     email.isNotBlank() && password.length >= 6 &&
                     if (isSignUp) name.isNotBlank() else true,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = MaterialTheme.shapes.medium
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor         = accentColor,
+                contentColor           = Color.White,
+                disabledContainerColor = Color(0xFF2DC653).copy(alpha = 0.35f),
+                disabledContentColor   = Color.White.copy(alpha = 0.6f)
+            )
         ) {
             Text(
-                text = if (isSignUp) "Create Account" else "Sign In",
-                style = MaterialTheme.typography.labelLarge
+                if (isSignUp) "Create Account" else "Sign In",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
             )
         }
 
         TextButton(onClick = onToggleMode, modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = if (isSignUp) "Already have an account? Sign In"
-                       else "New here? Create an account",
+                if (isSignUp) "Already have an account? Sign In"
+                else          "New here? Create an account",
                 style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = Color(0xFF2E7D32)
             )
         }
     }
 }
+
+// ── Shared field colors ────────────────────────────────────────────────────────
+
+@Composable
+private fun greenFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor    = GreenAccent,
+    unfocusedBorderColor  = Color(0xFFB2DFBB),
+    focusedLabelColor     = GreenAccent,
+    unfocusedLabelColor   = Color(0xFF4B7A5A),
+    focusedLeadingIconColor   = GreenAccent,
+    unfocusedLeadingIconColor = Color(0xFF4B7A5A),
+    cursorColor           = GreenAccent,
+    focusedTextColor      = GreenOnCard,
+    unfocusedTextColor    = GreenOnCard,
+    unfocusedContainerColor = Color(0xFFF0FAF1),
+    focusedContainerColor   = Color.White
+)
+
+

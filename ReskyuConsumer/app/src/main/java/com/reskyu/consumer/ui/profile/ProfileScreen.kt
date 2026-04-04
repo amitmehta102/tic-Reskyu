@@ -4,21 +4,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.PrivacyTip
-import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,16 +28,16 @@ import com.reskyu.consumer.data.model.ImpactStats
 import com.reskyu.consumer.ui.navigation.Screen
 
 /**
- * ProfileScreen
+ * ProfileScreen — functional version
  *
- * Full profile view showing:
- *  - Avatar (initials circle) + name + email
- *  - Impact stats grid (Meals / CO₂ / Money saved / Orders)
- *  - Settings rows (notifications, privacy, about, rate)
- *  - Sign Out button
- *
- * Lives inside the bottom nav shell — no back button.
+ * Features:
+ *  ── Avatar (initials) + name/email + ✏️ Edit button
+ *  ── Edit Profile bottom sheet (name + phone, Save & close)
+ *  ── Sign Out with confirmation dialog
+ *  ── Impact stats (2×2 grid)
+ *  ── Settings rows (notifications, privacy, about, rate)
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -46,155 +46,348 @@ fun ProfileScreen(
 ) {
     val user      by viewModel.user.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isSaving  by viewModel.isSaving.collectAsState()
+    val saveError by viewModel.saveError.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    var showEditSheet    by remember { mutableStateOf(false) }
+    var showSignOutDialog by remember { mutableStateOf(false) }
 
-        // ── Header ───────────────────────────────────────────────────────────
+    // Show success snackbar when isSaving flips false
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(isSaving) {
+        if (isSaving == false) {
+            snackbarHostState.showSnackbar("Profile saved ✓")
+            viewModel.clearSaveState()
+        }
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .background(MaterialTheme.colorScheme.background)
         ) {
+
+            // ── Avatar section ────────────────────────────────────────────────
+            Box(modifier = Modifier.fillMaxWidth()) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(80.dp))
-                } else {
-                    // Avatar — initials circle
-                    val initials = user?.name
-                        ?.split(" ")
-                        ?.mapNotNull { it.firstOrNull()?.uppercaseChar() }
-                        ?.take(2)
-                        ?.joinToString("") ?: "?"
-
                     Box(
-                        modifier = Modifier
-                            .size(88.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
                         contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator() }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        // Avatar circle with initials
+                        val initials = user?.name
+                            ?.split(" ")
+                            ?.mapNotNull { it.firstOrNull()?.uppercaseChar() }
+                            ?.take(2)?.joinToString("") ?: "?"
+
+                        Box(
+                            modifier = Modifier
+                                .size(92.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                initials,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
                         Text(
-                            text = initials,
-                            style = MaterialTheme.typography.headlineMedium,
+                            user?.name ?: "Reskyu User",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            textAlign = TextAlign.Center
                         )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            user?.email ?: user?.phone ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        if (!user?.phone.isNullOrBlank()) {
+                            Text(
+                                user!!.phone,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // ── Edit profile button ───────────────────────────────
+                        FilledTonalButton(
+                            onClick = { showEditSheet = true },
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Edit Profile", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Text(
-                        text = user?.name ?: "Reskyu User",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = user?.email ?: user?.phone ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
 
-        // ── Impact Stats Grid ─────────────────────────────────────────────────
-        val stats = user?.impactStats ?: ImpactStats()
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-        Column(modifier = Modifier.padding(20.dp)) {
+            // ── Impact stats ──────────────────────────────────────────────────
+            val stats = user?.impactStats ?: ImpactStats()
+
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    "Your Impact 🌍",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ImpactCard("🍱", "${stats.totalMealsRescued}", "Meals Rescued", Modifier.weight(1f))
+                    ImpactCard("🌿", "${stats.co2SavedKg}kg",     "CO₂ Saved",     Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ImpactCard("💰", "₹${stats.moneySaved.toInt()}", "Money Saved",  Modifier.weight(1f))
+                    ImpactCard("🏆", "${stats.totalMealsRescued}",    "Total Orders", Modifier.weight(1f))
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // ── Settings rows ──────────────────────────────────────────────────
+            Spacer(Modifier.height(4.dp))
+            SettingsSection(title = "Preferences") {
+                SettingsRow(
+                    icon  = Icons.Rounded.Notifications,
+                    label = "Notification Preferences",
+                    sublabel = "Manage drop alerts & updates",
+                    onClick = { /* TODO */ }
+                )
+                SettingsRow(
+                    icon  = Icons.Rounded.LocationOn,
+                    label = "Location Settings",
+                    sublabel = "Adjust your discovery radius",
+                    onClick = { /* TODO */ }
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+            SettingsSection(title = "Legal") {
+                SettingsRow(
+                    icon     = Icons.Rounded.PrivacyTip,
+                    label    = "Privacy Policy",
+                    onClick  = { /* TODO */ }
+                )
+                SettingsRow(
+                    icon    = Icons.Rounded.Info,
+                    label   = "About Reskyu",
+                    sublabel = "Version 1.0.0",
+                    onClick = { /* TODO */ }
+                )
+                SettingsRow(
+                    icon    = Icons.Rounded.Star,
+                    label   = "Rate the App",
+                    onClick = { /* TODO */ }
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // ── Sign Out ──────────────────────────────────────────────────────
+            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+                OutlinedButton(
+                    onClick = { showSignOutDialog = true },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp, MaterialTheme.colorScheme.error.copy(alpha = .5f)
+                    )
+                ) {
+                    Icon(Icons.Rounded.ExitToApp, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Sign Out", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+
+    // ── Edit Profile Bottom Sheet ─────────────────────────────────────────────
+    if (showEditSheet) {
+        EditProfileSheet(
+            currentName  = user?.name  ?: "",
+            currentPhone = user?.phone ?: "",
+            isSaving     = isSaving == true,
+            saveError    = saveError,
+            onSave       = { name, phone ->
+                viewModel.updateProfile(name, phone)
+                showEditSheet = false
+            },
+            onDismiss    = { showEditSheet = false }
+        )
+    }
+
+    // ── Sign Out Confirmation Dialog ──────────────────────────────────────────
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            icon = { Icon(Icons.Rounded.ExitToApp, null) },
+            title = { Text("Sign Out?") },
+            text  = { Text("You'll need to sign in again to access your orders and profile.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSignOutDialog = false
+                        viewModel.signOut()
+                        outerNavController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Main.route) { inclusive = true }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Sign Out") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+// ── Edit Profile Bottom Sheet ──────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditProfileSheet(
+    currentName:  String,
+    currentPhone: String,
+    isSaving:     Boolean,
+    saveError:    String?,
+    onSave:       (name: String, phone: String) -> Unit,
+    onDismiss:    () -> Unit
+) {
+    var name  by remember { mutableStateOf(currentName) }
+    var phone by remember { mutableStateOf(currentPhone) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Text(
-                text = "Your Impact 🌍",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
+                "Edit Profile",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
             )
 
-            Row(
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Display Name") },
+                leadingIcon = { Icon(Icons.Rounded.Person, null) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ImpactCard(
-                    emoji = "🍱",
-                    value = "${stats.totalMealsRescued}",
-                    label = "Meals Rescued",
-                    modifier = Modifier.weight(1f)
-                )
-                ImpactCard(
-                    emoji = "🌿",
-                    value = "${stats.co2SavedKg}kg",
-                    label = "CO₂ Saved",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(
+                isError = saveError != null
+            )
+
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Phone number") },
+                leadingIcon = { Icon(Icons.Rounded.Phone, null) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ImpactCard(
-                    emoji = "💰",
-                    value = "₹${stats.moneySaved.toInt()}",
-                    label = "Money Saved",
-                    modifier = Modifier.weight(1f)
-                )
-                ImpactCard(
-                    emoji = "🏆",
-                    value = "${stats.totalMealsRescued}",
-                    label = "Total Orders",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
+                placeholder = { Text("+91 XXXXX XXXXX") }
+            )
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
-
-        // ── Settings Rows ─────────────────────────────────────────────────────
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            SettingsRow(icon = Icons.Rounded.Notifications, label = "Notification Preferences") {}
-            SettingsRow(icon = Icons.Rounded.PrivacyTip,   label = "Privacy Policy") {}
-            SettingsRow(icon = Icons.Rounded.Info,         label = "About Reskyu") {}
-            SettingsRow(icon = Icons.Rounded.Star,         label = "Rate the App") {}
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
-
-        // ── Sign Out ──────────────────────────────────────────────────────────
-        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
-            OutlinedButton(
-                onClick = {
-                    viewModel.signOut()
-                    outerNavController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Main.route) { inclusive = true }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                )
-            ) {
+            if (saveError != null) {
                 Text(
-                    "Sign Out",
-                    style = MaterialTheme.typography.labelLarge,
+                    saveError,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )
             }
-        }
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(4.dp))
+
+            Button(
+                onClick = { onSave(name, phone) },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                enabled = !isSaving
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Save Changes", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Cancel") }
+        }
     }
 }
 
 // ── Sub-composables ────────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .7f),
+            letterSpacing = 0.8.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+        content()
+    }
+}
 
 @Composable
 private fun ImpactCard(
@@ -217,15 +410,15 @@ private fun ImpactCard(
             Text(emoji, fontSize = 28.sp)
             Spacer(Modifier.height(6.dp))
             Text(
-                text = value,
+                value,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                text = label,
+                label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = .7f),
                 textAlign = TextAlign.Center
             )
         }
@@ -234,14 +427,12 @@ private fun ImpactCard(
 
 @Composable
 private fun SettingsRow(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
+    icon:     ImageVector,
+    label:    String,
+    sublabel: String? = null,
+    onClick:  () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Surface(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -249,17 +440,37 @@ private fun SettingsRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(22.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
-            )
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (!sublabel.isNullOrBlank()) {
+                    Text(
+                        sublabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             Icon(
                 Icons.Rounded.ChevronRight,
                 contentDescription = null,

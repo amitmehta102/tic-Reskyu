@@ -10,7 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -23,6 +25,14 @@ import com.reskyu.consumer.ui.notifications.NotificationsScreen
 import com.reskyu.consumer.ui.orders.MyOrdersScreen
 import com.reskyu.consumer.ui.profile.ProfileScreen
 import com.reskyu.consumer.ui.navigation.Screen
+
+// ── Light-theme palette for the bottom nav (matches screenshot)
+private val NavBg           = Color(0xFFFFFFFF)   // pure white
+private val NavIndicator    = Color(0xFFC8F0D6)   // light green pill (screenshot)
+private val NavIconActive   = Color(0xFF133922)   // dark forest green (screenshot active)
+private val NavIconInactive = Color(0xFF8A9E93)   // muted sage grey inactive
+private val NavLabelActive  = Color(0xFF133922)
+private val NavLabelInactive = Color(0xFF8A9E93)
 
 /**
  * MainScreen
@@ -92,7 +102,11 @@ private fun ReskyuBottomNavBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    NavigationBar {
+    NavigationBar(
+        containerColor = NavBg,
+        contentColor   = NavIconActive,
+        tonalElevation = 0.dp
+    ) {
         bottomNavItems.forEach { item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
 
@@ -111,10 +125,24 @@ private fun ReskyuBottomNavBar(navController: NavController) {
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.label
+                        contentDescription = item.label,
+                        tint = if (selected) NavIconActive else NavIconInactive
                     )
                 },
-                label = { Text(item.label, style = MaterialTheme.typography.labelSmall) }
+                label = {
+                    Text(
+                        item.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (selected) NavLabelActive else NavLabelInactive
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor        = NavIconActive,
+                    unselectedIconColor      = NavIconInactive,
+                    selectedTextColor        = NavLabelActive,
+                    unselectedTextColor      = NavLabelInactive,
+                    indicatorColor           = NavIndicator
+                )
             )
         }
     }
