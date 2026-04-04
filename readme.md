@@ -13,7 +13,7 @@
 
 > **20–25% of restaurant food is wasted daily in India.** > **₹80,000 Crore+ lost to food waste every year.** > **1 in 5 Indians faces food insecurity.** > We built RESKYU to close that gap — in real time, with zero logistics.
 
-🌐 **Live Demo:** [reskyu.netlify.app](https://reskyu.netlify.app) &nbsp;|&nbsp; 📱 **Consumer App:** [Download APK](https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuConsumerV1.0/ReskyuConsumer.apk) &nbsp;|&nbsp; 🏪 **Merchant App:** [Download APK](https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuMerchantV1.0/ReskyuMerchant.apk)
+🌐 **Live Demo:** [reskyu.netlify.app](https://reskyu.netlify.app) &nbsp;|&nbsp; 📱 **Consumer App:** [Download APK](https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuConsumerV1.0/ReskyuConsumer.apk) &nbsp;|&nbsp; 🏪 **Merchant App:** [[Download APK](https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuMerchantV2.0/ReskyuMerchant2.apk)
 
 </div>
 
