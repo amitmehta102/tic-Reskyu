@@ -18,21 +18,19 @@ import com.reskyu.merchant.ui.splash.MerchantSplashScreen
 /**
  * Root navigation host for the Merchant app.
  *
- * Start destination is always [Screen.SPLASH].
- * [MerchantSplashScreen] reads Firebase Auth state via [MerchantSplashViewModel]
- * and navigates to the correct destination:
- *  - Authenticated     → DASHBOARD   (skips login)
- *  - NeedsOnboarding   → ONBOARDING
- *  - Unauthenticated   → LOGIN
- *
- * This approach is instant (Firebase reads from local cache) and
- * shows the branded splash during the brief auth check.
+ * [startDestination] is computed by [MainActivity] from the Firebase auth state
+ * that was already resolved while the system splash screen was on screen.
+ * This means we jump directly to the correct screen with no intermediate
+ * Compose splash required.
  */
 @Composable
-fun MerchantNavGraph(navController: NavHostController) {
+fun MerchantNavGraph(
+    navController: NavHostController,
+    startDestination: String = Screen.SPLASH
+) {
     NavHost(
         navController    = navController,
-        startDestination = Screen.SPLASH
+        startDestination = startDestination
     ) {
         composable(Screen.SPLASH) {
             MerchantSplashScreen(navController = navController)
@@ -75,4 +73,3 @@ fun MerchantNavGraph(navController: NavHostController) {
         }
     }
 }
-

@@ -74,20 +74,14 @@ class DashboardViewModel : ViewModel() {
                 // ── One-shot SurplusIQ — only on first successful stats load ──
                 if (_surplusIqResult.value == null) {
                     launch {
-                        val result = runCatching {
+                        _surplusIqResult.value = runCatching {
                             com.reskyu.merchant.data.repository.SurplusIqRepository.getPrediction(
                                 uid          = merchantId,
                                 salesHistory = buildSalesHistory(
                                     claimRepository.getClaimsForMerchant(merchantId)
                                 )
                             )
-                        }.getOrNull()
-
-                        _surplusIqResult.value = result ?: com.reskyu.merchant.data.model.SurplusIqResult(
-                            predictedMeals = 7,
-                            reasoning      = "Based on recent sales trend",
-                            confidence     = 0.80f
-                        )
+                        }.getOrNull()  // null on failure — no card shown
                     }
                 }
             }

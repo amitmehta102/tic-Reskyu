@@ -75,5 +75,8 @@ class LiveListingsViewModel : ViewModel() {
             }
         }
     }
+
+    /** Clears the current error so the Snackbar doesn't re-fire on recomposition. */
+    fun clearError() { _error.value = null }
 }
 

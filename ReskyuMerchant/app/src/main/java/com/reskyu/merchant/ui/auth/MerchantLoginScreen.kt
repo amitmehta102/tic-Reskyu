@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.reskyu.merchant.data.model.LoginState
+import com.reskyu.merchant.ui.components.DarkStatusBar
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.navigation.Screen
 import kotlinx.coroutines.launch
@@ -52,6 +53,9 @@ fun MerchantLoginScreen(
 ) {
     val loginState       by viewModel.loginState.collectAsState()
     val passwordResetSent by viewModel.passwordResetSent.collectAsState()
+
+    // Dark green header — use white status bar icons
+    DarkStatusBar()
 
     // Tab: 0 = Sign In, 1 = Create Account
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }

@@ -42,7 +42,6 @@ import com.reskyu.merchant.data.model.MysteryBoxType
 import com.reskyu.merchant.data.model.PublishState
 import com.reskyu.merchant.data.model.UploadState
 import com.reskyu.merchant.ui.components.LoadingOverlay
-import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
 import com.reskyu.merchant.ui.theme.RGreenAccent
 import com.reskyu.merchant.ui.theme.RGreenDark

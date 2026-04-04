@@ -47,6 +47,9 @@ fun ReskyuHeader(
     trailing      : (@Composable () -> Unit)? = null,
     bottomContent : (@Composable () -> Unit)? = null
 ) {
+    // Dark gradient header — white status bar icons for visibility
+    DarkStatusBar()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()

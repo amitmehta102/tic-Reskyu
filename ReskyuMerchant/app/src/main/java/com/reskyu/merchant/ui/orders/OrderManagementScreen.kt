@@ -77,6 +77,7 @@ fun OrderManagementScreen(
                     actionLabel = "Dismiss",
                     duration    = SnackbarDuration.Long
                 )
+                viewModel.clearError()
             }
         }
     }

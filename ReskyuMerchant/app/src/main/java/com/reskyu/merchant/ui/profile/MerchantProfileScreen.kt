@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.reskyu.merchant.data.model.Merchant
 import com.reskyu.merchant.data.model.SaveState
+import com.reskyu.merchant.ui.components.DarkStatusBar
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
@@ -56,6 +57,8 @@ fun MerchantProfileScreen(
     var isEditing        by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.loadProfile() }
+
+    DarkStatusBar()
 
     // Sync input when merchant loads
     LaunchedEffect(merchant) {
