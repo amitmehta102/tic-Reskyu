@@ -202,6 +202,24 @@
     }, 280);
   }
 
+  // Polls until window[fnName] is ready or timeout expires
+  function waitForFirebase(fnName, timeoutMs, callback) {
+    if (typeof window[fnName] === 'function') {
+      callback(window[fnName]); return;
+    }
+    var elapsed = 0;
+    var interval = setInterval(function () {
+      elapsed += 200;
+      if (typeof window[fnName] === 'function') {
+        clearInterval(interval);
+        callback(window[fnName]);
+      } else if (elapsed >= timeoutMs) {
+        clearInterval(interval);
+        callback(null); // timed out
+      }
+    }, 200);
+  }
+
   if (openLogin)  openLogin.addEventListener('click',  () => openModal('tab-login'));
   if (openSignup) openSignup.addEventListener('click', () => openModal('tab-signup'));
   closeBtn.addEventListener('click', closeModal);
@@ -340,25 +358,28 @@
         loginMsg.style.color = '#F5A623'; return;
       }
 
-      loginMsg.textContent = '⏳ Logging in…';
+      loginMsg.textContent = '⏳ Connecting…';
       loginMsg.style.color = 'rgba(254,250,242,.5)';
 
-      if (typeof window.RESKYU_LOGIN !== 'function') {
-        loginMsg.textContent = '⚠ Firebase not configured yet. See firebase-config.js';
-        loginMsg.style.color = '#F5A623'; return;
-      }
-
-      window.RESKYU_LOGIN(email, pass)
-        .then(() => {
-          loginMsg.style.color = '#7BE08A';
-          loginMsg.textContent = '✓ Welcome back!';
-          loginForm.reset();
-          setTimeout(() => { closeModal(); window.location.href = 'dashboard.html'; }, 900);
-        })
-        .catch(err => {
-          loginMsg.style.color = '#F5A623';
-          loginMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
-        });
+      // Wait up to 8s for Firebase to finish loading, then proceed
+      waitForFirebase('RESKYU_LOGIN', 8000, function (loginFn) {
+        if (!loginFn) {
+          loginMsg.textContent = '⚠ Could not connect to authentication service. Please refresh and try again.';
+          loginMsg.style.color = '#F5A623'; return;
+        }
+        loginMsg.textContent = '⏳ Logging in…';
+        loginFn(email, pass)
+          .then(() => {
+            loginMsg.style.color = '#7BE08A';
+            loginMsg.textContent = '✓ Welcome back!';
+            loginForm.reset();
+            setTimeout(() => { closeModal(); window.location.href = 'dashboard.html'; }, 900);
+          })
+          .catch(err => {
+            loginMsg.style.color = '#F5A623';
+            loginMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
+          });
+      });
     });
   }
 
@@ -391,25 +412,28 @@
         signupMsg.style.color = '#F5A623'; return;
       }
 
-      signupMsg.textContent = '⏳ Creating your account…';
+      signupMsg.textContent = '⏳ Connecting…';
       signupMsg.style.color = 'rgba(254,250,242,.5)';
 
-      if (typeof window.RESKYU_SIGNUP !== 'function') {
-        signupMsg.textContent = '⚠ Firebase not configured yet. See firebase-config.js';
-        signupMsg.style.color = '#F5A623'; return;
-      }
-
-      window.RESKYU_SIGNUP(name, email, pass, role)
-        .then(() => {
-          signupMsg.style.color = '#7BE08A';
-          signupMsg.textContent = '🎉 Account created! Welcome to RESKYU.';
-          signupForm.reset();
-          setTimeout(closeModal, 1600);
-        })
-        .catch(err => {
-          signupMsg.style.color = '#F5A623';
-          signupMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
-        });
+      // Wait up to 8s for Firebase to finish loading, then proceed
+      waitForFirebase('RESKYU_SIGNUP', 8000, function (signupFn) {
+        if (!signupFn) {
+          signupMsg.textContent = '⚠ Could not connect. Please refresh and try again.';
+          signupMsg.style.color = '#F5A623'; return;
+        }
+        signupMsg.textContent = '⏳ Creating your account…';
+        signupFn(name, email, pass, role)
+          .then(() => {
+            signupMsg.style.color = '#7BE08A';
+            signupMsg.textContent = '🎉 Account created! Welcome to RESKYU.';
+            signupForm.reset();
+            setTimeout(closeModal, 1600);
+          })
+          .catch(err => {
+            signupMsg.style.color = '#F5A623';
+            signupMsg.textContent = '⚠ ' + firebaseErrorMessage(err.code);
+          });
+      });
     });
   }
 
