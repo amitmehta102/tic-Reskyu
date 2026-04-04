@@ -171,25 +171,26 @@
   <main>
     <div class="wrap">
 
-      <div class="big-404">404</div>
+      <div class="big-404" id="err-code">404</div>
 
       <div class="emoji-plate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="56" height="56" aria-hidden="true"><path d="M2 12h20"/><path d="M12 2a10 10 0 0 1 10 10v1H2v-1A10 10 0 0 1 12 2z"/><path d="M6 17v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg></div>
 
-      <div class="err-eyebrow">Page Not Found</div>
+      <div class="err-eyebrow" id="err-eyebrow">Page Not Found</div>
 
-      <h1>This Meal<br />Was Already Rescued</h1>
+      <h1 id="err-title">This Meal<br />Was Already Rescued</h1>
 
-      <p class="err-desc">
+      <p class="err-desc" id="err-desc">
         Looks like this page doesn't exist — or it was moved somewhere else.
         Don't worry, there's plenty of surplus food left to rescue!
       </p>
 
       <div class="actions">
         <a href="pitch.html" class="btn-orange"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Back to Home</a>
-        <a href="contact.html" class="btn-ghost">Get Help →</a>
+        <button class="btn-ghost" id="retry-btn" onclick="window.location.reload()" hidden>Try Again</button>
+        <a href="contact.html" class="btn-ghost" id="help-link">Get Help →</a>
       </div>
 
-      <div class="quick-links">
+      <div class="quick-links" id="quick-links">
         <div class="quick-links-label">Or jump to</div>
         <div class="quick-links-grid">
           <a href="pitch.html#how" class="ql-chip">How It Works</a>
@@ -199,6 +200,24 @@
           <a href="contact.html" class="ql-chip">Contact Us</a>
         </div>
       </div>
+
+      <script>
+        // If the user is offline, switch the page message to reflect that
+        (function () {
+          function applyOfflineMode() {
+            document.getElementById('err-code').textContent    = '';
+            document.getElementById('err-eyebrow').textContent = 'No Internet Connection';
+            document.getElementById('err-title').innerHTML     = 'You\'re Offline';
+            document.getElementById('err-desc').textContent    = 'It looks like your internet connection was interrupted. Check your network and try again.';
+            document.getElementById('retry-btn').removeAttribute('hidden');
+            document.getElementById('help-link').setAttribute('hidden', '');
+            document.getElementById('quick-links').setAttribute('hidden', '');
+          }
+          if (!navigator.onLine) applyOfflineMode();
+          window.addEventListener('offline', applyOfflineMode);
+          window.addEventListener('online', function () { window.location.reload(); });
+        })();
+      </script>
 
     </div>
   </main>
