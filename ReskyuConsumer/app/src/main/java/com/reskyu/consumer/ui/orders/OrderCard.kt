@@ -44,9 +44,9 @@ fun OrderCard(
     var userRating by remember(claim.id) { mutableStateOf(claim.rating) }
 
     val accentColor = statusAccentColor(claim.status)
-    val savedAmount  = (claim.originalPrice - claim.amount).coerceAtLeast(0.0)
-    val discountPct  = if (claim.originalPrice > 0)
-        ((savedAmount / claim.originalPrice) * 100).toInt() else 0
+    val savedAmount  = (claim.effectiveOriginalPrice - claim.amount).coerceAtLeast(0.0)
+    val discountPct  = if (claim.effectiveOriginalPrice > 0)
+        ((savedAmount / claim.effectiveOriginalPrice) * 100).toInt() else 0
 
     Card(
         modifier = modifier.clickable {
@@ -128,9 +128,9 @@ fun OrderCard(
                             fontWeight = FontWeight.Bold,
                             color = OC_Primary
                         )
-                        if (claim.originalPrice > claim.amount) {
+                        if (claim.effectiveOriginalPrice > claim.amount) {
                             Text(
-                                "₹${claim.originalPrice.toInt()}",
+                                "₹${claim.effectiveOriginalPrice.toInt()}",
                                 style = MaterialTheme.typography.bodySmall,
                                 textDecoration = TextDecoration.LineThrough,
                                 color = OC_TextSub

@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.ui.claim
+package com.reskyu.consumer.ui.claim
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -125,7 +125,8 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
                     heroItem         = listing.heroItem,
                     paymentId        = paymentId,
                     amount           = listing.discountedPrice * qty,
-                    originalPrice    = listing.originalPrice * qty,
+                    originalPrice    = listing.effectiveOriginalPrice * qty,
+                    priceRangeMax    = listing.priceRangeMax * qty,
                     timestamp        = Timestamp.now(),
                     status           = "PENDING_PICKUP",
                     quantity         = qty,
@@ -137,8 +138,8 @@ class ClaimViewModel(application: Application) : AndroidViewModel(application) {
                 } catch (_: Exception) { paymentId }
 
                 try {
-                    val saved = (listing.originalPrice - listing.discountedPrice) * qty
-                    userRepository.updateImpactStats(uid, saved)
+                    val saved = (listing.effectiveOriginalPrice - listing.discountedPrice) * qty
+                    if (saved > 0) userRepository.updateImpactStats(uid, saved)
                 } catch (_: Exception) {}
 
                 try {

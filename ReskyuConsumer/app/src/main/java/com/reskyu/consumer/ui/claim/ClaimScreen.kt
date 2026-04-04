@@ -133,7 +133,7 @@ fun ClaimScreen(
 
             listing?.let { l ->
                 val maxQty       = l.mealsLeft.coerceAtLeast(1)
-                val totalOriginal = l.originalPrice * quantity
+                val totalOriginal = l.effectiveOriginalPrice * quantity
                 val savings      = totalOriginal - totalPayable
 
                 Column(
@@ -362,7 +362,7 @@ private fun ListingMiniCard(listing: Listing) {
                     color      = CC_Mid
                 )
                 Text(
-                    "₹${listing.originalPrice.toInt()}",
+                    "₹${listing.effectiveOriginalPrice.toInt()}",
                     style          = MaterialTheme.typography.labelSmall,
                     color          = CC_TextSub,
                     textDecoration = TextDecoration.LineThrough
@@ -423,7 +423,7 @@ private fun SummaryCard(
 
             PriceRow(
                 label = listing.heroItem,
-                value = "₹${listing.originalPrice.toInt()}" +
+                value = "₹${listing.effectiveOriginalPrice.toInt()}" +
                         if (quantity > 1) " × $quantity" else ""
             )
             PriceRow(

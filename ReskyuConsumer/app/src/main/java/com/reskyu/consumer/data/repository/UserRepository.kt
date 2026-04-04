@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.data.repository
+package com.reskyu.consumer.data.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.reskyu.consumer.data.model.User
@@ -74,5 +74,12 @@ class UserRepository {
                 .await()
                 .getString("content")
         } catch (e: Exception) { null }
+    }
+
+    suspend fun uploadPrivacyPolicy(content: String) {
+        db.collection("config")
+            .document("privacy_policy")
+            .set(mapOf("content" to content))
+            .await()
     }
 }

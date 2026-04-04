@@ -1,4 +1,4 @@
-﻿package com.reskyu.consumer.data.model
+package com.reskyu.consumer.data.model
 
 import com.google.firebase.Timestamp
 
@@ -30,6 +30,7 @@ data class Listing(
 ) {
     
     val isMysteryBox: Boolean get() = listingType == "MYSTERY_BOX"
+    val effectiveOriginalPrice: Double get() = if (originalPrice > 0) originalPrice else priceRangeMax
 
     constructor() : this(
         "", "", "", "", DietaryTag.VEG.name, 0, 0.0, 0.0, "", "", 0.0, 0.0,
