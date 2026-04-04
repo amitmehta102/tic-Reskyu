@@ -723,31 +723,37 @@
         'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js'
       ];
 
+      function loadScriptSequentially(scripts, index, finalCallback) {
+        if (index >= scripts.length) { finalCallback(); return; }
+        var s = document.createElement('script');
+        s.src = scripts[index];
+        s.onload = function () {
+          loadScriptSequentially(scripts, index + 1, finalCallback);
+        };
+        s.onerror = function () {
+          console.error('[RESKYU] Failed to load:', scripts[index]);
+        };
+        document.body.appendChild(s);
+      }
+
       function loadFirebase(callback) {
         if (loaded) { if (callback) callback(); return; }
-        var remaining = FIREBASE_SCRIPTS.length;
 
-        FIREBASE_SCRIPTS.forEach(function (src, i) {
-          var s = document.createElement('script');
-          s.src = src;
-          s.onload = function () {
-            if (--remaining === 0) {
-              // Load config then auth logic in sequence
-              var cfg = document.createElement('script');
-              cfg.src = 'js/firebase-config.js';
-              cfg.onload = function () {
-                var auth = document.createElement('script');
-                auth.src = 'js/auth.js';
-                auth.onload = function () {
-                  loaded = true;
-                  if (callback) callback();
-                };
-                document.body.appendChild(auth);
-              };
-              document.body.appendChild(cfg);
-            }
+        // Load all 3 SDK scripts in ORDER (app → auth → firestore)
+        // so firebase-app-compat is always ready before the others run
+        loadScriptSequentially(FIREBASE_SCRIPTS, 0, function () {
+          var cfg = document.createElement('script');
+          cfg.src = 'js/firebase-config.js';
+          cfg.onload = function () {
+            var auth = document.createElement('script');
+            auth.src = 'js/auth.js';
+            auth.onload = function () {
+              loaded = true;
+              if (callback) callback();
+            };
+            document.body.appendChild(auth);
           };
-          document.body.appendChild(s);
+          document.body.appendChild(cfg);
         });
       }
 
