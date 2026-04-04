@@ -57,6 +57,13 @@ android {
         compose = true
         buildConfig = true   // required for BuildConfig fields
     }
+
+    lint {
+        // False positive: triggered by androidx.activity's lint rule checking
+        // fragment version. We use ComponentActivity + activity-compose 1.13.0
+        // which already bundles fragment >= 1.3.0 transitively.
+        disable += "InvalidFragmentVersionForActivityResult"
+    }
 }
 
 dependencies {
