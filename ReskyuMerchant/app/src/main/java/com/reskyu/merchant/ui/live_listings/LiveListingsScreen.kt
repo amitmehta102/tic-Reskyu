@@ -19,9 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
+import kotlinx.coroutines.launch
 
 private val GreenDark   = Color(0xFF0C1E13)
 private val GreenDeep   = Color(0xFF163823)
@@ -29,7 +31,8 @@ private val GreenAccent = Color(0xFF52B788)
 
 /**
  * Live Listings screen — displays all OPEN / CLOSING listings for the merchant.
- * Merchants can cancel a listing or navigate to post a new one.
+ * Real-time Firestore snapshot listener keeps the list up-to-date automatically.
+ * Cancel requires a confirmation dialog inside [LiveListingCard].
  */
 @Composable
 fun LiveListingsScreen(
@@ -38,21 +41,38 @@ fun LiveListingsScreen(
 ) {
     val listings  by viewModel.listings.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val error     by viewModel.error.collectAsState()
 
-    val merchantId = "merchant_placeholder" // TODO: inject real merchantId
+    val merchantId   = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+    val snackbarHost = remember { SnackbarHostState() }
+    val scope        = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.loadListings(merchantId)
     }
 
+    // Show errors in a Snackbar
+    LaunchedEffect(error) {
+        error?.let {
+            scope.launch {
+                snackbarHost.showSnackbar(
+                    message     = it,
+                    actionLabel = "Dismiss",
+                    duration    = SnackbarDuration.Long
+                )
+            }
+        }
+    }
+
     Scaffold(
-        containerColor = Color(0xFFF2F8F4),
+        containerColor   = Color(0xFFF2F8F4),
+        snackbarHost     = { SnackbarHost(hostState = snackbarHost) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick           = { navController.navigate(Screen.POST_LISTING) },
-                containerColor    = GreenAccent,
-                contentColor      = Color.White,
-                shape             = RoundedCornerShape(16.dp)
+                onClick        = { navController.navigate(Screen.POST_LISTING) },
+                containerColor = GreenAccent,
+                contentColor   = Color.White,
+                shape          = RoundedCornerShape(16.dp)
             ) {
                 Icon(
                     imageVector        = Icons.Rounded.Add,
@@ -84,7 +104,7 @@ fun LiveListingsScreen(
                         items(listings, key = { it.id }) { listing ->
                             LiveListingCard(
                                 listing  = listing,
-                                onCancel = { viewModel.cancelListing(it, merchantId) }
+                                onCancel = { viewModel.cancelListing(it) }
                             )
                         }
                         // Extra bottom padding so FAB doesn't overlap last card
@@ -118,9 +138,13 @@ private fun ListingsHeader(count: Int) {
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text     = if (count > 0) "$count active right now" else "No active listings",
+                text     = when (count) {
+                    0    -> "No active listings"
+                    1    -> "1 listing active right now"
+                    else -> "$count listings active right now"
+                },
                 fontSize = 13.sp,
-                color    = Color.White.copy(alpha = 0.6f)
+                color    = Color.White.copy(alpha = 0.65f)
             )
         }
     }
@@ -131,11 +155,11 @@ private fun ListingsHeader(count: Int) {
 @Composable
 private fun EmptyListingsState(navController: NavController) {
     Column(
-        modifier                = Modifier
+        modifier            = Modifier
             .fillMaxSize()
             .padding(horizontal = 32.dp),
-        horizontalAlignment     = Alignment.CenterHorizontally,
-        verticalArrangement     = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(text = "🍽️", fontSize = 64.sp)
         Spacer(modifier = Modifier.height(20.dp))
@@ -154,10 +178,10 @@ private fun EmptyListingsState(navController: NavController) {
         )
         Spacer(modifier = Modifier.height(28.dp))
         Button(
-            onClick        = { navController.navigate(Screen.POST_LISTING) },
-            shape          = RoundedCornerShape(14.dp),
-            colors         = ButtonDefaults.buttonColors(containerColor = GreenAccent),
-            modifier       = Modifier.height(50.dp)
+            onClick  = { navController.navigate(Screen.POST_LISTING) },
+            shape    = RoundedCornerShape(14.dp),
+            colors   = ButtonDefaults.buttonColors(containerColor = GreenAccent),
+            modifier = Modifier.height(50.dp)
         ) {
             Text(
                 text       = "+ Post First Listing",

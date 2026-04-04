@@ -23,6 +23,8 @@ import com.reskyu.merchant.data.model.ClaimTab
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 private val GreenDark   = Color(0xFF0C1E13)
 private val GreenDeep   = Color(0xFF163823)
@@ -37,32 +39,42 @@ fun OrderManagementScreen(
     navController: NavController,
     viewModel: OrderManagementViewModel = viewModel()
 ) {
-    val allClaims   by viewModel.filteredClaims.collectAsState()
+    // filteredClaims is already filtered by selected tab — use for list display
+    val displayedClaims  by viewModel.filteredClaims.collectAsState()
+    // allClaims is the full unfiltered list — use for accurate tab badge counts
+    val allClaimsForBadge by viewModel.allClaims.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
     val isLoading   by viewModel.isLoading.collectAsState()
+    val error       by viewModel.error.collectAsState()
 
-    val merchantId = "merchant_placeholder"
+    val merchantId   = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+    val snackbarHost = remember { SnackbarHostState() }
+    val scope        = rememberCoroutineScope()
 
     LaunchedEffect(Unit) { viewModel.loadClaims(merchantId) }
 
-    // Derive per-tab counts for tab badges
-    val pendingCount   = remember(allClaims) { allClaims.count { it.status == "PENDING_PICKUP" } }
-    val completedCount = remember(allClaims) { allClaims.count { it.status == "COMPLETED" } }
-    val disputedCount  = remember(allClaims) { allClaims.count { it.status == "DISPUTED" } }
-
-    val displayedClaims = remember(allClaims, selectedTab) {
-        allClaims.filter { claim ->
-            when (selectedTab) {
-                ClaimTab.PENDING   -> claim.status == "PENDING_PICKUP"
-                ClaimTab.COMPLETED -> claim.status == "COMPLETED"
-                ClaimTab.DISPUTED  -> claim.status == "DISPUTED"
+    // Show errors as a Snackbar
+    LaunchedEffect(error) {
+        error?.let {
+            scope.launch {
+                snackbarHost.showSnackbar(
+                    message     = it,
+                    actionLabel = "Dismiss",
+                    duration    = SnackbarDuration.Long
+                )
             }
         }
     }
 
+    // Badge counts from the FULL unfiltered list
+    val pendingCount   = remember(allClaimsForBadge) { allClaimsForBadge.count { it.status == "PENDING_PICKUP" } }
+    val completedCount = remember(allClaimsForBadge) { allClaimsForBadge.count { it.status == "COMPLETED" } }
+    val disputedCount  = remember(allClaimsForBadge) { allClaimsForBadge.count { it.status == "DISPUTED" } }
+
     Scaffold(
         containerColor = Color(0xFFF2F8F4),
-        bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.ORDER_MANAGEMENT) }
+        snackbarHost   = { SnackbarHost(hostState = snackbarHost) },
+        bottomBar      = { MainBottomBar(navController = navController, currentRoute = Screen.ORDER_MANAGEMENT) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -91,8 +103,8 @@ fun OrderManagementScreen(
                         items(displayedClaims, key = { it.id }) { claim ->
                             ClaimCard(
                                 claim      = claim,
-                                onComplete = { viewModel.completeClaim(it, merchantId) },
-                                onDispute  = { viewModel.disputeClaim(it, merchantId) }
+                                onComplete = { viewModel.completeClaim(it) },
+                                onDispute  = { viewModel.disputeClaim(it) }
                             )
                         }
                     }

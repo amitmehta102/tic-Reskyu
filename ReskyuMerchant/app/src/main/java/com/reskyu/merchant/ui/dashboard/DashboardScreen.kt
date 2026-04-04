@@ -24,6 +24,7 @@ import com.reskyu.merchant.data.model.DashboardStats
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
 private val GreenDark    = Color(0xFF0C1E13)
@@ -42,16 +43,14 @@ fun DashboardScreen(
     navController: NavController,
     viewModel: DashboardViewModel = viewModel()
 ) {
-    val stats          by viewModel.stats.collectAsState()
+    val stats           by viewModel.stats.collectAsState()
     val surplusIqResult by viewModel.surplusIqResult.collectAsState()
-    val isLoading      by viewModel.isLoading.collectAsState()
+    val isLoading       by viewModel.isLoading.collectAsState()
+    val merchant        by viewModel.merchant.collectAsState()
 
+    val merchantId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
     LaunchedEffect(Unit) {
-        viewModel.loadDashboard(
-            merchantId    = "merchant_placeholder",
-            lastPredDate  = "",
-            lastPredMeals = 0
-        )
+        viewModel.loadDashboard(merchantId = merchantId)
     }
 
     Scaffold(
@@ -66,7 +65,7 @@ fun DashboardScreen(
             LazyColumn(modifier = Modifier.fillMaxSize()) {
 
                 // ── Hero header ───────────────────────────────────────────────
-                item { DashboardHeader(stats = stats, navController = navController) }
+                item { DashboardHeader(stats = stats, merchant = merchant, navController = navController) }
 
                 // ── Body ─────────────────────────────────────────────────────
                 item {
@@ -147,7 +146,7 @@ fun DashboardScreen(
 // ── Hero header ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun DashboardHeader(stats: DashboardStats, navController: NavController) {
+private fun DashboardHeader(stats: DashboardStats, merchant: com.reskyu.merchant.data.model.Merchant?, navController: NavController) {
     val hour = remember {
         java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
     }
@@ -185,7 +184,7 @@ private fun DashboardHeader(stats: DashboardStats, navController: NavController)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text       = "Reskyu Merchant",
+                        text       = merchant?.businessName?.ifBlank { "Reskyu Merchant" } ?: "Reskyu Merchant",
                         fontSize   = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color      = Color.White

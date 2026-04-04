@@ -4,26 +4,28 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.reskyu.merchant.data.model.DietaryTag
 import com.reskyu.merchant.data.model.Listing
 import com.reskyu.merchant.data.model.ListingStatus
 
 // ── Status → color mapping ────────────────────────────────────────────────────
 private fun statusColor(status: String) = when (status) {
-    ListingStatus.OPEN.name    -> Color(0xFF52B788)
-    ListingStatus.CLOSING.name -> Color(0xFFF4A261)
+    ListingStatus.OPEN.name     -> Color(0xFF52B788)
+    ListingStatus.CLOSING.name  -> Color(0xFFF4A261)
     ListingStatus.SOLD_OUT.name -> Color(0xFFE63946)
-    else                       -> Color(0xFF9CA3AF)
+    else                        -> Color(0xFF9CA3AF)
 }
 
 // ── Dietary tag → badge color ─────────────────────────────────────────────────
@@ -52,6 +54,8 @@ private fun formatTimeLeft(expiresAt: Long): String {
  *  - Middle: dietary tag • meals left • time left
  *  - Divider
  *  - Bottom: discounted price ~~original~~ (left) + Cancel button (right)
+ *
+ * The Cancel button shows a confirmation [AlertDialog] before calling [onCancel].
  */
 @Composable
 fun LiveListingCard(
@@ -68,6 +72,122 @@ fun LiveListingCard(
         diff in 1..1_800_000  // less than 30 min
     }
 
+    // ── Confirmation dialog state ─────────────────────────────────────────────
+    var showCancelDialog by remember { mutableStateOf(false) }
+    var isCancelling     by remember { mutableStateOf(false) }
+
+    if (showCancelDialog) {
+        Dialog(
+            onDismissRequest = { if (!isCancelling) showCancelDialog = false },
+            properties       = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .padding(24.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                    // ── Warning icon circle ───────────────────────────────────
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(Color(0xFFFFEBEC)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "⚠️", fontSize = 26.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // ── Title ─────────────────────────────────────────────────
+                    Text(
+                        text       = "Cancel Listing?",
+                        fontWeight = FontWeight.Bold,
+                        fontSize   = 19.sp,
+                        color      = Color(0xFF111827),
+                        textAlign  = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // ── Body ──────────────────────────────────────────────────
+                    Text(
+                        text      = "\"${listing.heroItem.ifBlank { "This listing" }}\" will be removed " +
+                                    "immediately. Consumers will no longer be able to claim it.",
+                        fontSize  = 14.sp,
+                        color     = Color(0xFF6B7280),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // ── Keep Listing (safe action, outlined) ──────────────────
+                    OutlinedButton(
+                        onClick  = { showCancelDialog = false },
+                        enabled  = !isCancelling,
+                        shape    = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors   = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF374151)
+                        )
+                    ) {
+                        Text(
+                            text       = "Keep Listing",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize   = 15.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // ── Yes, Cancel (destructive, solid red) ──────────────────
+                    Button(
+                        onClick = {
+                            isCancelling = true
+                            onCancel(listing.id)
+                            showCancelDialog = false
+                            isCancelling     = false
+                        },
+                        enabled  = !isCancelling,
+                        shape    = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors   = ButtonDefaults.buttonColors(
+                            containerColor          = Color(0xFFE63946),
+                            contentColor            = Color.White,
+                            disabledContainerColor  = Color(0xFFE63946).copy(alpha = 0.6f),
+                            disabledContentColor    = Color.White
+                        )
+                    ) {
+                        if (isCancelling) {
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(18.dp),
+                                color       = Color.White,
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text(
+                                text       = "Yes, Cancel Listing",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize   = 15.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Card body ─────────────────────────────────────────────────────────────
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(16.dp),
@@ -87,7 +207,9 @@ fun LiveListingCard(
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color      = Color(0xFF111827),
-                    modifier   = Modifier.weight(1f).padding(end = 8.dp)
+                    modifier   = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 )
                 // Status pill
                 Box(
@@ -129,7 +251,7 @@ fun LiveListingCard(
 
                 // Meals left
                 Text(
-                    text     = "📦 ${listing.mealsLeft} meals",
+                    text     = "📦 ${listing.mealsLeft} meal${if (listing.mealsLeft != 1) "s" else ""}",
                     fontSize = 12.sp,
                     color    = Color(0xFF6B7280)
                 )
@@ -137,9 +259,9 @@ fun LiveListingCard(
                 // Time left (red when < 30 min)
                 if (listing.expiresAt > 0L) {
                     Text(
-                        text     = "⏱ $timeLeft",
-                        fontSize = 12.sp,
-                        color    = if (isExpiringSoon) Color(0xFFE63946) else Color(0xFF6B7280),
+                        text       = "⏱ $timeLeft",
+                        fontSize   = 12.sp,
+                        color      = if (isExpiringSoon) Color(0xFFE63946) else Color(0xFF6B7280),
                         fontWeight = if (isExpiringSoon) FontWeight.SemiBold else FontWeight.Normal
                     )
                 }
@@ -147,8 +269,8 @@ fun LiveListingCard(
 
             // ── Divider ───────────────────────────────────────────────────────
             HorizontalDivider(
-                modifier  = Modifier.padding(vertical = 12.dp),
-                color     = Color(0xFFF3F4F6)
+                modifier = Modifier.padding(vertical = 12.dp),
+                color    = Color(0xFFF3F4F6)
             )
 
             // ── Row 3: Price + Cancel ─────────────────────────────────────────
@@ -168,22 +290,22 @@ fun LiveListingCard(
                         color      = Color(0xFF2D6A4F)
                     )
                     Text(
-                        text            = "₹${listing.originalPrice.toInt()}",
-                        fontSize        = 14.sp,
-                        color           = Color(0xFFD1D5DB),
-                        textDecoration  = TextDecoration.LineThrough,
-                        modifier        = Modifier.padding(bottom = 2.dp)
+                        text           = "₹${listing.originalPrice.toInt()}",
+                        fontSize       = 14.sp,
+                        color          = Color(0xFFD1D5DB),
+                        textDecoration = TextDecoration.LineThrough,
+                        modifier       = Modifier.padding(bottom = 2.dp)
                     )
                 }
 
-                // Cancel only makes sense for OPEN / CLOSING listings
+                // Cancel only shown for OPEN / CLOSING
                 if (listing.status in listOf(
                         ListingStatus.OPEN.name,
                         ListingStatus.CLOSING.name
                     )
                 ) {
                     TextButton(
-                        onClick = { onCancel(listing.id) },
+                        onClick = { showCancelDialog = true },     // ← opens dialog, not direct action
                         colors  = ButtonDefaults.textButtonColors(
                             contentColor = Color(0xFFE63946)
                         )

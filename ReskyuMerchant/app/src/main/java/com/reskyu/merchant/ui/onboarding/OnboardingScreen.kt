@@ -1,5 +1,9 @@
 package com.reskyu.merchant.ui.onboarding
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,10 +21,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.reskyu.merchant.data.model.MerchantDraft
@@ -65,9 +71,19 @@ fun OnboardingScreen(
     val pagerState    = rememberPagerState(pageCount = { PAGE_META.size })
     val coroutineScope = rememberCoroutineScope()
 
+    val context           = LocalContext.current
+    val locationState     by viewModel.locationState.collectAsState()
+
     var businessNameInput by remember { mutableStateOf("") }
     var closingTimeInput  by remember { mutableStateOf("") }
-    var locationPicked    by remember { mutableStateOf(false) }
+
+    // Permission launcher — fires fetchLocation when granted
+    val locationPermLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) viewModel.fetchLocation(context)
+        // if denied, locationState stays Idle — user can still skip
+    }
 
     // Navigate to Dashboard once onboarding save succeeds
     LaunchedEffect(saveState) {
@@ -163,11 +179,18 @@ fun OnboardingScreen(
                         meta          = PAGE_META[0]
                     )
                     1 -> StepLocation(
-                        locationPicked  = locationPicked,
-                        onLocationPick  = {
-                            // Placeholder coords (New Delhi) until GPS is integrated
-                            viewModel.updateLocation(28.6139, 77.2090, "tt3tgk")
-                            locationPicked = true
+                        locationState  = locationState,
+                        onLocationPick = {
+                            val hasPerm = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (hasPerm) {
+                                viewModel.fetchLocation(context)
+                            } else {
+                                locationPermLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
                         },
                         meta = PAGE_META[1]
                     )
@@ -319,60 +342,124 @@ private fun StepBusinessName(value: String, onValueChange: (String) -> Unit, met
 // ── Step 1: Location ──────────────────────────────────────────────────────────
 
 @Composable
-private fun StepLocation(locationPicked: Boolean, onLocationPick: () -> Unit, meta: PageMeta) {
+private fun StepLocation(
+    locationState: LocationState,
+    onLocationPick: () -> Unit,
+    meta: PageMeta
+) {
     PageShell(meta = meta) {
-        if (locationPicked) {
-            // Confirmed state
-            Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(GreenAccent.copy(alpha = 0.16f))
-                    .padding(16.dp),
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("✅", fontSize = 24.sp)
-                Column {
-                    Text(
-                        "Location confirmed",
-                        fontWeight = FontWeight.SemiBold,
-                        color      = GreenAccent
+        when (locationState) {
+
+            // ── Idle: show the button ─────────────────────────────────────────
+            LocationState.Idle -> {
+                Button(
+                    onClick  = onLocationPick,
+                    shape    = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    colors   = ButtonDefaults.buttonColors(
+                        containerColor = Color.White.copy(alpha = 0.12f),
+                        contentColor   = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector        = Icons.Rounded.LocationOn,
+                        contentDescription = null,
+                        modifier           = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Use My Location", fontWeight = FontWeight.SemiBold)
+                }
+                Text(
+                    text      = "Enables geo-based listing discovery for nearby customers.",
+                    fontSize  = 12.sp,
+                    color     = Color.White.copy(alpha = 0.45f),
+                    textAlign = TextAlign.Center,
+                    modifier  = Modifier.fillMaxWidth()
+                )
+            }
+
+            // ── Fetching: spinner ─────────────────────────────────────────────
+            LocationState.Fetching -> {
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.White.copy(alpha = 0.09f))
+                        .padding(16.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier    = Modifier.size(20.dp),
+                        color       = GreenAccent,
+                        strokeWidth = 2.5.dp
                     )
                     Text(
-                        "New Delhi, India (placeholder)",
-                        fontSize = 12.sp,
-                        color    = Color.White.copy(alpha = 0.55f)
+                        text     = "Getting your location…",
+                        fontSize = 14.sp,
+                        color    = Color.White.copy(alpha = 0.75f)
                     )
                 }
             }
-        } else {
-            Button(
-                onClick  = onLocationPick,
-                shape    = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors   = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.12f),
-                    contentColor   = Color.White
-                )
-            ) {
-                Icon(
-                    imageVector        = Icons.Rounded.LocationOn,
-                    contentDescription = null,
-                    modifier           = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Use My Location", fontWeight = FontWeight.SemiBold)
+
+            // ── Captured: success card ────────────────────────────────────────
+            is LocationState.Captured -> {
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(GreenAccent.copy(alpha = 0.16f))
+                        .padding(16.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("📍", fontSize = 24.sp)
+                    Column {
+                        Text(
+                            text       = "Location confirmed!",
+                            fontWeight = FontWeight.SemiBold,
+                            color      = GreenAccent
+                        )
+                        Text(
+                            text     = locationState.display,
+                            fontSize = 12.sp,
+                            color    = Color.White.copy(alpha = 0.65f)
+                        )
+                    }
+                }
             }
-            Text(
-                text      = "Enables geo-based listing discovery.\nFull GPS integration coming soon.",
-                fontSize  = 12.sp,
-                color     = Color.White.copy(alpha = 0.45f),
-                textAlign = TextAlign.Center,
-                modifier  = Modifier.fillMaxWidth()
-            )
+
+            // ── Error: retry option ───────────────────────────────────────────
+            is LocationState.Error -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier              = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFE63946).copy(alpha = 0.12f))
+                            .padding(14.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text("⚠️", fontSize = 20.sp)
+                        Text(
+                            text     = locationState.msg,
+                            fontSize = 13.sp,
+                            color    = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                    TextButton(onClick = onLocationPick) {
+                        Text(
+                            text       = "Try again",
+                            color      = GreenAccent,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
         }
     }
 }

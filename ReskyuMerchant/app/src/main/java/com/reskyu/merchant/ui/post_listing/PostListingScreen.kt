@@ -31,6 +31,7 @@ import com.reskyu.merchant.data.model.PublishState
 import com.reskyu.merchant.data.model.UploadState
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
 private val GreenDark   = Color(0xFF0C1E13)
@@ -227,11 +228,8 @@ fun PostListingScreen(
                         // ⑦ Publish button ────────────────────────────────────
                         Button(
                             onClick  = {
-                                viewModel.publishListing(
-                                    merchantId   = "merchant_placeholder",
-                                    businessName = "My Business",
-                                    geoHash      = "wx4g"
-                                )
+                                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                                viewModel.publishListing(merchantId = uid)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -245,12 +243,30 @@ fun PostListingScreen(
                                 disabledContentColor   = Color.White
                             )
                         ) {
-                            Text(
-                                text       = "🚀  Publish Listing",
-                                fontSize   = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 0.3.sp
-                            )
+                            if (publishState is PublishState.Publishing) {
+                                Row(
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier    = Modifier.size(18.dp),
+                                        color       = Color.White,
+                                        strokeWidth = 2.5.dp
+                                    )
+                                    Text(
+                                        text       = "Publishing…",
+                                        fontSize   = 16.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text          = "🚀  Publish Listing",
+                                    fontSize      = 16.sp,
+                                    fontWeight    = FontWeight.SemiBold,
+                                    letterSpacing = 0.3.sp
+                                )
+                            }
                         }
                     }
                 }

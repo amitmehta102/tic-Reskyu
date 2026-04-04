@@ -4,6 +4,8 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+
+
 android {
     namespace = "com.reskyu.merchant"
     compileSdk {
@@ -78,8 +80,11 @@ dependencies {
     // Material Icons Extended (Rounded icons for bottom nav + dashboard)
     implementation("androidx.compose.material:material-icons-extended")
 
-    // OkHttp (used by CloudinaryUploadHelper)
+    // OkHttp (used by CloudinaryUploadService)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Google Play Services — Location (FusedLocationProviderClient for GPS)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     // MPAndroidChart (used by EsgAnalyticsScreen weekly bar chart)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,10 +25,11 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
-import com.reskyu.merchant.data.model.EsgStats
+import com.reskyu.merchant.data.model.SurplusIqResult
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
 private val GreenDark   = Color(0xFF0C1E13)
@@ -36,11 +38,11 @@ private val GreenAccent = Color(0xFF52B788)
 private val GreenLight  = Color(0xFF95D5B2)
 
 /**
- * ESG Analytics screen — environmental impact dashboard.
+ * ESG Analytics screen.
  *
  * Sections:
- *  1. Impact level card (Rookie → Eco Warrior → Champion → Food Hero)
- *  2. 2×2 metric grid (meals rescued, CO₂, food waste, revenue)
+ *  1. SurplusIQ card — Loading / Success / Error states, powered by Gemini
+ *  2. 2×2 impact metric grid
  *  3. Weekly meals bar chart (MPAndroidChart)
  */
 @Composable
@@ -48,10 +50,13 @@ fun EsgAnalyticsScreen(
     navController: NavController,
     viewModel: EsgAnalyticsViewModel = viewModel()
 ) {
-    val stats     by viewModel.esgStats.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val stats      by viewModel.esgStats.collectAsState()
+    val isLoading  by viewModel.isLoading.collectAsState()
+    val surplusIq  by viewModel.surplusIq.collectAsState()
 
-    LaunchedEffect(Unit) { viewModel.loadStats("merchant_placeholder") }
+    val merchantId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+
+    LaunchedEffect(Unit) { viewModel.loadStats(merchantId) }
 
     Scaffold(
         containerColor = Color(0xFFF2F8F4),
@@ -76,8 +81,11 @@ fun EsgAnalyticsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
 
-                        // ① Impact level ──────────────────────────────────────
-                        ImpactLevelCard(stats = stats)
+                        // ① SurplusIQ ─────────────────────────────────────────
+                        SurplusIqSection(
+                            state    = surplusIq,
+                            onRetry  = { viewModel.retryPrediction(merchantId) }
+                        )
 
                         // ② Metric grid ───────────────────────────────────────
                         SectionLabel("Total Impact")
@@ -86,39 +94,15 @@ fun EsgAnalyticsScreen(
                             modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            ImpactMetricCard(
-                                emoji       = "🍱",
-                                label       = "Meals Rescued",
-                                value       = "${stats.totalMealsRescued}",
-                                accentColor = Color(0xFF2D6A4F),
-                                modifier    = Modifier.weight(1f)
-                            )
-                            ImpactMetricCard(
-                                emoji       = "🌍",
-                                label       = "CO₂ Saved",
-                                value       = "${stats.co2SavedKg.toInt()} kg",
-                                accentColor = Color(0xFF457B9D),
-                                modifier    = Modifier.weight(1f)
-                            )
+                            ImpactMetricCard("🍱", "Meals Rescued",   "${stats.totalMealsRescued}",                   Color(0xFF2D6A4F), Modifier.weight(1f))
+                            ImpactMetricCard("🌍", "CO₂ Saved",       "${stats.co2SavedKg.toInt()} kg",               Color(0xFF457B9D), Modifier.weight(1f))
                         }
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            ImpactMetricCard(
-                                emoji       = "🗑️",
-                                label       = "Waste Diverted",
-                                value       = "${stats.foodWasteReducedKg.toInt()} kg",
-                                accentColor = Color(0xFFE76F51),
-                                modifier    = Modifier.weight(1f)
-                            )
-                            ImpactMetricCard(
-                                emoji       = "💰",
-                                label       = "Revenue Earned",
-                                value       = "₹${stats.totalRevenue.toInt()}",
-                                accentColor = GreenAccent,
-                                modifier    = Modifier.weight(1f)
-                            )
+                            ImpactMetricCard("🗑️", "Waste Diverted",  "${stats.foodWasteReducedKg.toInt()} kg",       Color(0xFFE76F51), Modifier.weight(1f))
+                            ImpactMetricCard("💰", "Revenue Earned",   "₹${stats.totalRevenue.toInt()}",              GreenAccent,       Modifier.weight(1f))
                         }
 
                         // ③ Weekly chart ──────────────────────────────────────
@@ -135,7 +119,7 @@ fun EsgAnalyticsScreen(
     }
 }
 
-// ── Header ────────────────────────────────────────────────────────────────────
+// ── ESG Header ────────────────────────────────────────────────────────────────
 
 @Composable
 private fun EsgHeader() {
@@ -162,51 +146,215 @@ private fun EsgHeader() {
     }
 }
 
-// ── Impact Level Card ─────────────────────────────────────────────────────────
-
-private data class ImpactLevel(val emoji: String, val label: String, val desc: String)
-
-private fun getImpactLevel(meals: Int) = when {
-    meals >= 200 -> ImpactLevel("⭐", "Food Hero",    "Outstanding community impact!")
-    meals >= 50  -> ImpactLevel("🏆", "Champion",     "You're making a real difference!")
-    meals >= 10  -> ImpactLevel("🌿", "Eco Warrior",  "Building great habits!")
-    else         -> ImpactLevel("🌱", "Rookie",        "Every rescued meal counts!")
-}
+// ── SurplusIQ Section (Loading / Success / Error) ─────────────────────────────
 
 @Composable
-private fun ImpactLevelCard(stats: EsgStats) {
-    val level = remember(stats.totalMealsRescued) { getImpactLevel(stats.totalMealsRescued) }
+private fun SurplusIqSection(
+    state:   SurplusIqUiState,
+    onRetry: () -> Unit
+) {
+    when (state) {
+        is SurplusIqUiState.Loading -> SurplusIqLoading()
+        is SurplusIqUiState.Success -> SurplusIqCard(result = state.result)
+        is SurplusIqUiState.Error   -> SurplusIqError(message = state.message, onRetry = onRetry)
+    }
+}
 
+// Loading state
+@Composable
+private fun SurplusIqLoading() {
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(18.dp),
         colors    = CardDefaults.cardColors(containerColor = Color(0xFF1B4332)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
             modifier              = Modifier.padding(20.dp),
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(text = level.emoji, fontSize = 44.sp)
+            CircularProgressIndicator(
+                color       = GreenAccent,
+                modifier    = Modifier.size(28.dp),
+                strokeWidth = 2.5.dp
+            )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text          = "IMPACT LEVEL",
+                    text          = "SURPLUSIQ",
                     fontSize      = 10.sp,
-                    fontWeight    = FontWeight.SemiBold,
                     color         = GreenLight,
-                    letterSpacing = 1.5.sp
+                    letterSpacing = 1.5.sp,
+                    fontWeight    = FontWeight.Bold
                 )
                 Text(
-                    text       = level.label,
-                    fontSize   = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    text       = "Analysing your sales data…",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color      = Color.White
                 )
                 Text(
-                    text     = level.desc,
-                    fontSize = 13.sp,
-                    color    = Color.White.copy(alpha = 0.65f)
+                    text     = "Powered by Gemini 2.0 Flash",
+                    fontSize = 11.sp,
+                    color    = Color.White.copy(alpha = 0.45f)
+                )
+            }
+        }
+    }
+}
+
+// Success state
+@Composable
+private fun SurplusIqCard(result: SurplusIqResult) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFF1B4332)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+
+            // Header row: icon + label
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(text = "🤖", fontSize = 24.sp)
+                Column {
+                    Text(
+                        text          = "SURPLUSIQ",
+                        fontSize      = 10.sp,
+                        color         = GreenLight,
+                        letterSpacing = 1.5.sp,
+                        fontWeight    = FontWeight.Bold
+                    )
+                    Text(
+                        text     = "Powered by Gemini 2.0 Flash",
+                        fontSize = 11.sp,
+                        color    = Color.White.copy(alpha = 0.45f)
+                    )
+                }
+            }
+
+            // Big prediction number
+            Row(
+                verticalAlignment     = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text       = "${result.predictedMeals}",
+                    fontSize   = 56.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color      = Color.White,
+                    lineHeight = 56.sp
+                )
+                Column(modifier = Modifier.padding(bottom = 6.dp)) {
+                    Text(
+                        text     = "meals to",
+                        fontSize = 14.sp,
+                        color    = Color.White.copy(alpha = 0.55f)
+                    )
+                    Text(
+                        text       = "prepare today",
+                        fontSize   = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = GreenLight
+                    )
+                }
+            }
+
+            // Gemini reasoning
+            if (result.reasoning.isNotBlank()) {
+                Text(
+                    text      = "\" ${result.reasoning} \"",
+                    fontSize  = 13.sp,
+                    color     = Color.White.copy(alpha = 0.7f),
+                    fontStyle = FontStyle.Italic
+                )
+            }
+
+            // Confidence bar
+            if (result.confidence > 0f) {
+                val pct = (result.confidence * 100).toInt()
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(
+                        modifier              = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text          = "CONFIDENCE",
+                            fontSize      = 10.sp,
+                            color         = GreenLight,
+                            letterSpacing = 1.sp,
+                            fontWeight    = FontWeight.SemiBold
+                        )
+                        Text(
+                            text       = "$pct%",
+                            fontSize   = 12.sp,
+                            color      = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    LinearProgressIndicator(
+                        progress     = { result.confidence },
+                        modifier     = Modifier
+                            .fillMaxWidth()
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color        = GreenAccent,
+                        trackColor   = Color.White.copy(alpha = 0.15f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Error state
+@Composable
+private fun SurplusIqError(message: String, onRetry: () -> Unit) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFF1B2A22)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                modifier              = Modifier.weight(1f)
+            ) {
+                Text("🤖", fontSize = 24.sp)
+                Column {
+                    Text(
+                        text          = "SURPLUSIQ",
+                        fontSize      = 10.sp,
+                        color         = GreenLight,
+                        letterSpacing = 1.sp,
+                        fontWeight    = FontWeight.Bold
+                    )
+                    Text(
+                        text     = "Prediction unavailable",
+                        fontSize = 13.sp,
+                        color    = Color.White.copy(alpha = 0.55f)
+                    )
+                }
+            }
+            TextButton(onClick = onRetry) {
+                Text(
+                    text       = "Retry",
+                    color      = GreenAccent,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
@@ -227,7 +375,7 @@ private fun SectionLabel(text: String) {
     )
 }
 
-// ── Impact Metric Card ────────────────────────────────────────────────────────
+// ── Impact metric card ────────────────────────────────────────────────────────
 
 @Composable
 private fun ImpactMetricCard(
@@ -271,13 +419,12 @@ private fun ImpactMetricCard(
     }
 }
 
-// ── Weekly Bar Chart ──────────────────────────────────────────────────────────
+// ── Weekly bar chart ──────────────────────────────────────────────────────────
 
 private val DAY_LABELS = arrayOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 @Composable
 private fun WeeklyBarChart(weeklyData: List<Float>) {
-    // Ensure exactly 7 values, defaulting missing entries to 0f
     val safeData = remember(weeklyData) {
         List(7) { i -> weeklyData.getOrElse(i) { 0f } }
     }
@@ -297,29 +444,22 @@ private fun WeeklyBarChart(weeklyData: List<Float>) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             AndroidView(
-                factory = { context ->
-                    BarChart(context).apply {
-                        applyChartStyle(safeData)
-                    }
-                },
-                update  = { chart -> chart.applyChartStyle(safeData) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(190.dp)
+                factory  = { ctx -> BarChart(ctx).apply { applyChartStyle(safeData) } },
+                update   = { chart -> chart.applyChartStyle(safeData) },
+                modifier = Modifier.fillMaxWidth().height(190.dp)
             )
         }
     }
 }
 
-// Extension to keep chart setup DRY between factory and update
 private fun BarChart.applyChartStyle(data: List<Float>) {
-    val entries  = data.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
-    val dataSet  = BarDataSet(entries, "").apply {
-        color              = AndroidColor.parseColor("#52B788")
-        highLightColor     = AndroidColor.parseColor("#2D6A4F")
+    val entries = data.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
+    val dataSet = BarDataSet(entries, "").apply {
+        color          = AndroidColor.parseColor("#52B788")
+        highLightColor = AndroidColor.parseColor("#2D6A4F")
         setDrawValues(false)
     }
-    this.data    = BarData(dataSet).apply { barWidth = 0.55f }
+    this.data = BarData(dataSet).apply { barWidth = 0.55f }
 
     description.isEnabled = false
     legend.isEnabled      = false
@@ -331,24 +471,23 @@ private fun BarChart.applyChartStyle(data: List<Float>) {
     extraBottomOffset = 4f
 
     xAxis.apply {
-        position         = XAxis.XAxisPosition.BOTTOM
+        position       = XAxis.XAxisPosition.BOTTOM
         setDrawGridLines(false)
         setDrawAxisLine(false)
-        granularity      = 1f
-        valueFormatter   = IndexAxisValueFormatter(DAY_LABELS)
-        textColor        = AndroidColor.parseColor("#9CA3AF")
-        textSize         = 10f
+        granularity    = 1f
+        valueFormatter = IndexAxisValueFormatter(DAY_LABELS)
+        textColor      = AndroidColor.parseColor("#9CA3AF")
+        textSize       = 10f
     }
     axisLeft.apply {
         setDrawGridLines(true)
-        gridColor        = AndroidColor.parseColor("#F3F4F6")
+        gridColor      = AndroidColor.parseColor("#F3F4F6")
         setDrawAxisLine(false)
-        textColor        = AndroidColor.parseColor("#9CA3AF")
-        textSize         = 10f
-        granularity      = 1f
-        axisMinimum      = 0f
+        textColor      = AndroidColor.parseColor("#9CA3AF")
+        textSize       = 10f
+        granularity    = 1f
+        axisMinimum    = 0f
     }
     axisRight.isEnabled = false
-
     invalidate()
 }

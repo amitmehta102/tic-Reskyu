@@ -50,24 +50,30 @@ class MerchantAuthRepository {
         awaitClose { auth.removeAuthStateListener(listener) }
     }
 
-    /**
-     * Signs in with email and password.
-     * @return The Firebase Auth UID on success.
-     */
+    /** Signs in with email + password. Returns the Firebase UID on success. */
     suspend fun signIn(email: String, password: String): String {
         val result = auth.signInWithEmailAndPassword(email, password).await()
-        return result.user?.uid ?: throw IllegalStateException("Sign-in succeeded but UID is null")
+        return result.user?.uid
+            ?: throw IllegalStateException("Sign-in succeeded but UID is null")
     }
 
-    /**
-     * Signs out the current user.
-     */
+    /** Creates a new Firebase Auth account. Returns the new UID on success. */
+    suspend fun register(email: String, password: String): String {
+        val result = auth.createUserWithEmailAndPassword(email, password).await()
+        return result.user?.uid
+            ?: throw IllegalStateException("Registration succeeded but UID is null")
+    }
+
+    /** Sends a password-reset email to [email] via Firebase Auth. */
+    suspend fun sendPasswordReset(email: String) {
+        auth.sendPasswordResetEmail(email).await()
+    }
+
+    /** Signs out the current user. */
     fun signOut() {
         auth.signOut()
     }
 
-    /**
-     * Returns the current user's UID or null if unauthenticated.
-     */
+    /** Returns the current user's UID or null if unauthenticated. */
     fun getCurrentUid(): String? = auth.currentUser?.uid
 }
