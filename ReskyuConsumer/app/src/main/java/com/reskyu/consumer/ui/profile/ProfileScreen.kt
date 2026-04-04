@@ -46,11 +46,11 @@ private val PRLight       = Color(0xFF95D5B2)
 private val PRGrad        = listOf(Color(0xFF0C1E13), Color(0xFF163823), Color(0xFF1F5235))
 
 private val NotifTags = listOf(
-    DietaryTag.VEG     to "Veg 🥗",
-    DietaryTag.NON_VEG to "Non-Veg 🍗",
-    DietaryTag.VEGAN   to "Vegan 🌱",
-    DietaryTag.BAKERY  to "Bakery 🥐",
-    DietaryTag.SWEETS  to "Sweets 🍮"
+    DietaryTag.VEG     to "Veg",
+    DietaryTag.NON_VEG to "Non-Veg",
+    DietaryTag.VEGAN   to "Vegan",
+    DietaryTag.BAKERY  to "Bakery",
+    DietaryTag.SWEETS  to "Sweets"
 )
 
 private val RadiusOptions = listOf(2, 4, 6, 8)
@@ -114,12 +114,21 @@ fun ProfileScreen(
                         .padding(horizontal = 20.dp)
                         .padding(top = 18.dp, bottom = 22.dp)
                 ) {
-                    Text(
-                        "Profile 👤",
-                        style      = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color      = Color.White
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Rounded.Person,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Profile",
+                            style      = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color.White
+                        )
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         "Manage your account & impact",
@@ -228,16 +237,16 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ProfileImpactCard("🍱", "${stats.totalMealsRescued}", "Meals Rescued", Modifier.weight(1f))
-                    ProfileImpactCard("🌿", "${stats.co2SavedKg}kg", "CO₂ Saved", Modifier.weight(1f))
+                    ProfileImpactCard(Icons.Rounded.Restaurant, "${stats.totalMealsRescued}", "Meals Rescued", Modifier.weight(1f))
+                    ProfileImpactCard(Icons.Rounded.Spa, "${stats.co2SavedKg}kg", "CO₂ Saved", Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ProfileImpactCard("💰", "₹${stats.moneySaved.coerceAtLeast(0.0).toInt()}", "Money Saved", Modifier.weight(1f))
-                    ProfileImpactCard("🏆", "${stats.totalMealsRescued}", "Total Orders", Modifier.weight(1f))
+                    ProfileImpactCard(Icons.Rounded.Savings, "₹${stats.moneySaved.coerceAtLeast(0.0).toInt()}", "Money Saved", Modifier.weight(1f))
+                    ProfileImpactCard(Icons.Rounded.EmojiEvents, "${stats.totalMealsRescued}", "Total Orders", Modifier.weight(1f))
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -424,7 +433,7 @@ private fun ProfileSectionLabel(text: String) {
 }
 
 @Composable
-private fun ProfileImpactCard(emoji: String, value: String, label: String, modifier: Modifier = Modifier) {
+private fun ProfileImpactCard(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
     Surface(
         modifier        = modifier,
         color           = PRSurface,
@@ -434,9 +443,16 @@ private fun ProfileImpactCard(emoji: String, value: String, label: String, modif
         Column(
             modifier            = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(emoji, fontSize = 24.sp)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(PRIconBg, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = PRAccent, modifier = Modifier.size(24.dp))
+            }
             Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = PRPriceGreen)
             Text(label, style = MaterialTheme.typography.labelSmall, color = PRTextSub, textAlign = TextAlign.Center)
         }
@@ -500,7 +516,7 @@ private fun NotificationPrefsSheet(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Notification Preferences 🔔", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PRText)
+            Text("Notification Preferences", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PRText)
             Text(
                 "Choose which food categories you want alerts for. Leave all unselected to receive everything.",
                 style = MaterialTheme.typography.bodySmall, color = PRTextSub
@@ -543,11 +559,13 @@ private fun NotificationPrefsSheet(
 
             if (selected.isEmpty()) {
                 Surface(color = Color(0xFFE8F5EE), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "✅  You'll receive notifications for ALL food categories.",
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.labelMedium, color = PRPriceGreen, fontWeight = FontWeight.SemiBold
-                    )
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = PRPriceGreen, modifier = Modifier.size(16.dp).padding(end = 8.dp))
+                        Text(
+                            "You'll receive notifications for ALL food categories.",
+                            style = MaterialTheme.typography.labelMedium, color = PRPriceGreen, fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 
@@ -580,7 +598,7 @@ private fun LocationSettingsSheet(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Discovery Radius 📍", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PRText)
+            Text("Discovery Radius", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PRText)
             Text(
                 "Expand your search area to discover more restaurants. A larger radius may show listings farther away from you.",
                 style = MaterialTheme.typography.bodySmall, color = PRTextSub
@@ -687,7 +705,7 @@ private fun PrivacyPolicySheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "Privacy Policy 🔒",
+                    "Privacy Policy",
                     style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color      = PRText
@@ -724,7 +742,7 @@ private fun PrivacyPolicySheet(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier            = Modifier.padding(32.dp)
                         ) {
-                            Text("🔒", fontSize = 40.sp)
+                            Icon(Icons.Rounded.Lock, contentDescription = null, tint = PRAccent, modifier = Modifier.size(48.dp))
                             Text(
                                 "Privacy policy not available yet.",
                                 style      = MaterialTheme.typography.titleSmall,
