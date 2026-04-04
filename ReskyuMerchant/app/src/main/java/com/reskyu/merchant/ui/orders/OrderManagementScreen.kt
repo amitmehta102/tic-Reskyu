@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.QrCodeScanner
@@ -77,63 +79,60 @@ fun OrderManagementScreen(
                     actionLabel = "Dismiss",
                     duration    = SnackbarDuration.Long
                 )
+                viewModel.clearError()
             }
         }
     }
 
-    // Badge counts from the FULL unfiltered list
+    // Badge counts
     val pendingCount   = remember(allClaimsForBadge) { allClaimsForBadge.count { it.status == "PENDING_PICKUP" } }
     val completedCount = remember(allClaimsForBadge) { allClaimsForBadge.count { it.status == "COMPLETED" } }
     val disputedCount  = remember(allClaimsForBadge) { allClaimsForBadge.count { it.status == "DISPUTED" } }
 
-    // ── QR Scan Result Dialogs ────────────────────────────────────────────────
+    // QR scan dialogs
     when (val result = qrScanResult) {
-        is QrScanResult.Success -> {
-            QrSuccessDialog(
-                heroItem = result.heroItem,
-                onDismiss = {
-                    viewModel.resetQrResult()
-                    viewModel.selectTab(ClaimTab.COMPLETED)
-                }
-            )
-        }
-        is QrScanResult.Error -> {
-            QrErrorDialog(
-                message   = result.message,
-                onDismiss = { viewModel.resetQrResult() },
-                onRetry   = {
-                    viewModel.resetQrResult()
-                    navController.navigate(Screen.QR_SCANNER)
-                }
-            )
-        }
+        is QrScanResult.Success -> QrSuccessDialog(
+            heroItem  = result.heroItem,
+            onDismiss = { viewModel.resetQrResult(); viewModel.selectTab(ClaimTab.COMPLETED) }
+        )
+        is QrScanResult.Error -> QrErrorDialog(
+            message   = result.message,
+            onDismiss = { viewModel.resetQrResult() },
+            onRetry   = { viewModel.resetQrResult(); navController.navigate(Screen.QR_SCANNER) }
+        )
         else -> {}
     }
 
+    // Pager — 3 pages matching the 3 ClaimTabs
+    val tabs       = ClaimTab.entries.toList()
+    val pagerState = rememberPagerState(
+        initialPage = tabs.indexOf(selectedTab).coerceAtLeast(0),
+        pageCount   = { tabs.size }
+    )
+
+    // Swipe → update ViewModel tab
+    LaunchedEffect(pagerState.currentPage) {
+        viewModel.selectTab(tabs[pagerState.currentPage])
+    }
+    // Programmatic tab change (e.g. after QR scan) → animate pager
+    LaunchedEffect(selectedTab) {
+        val page = tabs.indexOf(selectedTab).coerceAtLeast(0)
+        if (pagerState.currentPage != page) pagerState.animateScrollToPage(page)
+    }
+
     Scaffold(
-        containerColor = RScreenBg,
-        snackbarHost   = { SnackbarHost(hostState = snackbarHost) },
+        containerColor      = RScreenBg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost        = { SnackbarHost(hostState = snackbarHost) },
         floatingActionButton = {
-            // Show Scan QR FAB only on the Pending tab
             if (selectedTab == ClaimTab.PENDING) {
                 ExtendedFloatingActionButton(
-                    onClick           = { navController.navigate(Screen.QR_SCANNER) },
-                    containerColor    = Color(0xFF1B4332),
-                    contentColor      = Color.White,
-                    shape             = RoundedCornerShape(16.dp),
-                    icon              = {
-                        Icon(
-                            imageVector        = Icons.Rounded.QrCodeScanner,
-                            contentDescription = "Scan QR"
-                        )
-                    },
-                    text = {
-                        Text(
-                            text       = "Scan QR",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize   = 14.sp
-                        )
-                    }
+                    onClick        = { navController.navigate(Screen.QR_SCANNER) },
+                    containerColor = Color(0xFF1B4332),
+                    contentColor   = Color.White,
+                    shape          = RoundedCornerShape(16.dp),
+                    icon = { Icon(Icons.Rounded.QrCodeScanner, contentDescription = "Scan QR") },
+                    text = { Text("Scan QR", fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
                 )
             }
         },
@@ -144,113 +143,114 @@ fun OrderManagementScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // ── Header + tabs ─────────────────────────────────────────────────
+            // ── Pinned header — title + subtitle to match listing screen height ─
             ReskyuHeader(
-                title        = "Order Management",
-                bottomContent = {
-                    OrderTabRow(
-                        selectedTab    = selectedTab,
-                        pendingCount   = pendingCount,
-                        completedCount = completedCount,
-                        disputedCount  = disputedCount,
-                        onTabChange    = { viewModel.selectTab(it) }
-                    )
-                }
+                title    = "Order Management",
+                subtitle = "Track & confirm customer pickups"
             )
 
-            // ── Content ───────────────────────────────────────────────────────
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (!isLoading && displayedClaims.isEmpty()) {
-                    EmptyOrdersState(tab = selectedTab)
-                } else {
-                    LazyColumn(
-                        modifier            = Modifier.fillMaxSize(),
-                        contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(displayedClaims, key = { it.id }) { claim ->
-                            ClaimCard(
-                                claim      = claim,
-                                onComplete = { viewModel.completeClaim(it) },
-                                onDispute  = { viewModel.disputeClaim(it) }
-                            )
-                        }
-                        item { Spacer(Modifier.height(80.dp)) }  // FAB clearance
-                    }
-                }
-                LoadingOverlay(isVisible = isLoading)
-            }
-        }
-    }
-}
-
-// ── Tab row (used inside ReskyuHeader.bottomContent slot) ──────────────────────────────
-
-@Composable
-private fun OrderTabRow(
-    selectedTab:    ClaimTab,
-    pendingCount:   Int,
-    completedCount: Int,
-    disputedCount:  Int,
-    onTabChange:    (ClaimTab) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.10f))
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        val tabData = listOf(
-            Triple(ClaimTab.PENDING,   "Pending",   pendingCount),
-            Triple(ClaimTab.COMPLETED, "Completed", completedCount),
-            Triple(ClaimTab.DISPUTED,  "Disputed",  disputedCount)
-        )
-        tabData.forEach { (tab, label, count) ->
-            val isSelected = selectedTab == tab
-            Box(
+            // ── Tab selector — lives BELOW the header on the screen bg ────────
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) Color.White else Color.Transparent)
-                    .clickable { onTabChange(tab) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFFE8F5EE))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Row(
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Text(
-                        text       = label,
-                        fontSize   = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color      = if (isSelected) GreenDeep else Color.White.copy(alpha = 0.65f)
-                    )
-                    if (count > 0) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    if (isSelected) GreenAccent.copy(alpha = 0.2f)
-                                    else Color.White.copy(alpha = 0.2f)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                listOf(
+                    Triple(ClaimTab.PENDING,   "Pending",   pendingCount),
+                    Triple(ClaimTab.COMPLETED, "Completed", completedCount),
+                    Triple(ClaimTab.DISPUTED,  "Disputed",  disputedCount)
+                ).forEach { (tab, label, count) ->
+                    val isSelected = selectedTab == tab
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) GreenAccent else Color.Transparent)
+                            .clickable {
+                                viewModel.selectTab(tab)
+                                scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) }
+                            }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Text(
-                                text       = "$count",
-                                fontSize   = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color      = if (isSelected) GreenDeep else Color.White
+                                text       = label,
+                                fontSize   = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color      = if (isSelected) Color.White else GreenDeep.copy(alpha = 0.6f)
                             )
+                            if (count > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(
+                                            if (isSelected) Color.White.copy(alpha = 0.25f)
+                                            else GreenAccent.copy(alpha = 0.15f)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text       = "$count",
+                                        fontSize   = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color      = if (isSelected) Color.White else GreenDeep
+                                    )
+                                }
+                            }
                         }
                     }
+                }
+            }
+
+            // ── Swipeable content ─────────────────────────────────────────────
+            HorizontalPager(
+                state    = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                val tabForPage = tabs[page]
+                val claims = remember(allClaimsForBadge, tabForPage) {
+                    allClaimsForBadge.filter { c ->
+                        when (tabForPage) {
+                            ClaimTab.PENDING   -> c.status == "PENDING_PICKUP"
+                            ClaimTab.COMPLETED -> c.status == "COMPLETED"
+                            ClaimTab.DISPUTED  -> c.status == "DISPUTED"
+                        }
+                    }
+                }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (!isLoading && claims.isEmpty()) {
+                        EmptyOrdersState(tab = tabForPage)
+                    } else {
+                        LazyColumn(
+                            modifier            = Modifier.fillMaxSize(),
+                            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(claims, key = { it.id }) { claim ->
+                                ClaimCard(
+                                    claim      = claim,
+                                    onComplete = { viewModel.completeClaim(it) },
+                                    onDispute  = { viewModel.disputeClaim(it) }
+                                )
+                            }
+                            item { Spacer(Modifier.height(80.dp)) }
+                        }
+                    }
+                    LoadingOverlay(isVisible = isLoading)
                 }
             }
         }
     }
 }
+
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 

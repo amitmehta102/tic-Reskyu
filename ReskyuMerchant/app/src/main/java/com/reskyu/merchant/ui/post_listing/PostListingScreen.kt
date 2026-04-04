@@ -8,13 +8,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
+import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,7 +42,6 @@ import com.reskyu.merchant.data.model.MysteryBoxType
 import com.reskyu.merchant.data.model.PublishState
 import com.reskyu.merchant.data.model.UploadState
 import com.reskyu.merchant.ui.components.LoadingOverlay
-import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
 import com.reskyu.merchant.ui.theme.RGreenAccent
 import com.reskyu.merchant.ui.theme.RGreenDark
@@ -106,15 +105,18 @@ fun PostListingScreen(
         onDispose { viewModel.resetUploadState() }
     }
 
-    Scaffold(containerColor = Color(0xFFF2F8F4)) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            LazyColumn(
-                modifier       = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                // ── Top bar ───────────────────────────────────────────────────
-                item(key = "header") { PostListingHeader(onBack = { navController.navigateUp() }) }
+    Scaffold(containerColor = Color(0xFFF2F8F4), contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
+    // ── Fixed header + scrollable form ─────────────────────────────────────
+    Column(modifier = Modifier.fillMaxSize()) {
 
+        // Pinned header — never scrolls
+        PostListingHeader(onBack = { navController.navigateUp() })
+
+        // Scrollable form content
+        LazyColumn(
+            modifier       = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
                 item(key = "form") {
                     Column(
                         modifier = Modifier
@@ -152,24 +154,13 @@ fun PostListingScreen(
 
                             // ④ Hero / revealed item ──────────────────────────
                             FormSection(label = "REVEALED ITEM") {
-                                OutlinedTextField(
-                                    value           = form.heroItem,
-                                    onValueChange   = { viewModel.updateForm { copy(heroItem = it) } },
-                                    placeholder     = { Text("e.g. Pizza, Burger, Pasta…") },
-                                    modifier        = Modifier.fillMaxWidth(),
-                                    singleLine      = true,
-                                    shape           = RoundedCornerShape(12.dp),
-                                    colors          = greenFieldColors(),
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                    keyboardActions = KeyboardActions(
-                                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                                    ),
-                                    supportingText  = { Text("This item is shown to customers; the rest is a surprise", fontSize = 11.sp) }
-                                )
-                                // ⚡ Quick-select food name chips
-                                QuickFoodChips(
+                                AutocompleteFoodField(
+                                    value       = form.heroItem,
                                     suggestions = MYSTERY_FOOD_SUGGESTIONS,
-                                    onSelect    = { viewModel.updateForm { copy(heroItem = it) } }
+                                    placeholder = "e.g. Pizza, Burger, Pasta…",
+                                    supporting  = "This item is shown to customers; the rest is a surprise",
+                                    onValue     = { viewModel.updateForm { copy(heroItem = it) } },
+                                    onNext      = { focusManager.moveFocus(FocusDirection.Down) }
                                 )
                             }
 
@@ -182,23 +173,56 @@ fun PostListingScreen(
                                 )
                             }
 
-                            // ⑥ Boxes available ───────────────────────────────
-                            FormSection(label = "BOXES AVAILABLE") {
-                                MealsStepper(
-                                    count       = form.mealsAvailable,
-                                    onDecrement = { if (form.mealsAvailable > 1) viewModel.updateForm { copy(mealsAvailable = mealsAvailable - 1) } },
-                                    onIncrement = { viewModel.updateForm { copy(mealsAvailable = mealsAvailable + 1) } }
-                                )
+                            // ⑥ Boxes available + Items per box  (side-by-side row)
+                            Row(
+                                modifier             = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Left: boxes available
+                                Column(
+                                    modifier            = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text          = "BOXES",
+                                        fontSize      = 11.sp,
+                                        fontWeight    = FontWeight.SemiBold,
+                                        color         = Color(0xFF6B7280),
+                                        letterSpacing = 0.8.sp
+                                    )
+                                    MealsStepper(
+                                        count       = form.mealsAvailable,
+                                        compact     = true,
+                                        onDecrement = { if (form.mealsAvailable > 1) viewModel.updateForm { copy(mealsAvailable = mealsAvailable - 1) } },
+                                        onIncrement = { viewModel.updateForm { copy(mealsAvailable = mealsAvailable + 1) } }
+                                    )
+                                }
+                                // Right: items per box
+                                Column(
+                                    modifier            = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text          = "ITEMS / BOX",
+                                        fontSize      = 11.sp,
+                                        fontWeight    = FontWeight.SemiBold,
+                                        color         = Color(0xFF6B7280),
+                                        letterSpacing = 0.8.sp
+                                    )
+                                    MealsStepper(
+                                        count       = form.itemCount,
+                                        compact     = true,
+                                        onDecrement = { if (form.itemCount > 1) viewModel.updateForm { copy(itemCount = itemCount - 1) } },
+                                        onIncrement = { viewModel.updateForm { copy(itemCount = itemCount + 1) } }
+                                    )
+                                }
                             }
 
-                            // ⑦ Items per box ─────────────────────────────────
-                            FormSection(label = "ITEMS PER BOX") {
-                                MealsStepper(
-                                    count       = form.itemCount,
-                                    onDecrement = { if (form.itemCount > 1) viewModel.updateForm { copy(itemCount = itemCount - 1) } },
-                                    onIncrement = { viewModel.updateForm { copy(itemCount = itemCount + 1) } }
-                                )
-                            }
+                            // ⑦ Merchant-only internal notes (hidden from customer)
+                            MysteryBoxInternalNotes(
+                                value    = form.internalNotes,
+                                onChange = { viewModel.updateForm { copy(internalNotes = it) } }
+                            )
 
                             // ⑧ Content value range ───────────────────────────
                             FormSection(label = "CONTENT VALUE RANGE  (what's inside is worth)") {
@@ -278,23 +302,12 @@ fun PostListingScreen(
 
                             // ③ Item name
                             FormSection(label = "ITEM NAME") {
-                                OutlinedTextField(
-                                    value           = form.heroItem,
-                                    onValueChange   = { viewModel.updateForm { copy(heroItem = it) } },
-                                    placeholder     = { Text("e.g. Assorted Pastries") },
-                                    modifier        = Modifier.fillMaxWidth(),
-                                    singleLine      = true,
-                                    shape           = RoundedCornerShape(12.dp),
-                                    colors          = greenFieldColors(),
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                    keyboardActions = KeyboardActions(
-                                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                                    )
-                                )
-                                // ⚡ Quick-select food name chips
-                                QuickFoodChips(
+                                AutocompleteFoodField(
+                                    value       = form.heroItem,
                                     suggestions = REGULAR_FOOD_SUGGESTIONS,
-                                    onSelect    = { viewModel.updateForm { copy(heroItem = it) } }
+                                    placeholder = "e.g. Assorted Pastries",
+                                    onValue     = { viewModel.updateForm { copy(heroItem = it) } },
+                                    onNext      = { focusManager.moveFocus(FocusDirection.Down) }
                                 )
                             }
 
@@ -406,12 +419,12 @@ fun PostListingScreen(
                         }
                     }
                 }
-            }
+            } // end LazyColumn
 
             LoadingOverlay(isVisible = publishState is PublishState.Publishing)
-        }
-    }
-}
+        } // end Column
+    } // end Scaffold
+} // end PostListingScreen
 
 // ── Listing Type Toggle ───────────────────────────────────────────────────────
 
@@ -680,8 +693,25 @@ private fun ImagePickerSection(
             }
             else -> {
                 if (!hasImage) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("📷", fontSize = 40.sp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    Brush.radialGradient(
+                                        listOf(GreenAccent.copy(alpha = 0.25f), GreenDark.copy(alpha = 0.12f))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector        = Icons.Rounded.CameraAlt,
+                                contentDescription = "Add photo",
+                                tint               = GreenAccent,
+                                modifier           = Modifier.size(32.dp)
+                            )
+                        }
                         Text("Add a photo", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF374151))
                         Text("Tap to select from gallery", fontSize = 12.sp, color = Color(0xFF9CA3AF))
                     }
@@ -720,37 +750,50 @@ private fun FormSection(label: String, content: @Composable ColumnScope.() -> Un
 
 // ── Meals / items stepper ─────────────────────────────────────────────────────
 
+/**
+ * @param compact  When true, reduces the count box width so two steppers
+ *                 fit comfortably side-by-side in a Row.
+ */
 @Composable
-private fun MealsStepper(count: Int, onDecrement: () -> Unit, onIncrement: () -> Unit) {
+private fun MealsStepper(
+    count: Int,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit,
+    compact: Boolean = false
+) {
     Row(
         modifier          = Modifier
+            .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier         = Modifier
-                .size(48.dp)
+                .size(if (compact) 40.dp else 48.dp)
                 .clickable(enabled = count > 1, onClick = onDecrement)
                 .background(if (count > 1) GreenAccent.copy(alpha = 0.10f) else Color(0xFFF9FAFB)),
             contentAlignment = Alignment.Center
         ) {
-            Text("−", fontSize = 22.sp, fontWeight = FontWeight.Medium, color = if (count > 1) GreenDeep else Color(0xFFD1D5DB))
-        }
-        Box(
-            modifier         = Modifier.width(72.dp).height(48.dp).background(Color.White),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("$count", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = GreenDeep)
+            Text("−", fontSize = if (compact) 18.sp else 22.sp, fontWeight = FontWeight.Medium, color = if (count > 1) GreenDeep else Color(0xFFD1D5DB))
         }
         Box(
             modifier         = Modifier
-                .size(48.dp)
+                .weight(1f)
+                .height(if (compact) 40.dp else 48.dp)
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("$count", fontSize = if (compact) 16.sp else 20.sp, fontWeight = FontWeight.Bold, color = GreenDeep)
+        }
+        Box(
+            modifier         = Modifier
+                .size(if (compact) 40.dp else 48.dp)
                 .clickable(onClick = onIncrement)
                 .background(GreenAccent.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center
         ) {
-            Text("+", fontSize = 22.sp, fontWeight = FontWeight.Medium, color = GreenDeep)
+            Text("+", fontSize = if (compact) 18.sp else 22.sp, fontWeight = FontWeight.Medium, color = GreenDeep)
         }
     }
 }
@@ -813,36 +856,174 @@ private val MYSTERY_FOOD_SUGGESTIONS = listOf(
     "Paneer Dish", "Chicken Dish", "Assorted Snacks", "Dessert", "Soup"
 )
 
+// ── Autocomplete food name field ──────────────────────────────────────────────
+
 /**
- * Horizontally scrollable chip row for quick-filling item name fields.
- * Chips auto-select the current value to make it visually clear what's typed.
+ * [OutlinedTextField] with a live-filter suggestion dropdown.
+ * As soon as the user types at least 1 character, matching suggestions from
+ * [suggestions] appear in a surface below the field. Tapping one fills the
+ * field and closes the dropdown. Empty query shows nothing.
  */
 @Composable
-private fun QuickFoodChips(
+private fun AutocompleteFoodField(
+    value       : String,
     suggestions : List<String>,
-    onSelect    : (String) -> Unit
+    placeholder : String,
+    onValue     : (String) -> Unit,
+    onNext      : () -> Unit,
+    supporting  : String? = null
 ) {
-    androidx.compose.foundation.lazy.LazyRow(
-        modifier            = Modifier.fillMaxWidth(),
-        contentPadding      = PaddingValues(top = 8.dp, bottom = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        items(suggestions) { name ->
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(GreenAccent.copy(alpha = 0.10f))
-                    .border(1.dp, GreenAccent.copy(alpha = 0.30f), RoundedCornerShape(20.dp))
-                    .clickable { onSelect(name) }
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+    // Filter suggestions by current text (case-insensitive, prefix OR contains)
+    val filtered = remember(value) {
+        if (value.isBlank()) emptyList()
+        else suggestions.filter { it.contains(value.trim(), ignoreCase = true) }.take(6)
+    }
+    val showDropdown = filtered.isNotEmpty()
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value           = value,
+            onValueChange   = onValue,
+            placeholder     = { Text(placeholder, color = Color(0xFF9CA3AF)) },
+            modifier        = Modifier.fillMaxWidth(),
+            singleLine      = true,
+            shape           = RoundedCornerShape(12.dp),
+            colors          = greenFieldColors(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { onNext() }),
+            supportingText  = if (supporting != null) {{ Text(supporting, fontSize = 11.sp) }} else null
+        )
+
+        // Suggestion dropdown
+        if (showDropdown) {
+            Surface(
+                modifier  = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp),
+                shape     = RoundedCornerShape(12.dp),
+                color     = Color.White,
+                shadowElevation = 6.dp,
+                tonalElevation  = 0.dp
             ) {
-                Text(
-                    text       = name,
-                    fontSize   = 12.sp,
-                    color      = GreenDeep,
-                    fontWeight = FontWeight.Medium
-                )
+                Column {
+                    filtered.forEachIndexed { idx, item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onValue(item) }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Green left-accent bar
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(18.dp)
+                                    .background(
+                                        GreenAccent.copy(alpha = if (idx == 0) 1f else 0.45f),
+                                        RoundedCornerShape(2.dp)
+                                    )
+                            )
+                            Text(
+                                text       = item,
+                                fontSize   = 14.sp,
+                                color      = GreenDeep,
+                                fontWeight = if (idx == 0) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                        if (idx < filtered.lastIndex) {
+                            HorizontalDivider(
+                                color     = Color(0xFFF3F4F6),
+                                thickness = 0.5.dp,
+                                modifier  = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+// ── Mystery box — merchant-only internal notes ────────────────────────────────
+
+/**
+ * Collapsible section for the merchant to note what else goes in the box.
+ * This data is NEVER shown to customers — it's purely for merchant organisation.
+ */
+@Composable
+private fun MysteryBoxInternalNotes(value: String, onChange: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, MysteryPurple.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .background(MysteryPurple.copy(alpha = 0.04f))
+    ) {
+        // Toggle header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("📋", fontSize = 16.sp)
+                Column {
+                    Text(
+                        text       = "Add other box contents",
+                        fontSize   = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MysteryPurple
+                    )
+                    Text(
+                        text     = "Internal only — not shown to customers",
+                        fontSize = 10.sp,
+                        color    = Color(0xFF9CA3AF)
+                    )
+                }
+            }
+            Text(
+                text     = if (expanded) "▲" else "▼",
+                fontSize = 12.sp,
+                color    = MysteryPurple.copy(alpha = 0.6f)
+            )
+        }
+
+        // Expandable content
+        if (expanded) {
+            HorizontalDivider(
+                color     = MysteryPurple.copy(alpha = 0.12f),
+                thickness = 1.dp
+            )
+            OutlinedTextField(
+                value         = value,
+                onValueChange = onChange,
+                modifier      = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                placeholder   = { Text("e.g. 2 samosas, 1 drink, seasonal vegetables…", fontSize = 12.sp) },
+                minLines      = 3,
+                maxLines      = 5,
+                shape         = RoundedCornerShape(10.dp),
+                colors        = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor    = MysteryPurple,
+                    unfocusedBorderColor  = MysteryPurple.copy(alpha = 0.25f),
+                    focusedLabelColor     = MysteryPurple,
+                    focusedTextColor      = Color(0xFF111827),
+                    unfocusedTextColor    = Color(0xFF111827),
+                    cursorColor           = MysteryPurple
+                ),
+                label         = { Text("Other items in the box", fontSize = 12.sp) }
+            )
         }
     }
 }

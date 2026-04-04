@@ -23,15 +23,12 @@ class ProfileViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    /** null = idle, true = saving, false = saved */
     private val _isSaving = MutableStateFlow<Boolean?>(null)
     val isSaving: StateFlow<Boolean?> = _isSaving.asStateFlow()
 
     private val _saveError = MutableStateFlow<String?>(null)
     val saveError: StateFlow<String?> = _saveError.asStateFlow()
 
-    // ── Privacy Policy ─────────────────────────────────────────────────────────
-    /** null = not loaded yet, empty = no doc in Firestore */
     private val _privacyPolicy = MutableStateFlow<String?>(null)
     val privacyPolicy: StateFlow<String?> = _privacyPolicy.asStateFlow()
 
@@ -59,8 +56,6 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // ── Profile edit ───────────────────────────────────────────────────────────
-
     fun updateProfile(name: String, phone: String) {
         val trimName  = name.trim()
         val trimPhone = phone.trim()
@@ -72,7 +67,7 @@ class ProfileViewModel : ViewModel() {
             try {
                 val uid = authRepository.requireUid()
                 userRepository.updateProfile(uid, trimName, trimPhone)
-            } catch (_: Exception) { /* optimistic */ }
+            } catch (_: Exception) {  }
             _user.value = _user.value?.copy(name = trimName, phone = trimPhone)
             _isSaving.value = false
         }
@@ -83,56 +78,82 @@ class ProfileViewModel : ViewModel() {
         _saveError.value = null
     }
 
-    // ── Notification Preferences ───────────────────────────────────────────────
-
-    /**
-     * Saves the user's selected dietary tag preferences to Firestore.
-     * Empty list = notify for all categories.
-     */
     fun updateNotificationPrefs(prefs: List<String>) {
         viewModelScope.launch {
             try {
                 val uid = authRepository.requireUid()
                 userRepository.updateNotificationPrefs(uid, prefs)
-            } catch (_: Exception) { /* optimistic */ }
+            } catch (_: Exception) {  }
             _user.value = _user.value?.copy(notificationPrefs = prefs)
         }
     }
 
-    // ── Discovery Radius ───────────────────────────────────────────────────────
-
-    /**
-     * Saves the user's preferred discovery radius to Firestore.
-     * HomeViewModel reads this on next refresh/pull-to-refresh.
-     */
     fun updateDiscoveryRadius(radiusKm: Int) {
         viewModelScope.launch {
             try {
                 val uid = authRepository.requireUid()
                 userRepository.updateDiscoveryRadius(uid, radiusKm)
-            } catch (_: Exception) { /* optimistic */ }
+            } catch (_: Exception) {  }
             _user.value = _user.value?.copy(discoveryRadiusKm = radiusKm)
         }
     }
 
-    // ── Privacy Policy ─────────────────────────────────────────────────────────
-
-    /** Fetches (or re-fetches) privacy policy text from Firestore config/privacy_policy.
-     *  Always fetches fresh \u2014 avoids stale data if admin edits the policy without the user restarting. */
     fun loadPrivacyPolicy() {
         if (_isPolicyLoading.value) return   // debounce concurrent taps
         viewModelScope.launch {
             _isPolicyLoading.value = true
-            _privacyPolicy.value = userRepository.fetchPrivacyPolicy() ?: ""
+            _privacyPolicy.value = null      // reset so stale content is cleared
+            try {
+                val result = userRepository.fetchPrivacyPolicy()
+                android.util.Log.d("ProfileVM", "fetchPrivacyPolicy result: '$result'")
+                _privacyPolicy.value = result ?: ""
+            } catch (e: Exception) {
+                android.util.Log.e("ProfileVM", "fetchPrivacyPolicy failed", e)
+                _privacyPolicy.value = ""
+            }
             _isPolicyLoading.value = false
         }
     }
 
-    // ── Sign Out ───────────────────────────────────────────────────────────────
-
     fun signOut() {
         try { authRepository.signOut() } catch (_: Exception) {}
         _user.value = null
+    }
+
+    fun uploadPrivacyPolicy() {
+        viewModelScope.launch {
+            try {
+                val policy = """
+Privacy Policy — Reskyu
+Last updated: April 2025
+
+1. Information We Collect
+We collect your name, email address, and phone number when you register. We collect your device location to show nearby food listings. We store a device token to send you order and pickup notifications.
+
+2. Payment Information
+Payments are processed securely by Razorpay. We do not store your card or bank details — only a payment reference ID is saved to confirm your order.
+
+3. How We Use Your Information
+- To display food listings near you
+- To confirm and track your food rescue orders
+- To send pickup reminders and order updates
+- To calculate your environmental impact (meals rescued, CO2 saved)
+
+4. Data Sharing
+We do not sell your personal data. Your order details are shared only with the merchant you place an order with. Payment data is handled by Razorpay under their privacy policy.
+
+5. Data Storage
+Your data is stored securely on Google Firebase (Firestore). Location data is used in real-time and is not stored permanently.
+
+6. Your Rights
+You can request deletion of your account and data by contacting us at reskyu123@gmail.com. Deleting your account removes all personal information from our systems within 30 days.
+
+7. Contact
+For any privacy concerns, email us at reskyu123@gmail.com.
+                """.trimIndent()
+                userRepository.uploadPrivacyPolicy(policy)
+            } catch (_: Exception) {}
+        }
     }
 
     private fun devUser() = User(

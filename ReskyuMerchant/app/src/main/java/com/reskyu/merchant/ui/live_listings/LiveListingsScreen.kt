@@ -59,12 +59,14 @@ fun LiveListingsScreen(
                     actionLabel = "Dismiss",
                     duration    = SnackbarDuration.Long
                 )
+                viewModel.clearError()
             }
         }
     }
 
     Scaffold(
         containerColor   = RScreenBg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost     = { SnackbarHost(hostState = snackbarHost) },
         floatingActionButton = {
             FloatingActionButton(

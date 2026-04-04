@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.notifications
+﻿package com.reskyu.consumer.ui.notifications
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -44,7 +44,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-// ── Alerts screen light-theme palette ─────────────────────────────────────────
 private val ALBackground  = Color(0xFFF2F8F4)   // ScreenBg
 private val ALAccent      = Color(0xFF52B788)   // GreenAccent
 private val ALText        = Color(0xFF0C1E13)   // GreenDark
@@ -54,19 +53,6 @@ private val ALDivider     = Color(0xFFD4EDDA)   // light divider (keep)
 private val ALUnreadBg    = Color(0xFFF0FBF3)   // faint mint unread (keep)
 private val ALUnreadBar   = Color(0xFF52B788)   // GreenAccent unread bar
 
-/**
- * NotificationsScreen (Alerts) — matches app-wide light mint theme
- *
- * Features:
- *  ── Dark forest-green branded header (matches Home/Orders pattern)
- *  ── Animated unread badge in header
- *  ── Grouped sections: NEW | TODAY | EARLIER with sticky labels
- *  ── Type-aware pastel icon circles per notification
- *  ── Swipe-left to dismiss with red background reveal
- *  ── Unread rows have mint tinted bg + left green accent bar
- *  ── Smart relative timestamps
- *  ── Polished empty state
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NotificationsScreen(
@@ -78,7 +64,6 @@ fun NotificationsScreen(
     val unreadCount = notifications.count { !it.isRead }
     val grouped = remember(notifications) { groupNotifications(notifications) }
 
-    // Wire navigation callback so ViewModel can trigger navigation without holding a NavController
     LaunchedEffect(Unit) {
         viewModel.onNavigateToListing = { listingId ->
             (outerNavController ?: navController).navigate(
@@ -93,13 +78,11 @@ fun NotificationsScreen(
             .background(ALBackground)
     ) {
 
-        // ── Branded dark header — zIndex ensures it always draws above scrolling rows ──
         AlertsHeader(
             unreadCount   = unreadCount,
             onMarkAllRead = { viewModel.markAllAsRead() }
         )
 
-        // ── Content ───────────────────────────────────────────────────────────────
         if (notifications.isEmpty()) {
             AlertsEmptyState()
         } else {
@@ -109,7 +92,6 @@ fun NotificationsScreen(
             ) {
                 grouped.forEach { (groupLabel, items) ->
 
-                    // Sticky section header
                     stickyHeader(key = groupLabel) {
                         AlertGroupHeader(label = groupLabel)
                     }
@@ -137,7 +119,6 @@ fun NotificationsScreen(
     }
 }
 
-// ── Header gradient — matches HomeScreen / MyOrdersScreen ─────────────────────
 private val HGradN  = listOf(Color(0xFF0C1E13), Color(0xFF163823), Color(0xFF1F5235))
 private val HLightN = Color(0xFF95D5B2)   // GreenLight for subtitle on dark
 
@@ -179,7 +160,6 @@ private fun AlertsHeader(
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    // Animated unread badge
                     AnimatedVisibility(
                         visible = unreadCount > 0,
                         enter = fadeIn() + slideInHorizontally(),
@@ -208,7 +188,6 @@ private fun AlertsHeader(
                 )
             }
 
-            // Mark-all-read button — restyled for dark header
             AnimatedVisibility(visible = unreadCount > 0) {
                 FilledTonalButton(
                     onClick = onMarkAllRead,
@@ -226,8 +205,6 @@ private fun AlertsHeader(
         }
     }
 }
-
-// ── Section Group Header ───────────────────────────────────────────────────────
 
 @Composable
 private fun AlertGroupHeader(label: String) {
@@ -256,8 +233,6 @@ private fun AlertGroupHeader(label: String) {
         }
     }
 }
-
-// ── Swipe-to-Dismiss wrapper ───────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -310,8 +285,6 @@ private fun SwipeToDismissAlert(
     }
 }
 
-// ── Alert Row ─────────────────────────────────────────────────────────────────
-
 @Composable
 private fun AlertRow(
     notification: AppNotification,
@@ -319,7 +292,6 @@ private fun AlertRow(
 ) {
     val style = alertStyle(notification.type, notification.isRead)
 
-    // Scale animation on unread dot
     val dotScale by animateFloatAsState(
         targetValue = if (!notification.isRead) 1f else 0f,
         animationSpec = spring(),
@@ -332,7 +304,6 @@ private fun AlertRow(
             .background(if (!notification.isRead) ALUnreadBg else Color.White)
             .clickable(onClick = onTap)
     ) {
-        // Left accent stripe for unread
         if (!notification.isRead) {
             Box(
                 modifier = Modifier
@@ -352,7 +323,6 @@ private fun AlertRow(
             horizontalArrangement = Arrangement.spacedBy(13.dp)
         ) {
 
-            // ── Type icon circle ────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -368,10 +338,8 @@ private fun AlertRow(
                 )
             }
 
-            // ── Content ─────────────────────────────────────────────────────────
             Column(modifier = Modifier.weight(1f)) {
 
-                // Title + timestamp row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -397,7 +365,6 @@ private fun AlertRow(
 
                 Spacer(Modifier.height(3.dp))
 
-                // Body text
                 Text(
                     notification.body,
                     style = MaterialTheme.typography.bodySmall,
@@ -409,7 +376,6 @@ private fun AlertRow(
 
                 Spacer(Modifier.height(7.dp))
 
-                // Type pill badge
                 Box(
                     modifier = Modifier
                         .background(style.bgColor, RoundedCornerShape(20.dp))
@@ -425,7 +391,6 @@ private fun AlertRow(
                 }
             }
 
-            // Unread dot (animated scale)
             Box(
                 modifier = Modifier
                     .size(8.dp)
@@ -437,8 +402,6 @@ private fun AlertRow(
         }
     }
 }
-
-// ── Empty State ────────────────────────────────────────────────────────────────
 
 @Composable
 private fun AlertsEmptyState() {
@@ -479,8 +442,6 @@ private fun AlertsEmptyState() {
     }
 }
 
-// ── Style helper ──────────────────────────────────────────────────────────────
-
 private data class AlertStyle(
     val icon: ImageVector,
     val bgColor: Color,
@@ -489,7 +450,6 @@ private data class AlertStyle(
 )
 
 private fun alertStyle(type: NotificationType, isRead: Boolean): AlertStyle {
-    // Muted pastel when read, vibrant when unread — both in the same hue family
     return when (type) {
         NotificationType.NEW_DROP -> AlertStyle(
             icon      = Icons.Rounded.LocalDining,
@@ -524,8 +484,6 @@ private fun alertStyle(type: NotificationType, isRead: Boolean): AlertStyle {
     }
 }
 
-// ── Grouping logic ────────────────────────────────────────────────────────────
-
 private fun groupNotifications(
     notifications: List<AppNotification>
 ): Map<String, List<AppNotification>> {
@@ -542,8 +500,6 @@ private fun groupNotifications(
         if (earlier.isNotEmpty()) put("EARLIER", earlier)
     }
 }
-
-// ── Timestamp helper ──────────────────────────────────────────────────────────
 
 private fun smartTimestamp(ms: Long): String {
     val age = System.currentTimeMillis() - ms

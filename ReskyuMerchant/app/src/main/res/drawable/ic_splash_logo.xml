@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Branded system splash icon — shown by the Android SplashScreen API.
+    Mirrors the Reskyu logo look: green circular ring + fork + "R" on dark bg.
+    108×108 dp viewport; Android crops to a 2/3-radius circle automatically.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ── Outer circular ring ──────────────────────────────────────── -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#52B788"
+        android:strokeWidth="3.5"
+        android:pathData="M54,18 A36,36 0 1,1 53.99,18Z" />
+
+    <!-- ── Small leaves on the ring (top / top-right) ──────────────── -->
+    <path
+        android:fillColor="#52B788"
+        android:pathData="M54,18 C54,18 51,12 54,10 C57,12 54,18 54,18Z" />
+    <path
+        android:fillColor="#52B788"
+        android:pathData="M72,27 C72,27 76,22 79,24 C77,27 72,27 72,27Z" />
+    <path
+        android:fillColor="#52B788"
+        android:pathData="M36,27 C36,27 32,22 29,24 C31,27 36,27 36,27Z" />
+
+    <!-- ── Fork (left of centre) ────────────────────────────────────── -->
+    <!-- Handle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:pathData="M38,42 L38,66" />
+    <!-- Tines -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M35,42 L35,50 M38,42 L38,50 M41,42 L41,50" />
+    <!-- Tine connector curve -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M35,50 C35,53 41,53 41,50" />
+
+    <!-- ── Stylised "R" (centre-right) ──────────────────────────────── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0"
+        android:pathData="
+        M46,42 L46,66
+        M46,42 L58,42
+        C63,42 66,45 66,50
+        C66,55 63,58 58,58
+        L46,58
+        M58,58 L67,66" />
+
+    <!-- ── Two dots at bottom of ring ───────────────────────────────── -->
+    <path
+        android:fillColor="#52B788"
+        android:pathData="M42,86 A2,2 0 1,1 41.99,86Z" />
+    <path
+        android:fillColor="#52B788"
+        android:pathData="M66,86 A2,2 0 1,1 65.99,86Z" />
+
+</vector>

@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.confirmation
+﻿package com.reskyu.consumer.ui.confirmation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,16 +13,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-/**
- * ConfirmationViewModel
- *
- * Loads the newly-created claim from Firestore and maps it to [TicketUiState].
- * Falls back to a dev stub if Firestore fails (e.g., during offline/dev mode).
- *
- * The claimId passed here is either:
- *  - A real Firestore document ID (prod)
- *  - A "pay_DEV_..." string from the dev payment simulation (dev mode)
- */
 class ConfirmationViewModel : ViewModel() {
 
     private val claimRepository = ClaimRepository()
@@ -33,7 +23,6 @@ class ConfirmationViewModel : ViewModel() {
     fun loadTicket(claimId: String) {
         viewModelScope.launch {
             try {
-                // Try real Firestore fetch first
                 val claim = claimRepository.getClaimById(claimId)
                 if (claim != null) {
                     _ticketState.value = TicketUiState(
@@ -48,17 +37,14 @@ class ConfirmationViewModel : ViewModel() {
                         )
                     )
                 } else {
-                    // Dev fallback — claimId is the payment ID from the simulated checkout
                     _ticketState.value = devTicket(claimId)
                 }
             } catch (e: Exception) {
-                // Firebase not configured / offline — show a dev ticket
                 _ticketState.value = devTicket(claimId)
             }
         }
     }
 
-    /** Dev-mode placeholder ticket shown when Firestore isn't reachable */
     private fun devTicket(paymentId: String) = TicketUiState(
         claimId = paymentId,
         businessName = "Dev Bakery Co.",

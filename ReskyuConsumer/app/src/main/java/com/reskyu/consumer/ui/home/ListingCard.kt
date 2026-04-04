@@ -28,7 +28,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-// ── ListingCard palette — exact merchant brand ────────────────────────────────
 private val LC_Text        = Color(0xFF0C1E13)   // GreenDark — main text
 private val LC_TextSub     = Color(0xFF5A7A65)   // muted sage (keep)
 private val LC_Outline     = Color(0xFFB0CABB)   // soft outline / date text (keep)
@@ -36,17 +35,6 @@ private val LC_Green       = Color(0xFF1F5235)   // GreenMid — dark price / di
 private val LC_Error       = Color(0xFFD32F2F)   // urgency red (keep)
 private val LC_Surface     = Color(0xFFF2F8F4)   // ScreenBg — placeholder bg
 
-/**
- * ListingCard
- *
- * A card composable for the home screen LazyColumn.
- * Features:
- *  - Coil AsyncImage hero thumbnail (graceful placeholder/error)
- *  - Discount % badge overlaid on image
- *  - Dietary tag chip + meals left with urgency coloring
- *  - Strikethrough original price + discounted price
- *  - Expiry countdown ("Expires in 2h 15m" / "Expiring soon!")
- */
 @Composable
 fun ListingCard(
     listing: Listing,
@@ -55,8 +43,8 @@ fun ListingCard(
     merchantRating: Double? = null,  // avg rating from /merchants collection
     modifier: Modifier = Modifier
 ) {
-    val discountPct = if (listing.originalPrice > 0)
-        ((listing.originalPrice - listing.discountedPrice) / listing.originalPrice * 100).toInt()
+    val discountPct = if (listing.effectiveOriginalPrice > 0)
+        ((listing.effectiveOriginalPrice - listing.discountedPrice) / listing.effectiveOriginalPrice * 100).toInt()
     else 0
 
     val timeLeftMs = listing.expiresAt.toDate().time - System.currentTimeMillis()
@@ -64,20 +52,20 @@ fun ListingCard(
     val isExpiringSoon = timeLeftMs < TimeUnit.HOURS.toMillis(1)
     val distanceText = formatDistance(distanceKm)
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+            shape = MaterialTheme.shapes.medium,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // ── Hero Image with discount badge ────────────────────────────────
             Box(
                 modifier = Modifier
                     .size(88.dp)
@@ -88,10 +76,8 @@ fun ListingCard(
                     contentDescription = listing.heroItem,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
-                    // Placeholder composable shown while loading
                     error = null,
                 )
-                // Grey placeholder when imageUrl is blank
                 if (listing.imageUrl.isBlank()) {
                     Box(
                         modifier = Modifier
@@ -103,7 +89,6 @@ fun ListingCard(
                     }
                 }
 
-                // Mystery Box badge — overlaid on image
                 if (listing.isMysteryBox) {
                     Box(
                         modifier = Modifier
@@ -123,7 +108,6 @@ fun ListingCard(
                     }
                 }
 
-                // Discount badge
                 if (discountPct > 0) {
                     Box(
                         modifier = Modifier
@@ -142,86 +126,59 @@ fun ListingCard(
                         )
                     }
                 }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .background(Color(0xB3000000), RoundedCornerShape(topStart = 8.dp))
+                        .padding(horizontal = 5.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = listing.businessName,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 76.dp)
+                    )
+                }
+
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // ── Content ───────────────────────────────────────────────────────
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
 
-                // ── Top row: business name ← → expiry ─────────────────────────
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Business name (slightly bigger) + rating chip
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        modifier = Modifier.weight(1f, fill = false)
+                if (merchantRating != null && merchantRating > 0.0) {
+                    Surface(
+                        color = Color(0xFFFFF8E1),
+                        shape = RoundedCornerShape(4.dp)
                     ) {
-                        Text(
-                            text = listing.businessName,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = LC_TextSub,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        // Rating chip — only shown when we have data
-                        if (merchantRating != null && merchantRating > 0.0) {
-                            Surface(
-                                color = Color(0xFFFFF8E1),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.Star,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(9.dp),
-                                        tint = Color(0xFFFFA000)
-                                    )
-                                    Text(
-                                        text = String.format("%.1f", merchantRating),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFFFA000),
-                                        fontSize = 9.sp
-                                    )
-                                }
-                            }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Star, null,
+                                Modifier.size(10.dp), tint = Color(0xFFFFA000)
+                            )
+                            Text(
+                                text = String.format("%.1f", merchantRating),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFFA000),
+                                fontSize = 10.sp
+                            )
                         }
-                    }
-
-                    // Expiry — top-right corner
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccessTime,
-                            contentDescription = null,
-                            modifier = Modifier.size(10.dp),
-                            tint = if (isExpiringSoon) LC_Error else LC_Outline
-                        )
-                        Text(
-                            text = expiryText,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isExpiringSoon) LC_Error else LC_Outline,
-                            fontSize = 10.sp
-                        )
                     }
                 }
 
-                // Hero item (main title) — mystery box shows type, standard shows item name
                 if (listing.isMysteryBox) {
                     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(
@@ -256,14 +213,12 @@ fun ListingCard(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // Dietary chip + meals left
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     DietaryChip(tag = DietaryTag.valueOf(listing.dietaryTag))
 
-                    // Meals-left urgency chip
                     val (chipBg, chipText, chipLabel) = when {
                         listing.mealsLeft <= 1 -> Triple(
                             Color(0xFFFFEBEE), LC_Error, "🔥 Last 1!"
@@ -293,14 +248,12 @@ fun ListingCard(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // Pricing row — price left, distance right
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     if (listing.isMysteryBox) {
-                        // Mystery box: show "₹300" you pay + "Worth ₹220–₹350" range
                         Column {
                             Text(
                                 text = "₹${listing.discountedPrice.toInt()}",
@@ -317,7 +270,6 @@ fun ListingCard(
                             }
                         }
                     } else {
-                        // Standard listing: show discounted + strikethrough original
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -329,7 +281,7 @@ fun ListingCard(
                                 color = LC_Green
                             )
                             Text(
-                                text = "₹${listing.originalPrice.toInt()}",
+                                text = "₹${listing.effectiveOriginalPrice.toInt()}",
                                 style = MaterialTheme.typography.bodySmall,
                                 textDecoration = TextDecoration.LineThrough,
                                 color = LC_TextSub
@@ -337,7 +289,6 @@ fun ListingCard(
                         }
                     }
 
-                    // Distance — lower-right
                     if (distanceText != null) {
                         Text(
                             text = "📍 $distanceText",
@@ -347,6 +298,36 @@ fun ListingCard(
                         )
                     }
                 }
+            }
+        }
+    }
+
+        // ── Expiry timer badge — top-right corner of the card ────────────
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 8.dp, end = 8.dp)
+                .background(
+                    if (isExpiringSoon) Color(0xCCD32F2F) else Color(0xCC1F5235),
+                    RoundedCornerShape(6.dp)
+                )
+                .padding(horizontal = 6.dp, vertical = 3.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.AccessTime, null,
+                    Modifier.size(9.dp), tint = Color.White
+                )
+                Text(
+                    text = expiryText,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 9.sp
+                )
             }
         }
     }

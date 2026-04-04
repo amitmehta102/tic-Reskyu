@@ -19,6 +19,6 @@ data class ListingForm(
     val boxType: MysteryBoxType = MysteryBoxType.FULL_MEALS,
     val priceRangeMin: Double = 0.0,        // Min ₹ value of box contents
     val priceRangeMax: Double = 0.0,        // Max ₹ value of box contents
-    val itemCount: Int = 1                  // Total number of items inside the box
+    val itemCount: Int = 1,                 // Total number of items inside the box
+    val internalNotes: String = ""          // Merchant-only: other box contents (never shown to customers)
 )
-

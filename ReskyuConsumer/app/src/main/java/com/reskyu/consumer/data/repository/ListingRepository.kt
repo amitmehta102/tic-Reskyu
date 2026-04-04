@@ -1,4 +1,4 @@
-package com.reskyu.consumer.data.repository
+﻿package com.reskyu.consumer.data.repository
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
@@ -14,34 +14,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-/**
- * ListingRepository
- *
- * Handles all Firestore reads from the `/listings` collection.
- *
- * Key methods:
- *  [observeNearbyListings]  Real-time Flow — snapshot listener across 9 GeoHash cells
- *  [getListingById]         One-shot read — used by ClaimScreen and DetailScreen
- *
- * Uses a safe [DocumentSnapshot.toListing()] extension instead of toObject() /
- * toObjects() to handle mixed field types from the merchant app (e.g. expiresAt
- * stored as a Long millisecond value instead of a Firestore Timestamp).
- */
 class ListingRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val listingsRef = db.collection(Constants.COLLECTION_LISTINGS)
 
-    /**
-     * Real-time Flow of OPEN listings near the user's location.
-     *
-     * Strategy:
-     *  1. Compute 9 neighbor GeoHash cells at precision=5 (~5km radius).
-     *  2. For each cell, attach a Firestore snapshotListener for the range query.
-     *  3. On any snapshot update, merge all results, deduplicate by ID,
-     *     post-filter by exact Haversine distance, sort by discountedPrice ASC.
-     *  4. Emit the merged list downstream.
-     */
     fun observeNearbyListings(
         lat: Double,
         lng: Double,
@@ -59,8 +36,6 @@ class ListingRepository {
                 .filter { listing ->
                     listing.status == "OPEN" &&
                     listing.mealsLeft > 0 &&   // hide "0 left" listings — can't be claimed anyway
-                    // Exact 2km filter when listing has real coordinates (lat/lng from merchant)
-                    // Falls back to GeoHash-only match for older listings without coordinates
                     (listing.lat == 0.0 && listing.lng == 0.0 ||
                      GeoHashUtils.distanceKm(lat, lng, listing.lat, listing.lng) <= radiusKm)
                 }
@@ -73,7 +48,6 @@ class ListingRepository {
             val reg = listingsRef
                 .whereGreaterThanOrEqualTo("geoHash", lower)
                 .whereLessThan("geoHash", upper)
-                // status filtered client-side — avoids composite index requirement
                 .addSnapshotListener { snapshot, error ->
                     if (error != null || snapshot == null) return@addSnapshotListener
                     cellResults[cellKey] = snapshot.documents.mapNotNull { it.toListing() }
@@ -85,9 +59,6 @@ class ListingRepository {
         awaitClose { registrations.forEach { it.remove() } }
     }
 
-    /**
-     * One-shot fetch of a single listing by document ID.
-     */
     suspend fun getListingById(listingId: String): Listing? {
         return listingsRef
             .document(listingId)
@@ -96,9 +67,6 @@ class ListingRepository {
             .toListing()
     }
 
-    /**
-     * Fallback: all OPEN listings without geo filter.
-     */
     suspend fun getAllOpenListings(): List<Listing> {
         return listingsRef
             .whereEqualTo("status", "OPEN")
@@ -110,16 +78,6 @@ class ListingRepository {
     }
 }
 
-/**
- * Safe DocumentSnapshot → Listing mapper.
- *
- * The merchant app stores expiresAt as either:
- *  - A Firestore Timestamp (correct)
- *  - A Long (Unix milliseconds) — tolerated here
- *
- * Using this instead of toObject() prevents silent deserialization failures
- * that would cause the entire listing to be dropped from the UI.
- */
 private fun DocumentSnapshot.toListing(): Listing? {
     return try {
         val expiresAt: Timestamp = when (val raw = get("expiresAt")) {
@@ -145,7 +103,6 @@ private fun DocumentSnapshot.toListing(): Listing? {
             expiresAt      = expiresAt,
             status         = getString("status")         ?: ListingStatus.OPEN.name,
 
-            // ── Mystery Box fields — MUST be listed here; this mapper bypasses toObject() ──
             listingType    = getString("listingType")    ?: "STANDARD",
             boxType        = getString("boxType")        ?: "",
             priceRangeMin  = getDouble("priceRangeMin")  ?: getLong("priceRangeMin")?.toDouble() ?: 0.0,
@@ -156,4 +113,3 @@ private fun DocumentSnapshot.toListing(): Listing? {
         null   // skip malformed documents rather than crashing
     }
 }
-

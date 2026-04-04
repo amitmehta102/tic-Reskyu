@@ -1,4 +1,4 @@
-﻿package com.reskyu.merchant.ui.analytics
+package com.reskyu.merchant.ui.analytics
 
 import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.background
@@ -69,6 +69,7 @@ fun EsgAnalyticsScreen(
 
     Scaffold(
         containerColor = RScreenBg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.ESG_ANALYTICS) }
     ) { padding ->
         Box(

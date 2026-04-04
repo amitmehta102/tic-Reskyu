@@ -16,7 +16,7 @@
 > **1 in 5 Indians faces food insecurity.**  
 > We built RESKYU to close that gap — in real time, with zero logistics.
 
-🌐 **Live Demo:** [reskyu.netlify.app/pitch](https://reskyu.netlify.app/pitch)
+🌐 **Live Demo:** [reskyu.netlify.app](https://reskyu.netlify.app)
 
 </div>
 

@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.reskyu.merchant.data.model.DashboardStats
 import com.reskyu.merchant.ui.components.LoadingOverlay
+import com.reskyu.merchant.ui.components.DarkStatusBar
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
 import com.reskyu.merchant.ui.theme.RGreenAccent
@@ -59,8 +60,11 @@ fun DashboardScreen(
         viewModel.loadDashboard(merchantId = merchantId)
     }
 
+    DarkStatusBar()
+
     Scaffold(
         containerColor = ScreenBg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.DASHBOARD) }
     ) { padding ->
         Box(

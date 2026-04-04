@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ReskyuMerchant" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        Base app theme — edge-to-edge, no action bar.
+        statusBarColor and navigationBarColor are transparent so our
+        Compose headers extend seamlessly behind the system bars.
+        windowLightStatusBar = false sets WHITE icons by default, matching
+        our dark gradient headers. Light-background screens override this
+        via LightStatusBar() composable.
+    -->
+    <style name="Theme.ReskyuMerchant" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/reskyu_screen_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
 </resources>

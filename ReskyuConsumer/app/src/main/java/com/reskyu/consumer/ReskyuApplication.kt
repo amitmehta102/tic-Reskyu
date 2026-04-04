@@ -1,4 +1,4 @@
-package com.reskyu.consumer
+﻿package com.reskyu.consumer
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,13 +7,6 @@ import android.os.Build
 import android.app.Application
 import com.reskyu.consumer.service.ReskuMessagingService
 
-/**
- * ReskyuApplication
- *
- * Creates the FCM notification channel on app start.
- * The channel MUST exist before any notification can be displayed on Android 8+.
- * Safe to call multiple times — Android ignores duplicate channel creation.
- */
 class ReskyuApplication : Application() {
 
     override fun onCreate() {

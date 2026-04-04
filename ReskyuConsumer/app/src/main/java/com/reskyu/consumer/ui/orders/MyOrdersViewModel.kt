@@ -11,16 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-/**
- * MyOrdersViewModel
- *
- * Subscribes to a real-time Firestore snapshot of the current user's claims.
- * Status changes (PENDING_PICKUP → COMPLETED) appear live without pull-to-refresh.
- *
- * Tab logic:
- *  "Current" tab → claims with status PENDING_PICKUP
- *  "Past" tab    → all other statuses (COMPLETED, REFUNDED, DISPUTED, etc.)
- */
+import java.util.concurrent.TimeUnit
+
 class MyOrdersViewModel : ViewModel() {
 
     private val claimRepository = ClaimRepository()
@@ -45,23 +37,33 @@ class MyOrdersViewModel : ViewModel() {
                 .collect { claims ->
                     _isLoading.value = false
                     _allClaims.value = claims
+
+                    val now = System.currentTimeMillis()
+                    val expiredIds = claims
+                        .filter { it.status == "PENDING_PICKUP" }
+                        .filter { claim ->
+                            val deadline = if (claim.pickupDeadlineMs > 0) claim.pickupDeadlineMs
+                                           else claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(4)
+                            now > deadline
+                        }
+                        .map { it.id }
+
+                    if (expiredIds.isNotEmpty()) {
+                        launch {
+                            try { claimRepository.markExpiredClaims(expiredIds) } catch (_: Exception) { }
+                        }
+                    }
                 }
         }
     }
 
     fun refresh() = subscribeToOrders()
 
-    /**
-     * Saves a 1–5 star rating for a completed order.
-     * Writes to the claim doc and updates the merchant's ratingSum/ratingCount atomically.
-     * The snapshot listener auto-refreshes the UI — no manual state update needed.
-     */
     fun submitRating(claimId: String, merchantId: String, stars: Int) {
         viewModelScope.launch {
             try {
                 claimRepository.submitRating(claimId, merchantId, stars)
             } catch (_: Exception) {
-                // Already rated or Firestore error — fail silently
             }
         }
     }

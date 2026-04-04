@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.components
+﻿package com.reskyu.consumer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,20 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reskyu.consumer.data.model.DietaryTag
 
-/**
- * DietaryChip
- *
- * A small pill-shaped tag indicating the dietary classification of a food listing.
- * Colors and labels change based on the [tag] value.
- *
- * Colors:
- *  - VEG     → Green border and text
- *  - NON_VEG → Red border and text
- *  - VEGAN   → Teal/green border and text
- *  - JAIN    → Orange/amber border and text
- *
- * @param tag  The [DietaryTag] enum value to display
- */
 @Composable
 fun DietaryChip(tag: DietaryTag) {
     val (label, color) = when (tag) {

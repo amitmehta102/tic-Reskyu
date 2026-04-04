@@ -88,6 +88,9 @@ class OrderManagementViewModel : ViewModel() {
     /** Resets QR scan result state back to Idle (call after dialog dismissed). */
     fun resetQrResult() { _qrScanResult.value = QrScanResult.Idle }
 
+    /** Clears the current error so the Snackbar doesn't re-show on recomposition. */
+    fun clearError() { _error.value = null }
+
     /**
      * Processes a raw QR scan value and completes the matching order.
      *
