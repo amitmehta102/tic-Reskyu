@@ -265,10 +265,11 @@ fun ConfirmationScreen(
             }
             Button(
                 onClick = {
+                    // Signal MainScreen to switch inner nav to Orders tab
+                    com.reskyu.consumer.TabNavigationBus.navigateTo(Screen.MyOrders.route)
                     navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Main.route) { inclusive = false }
                     }
-                    // Inner nav will handle switching to Orders tab
                 },
                 modifier = Modifier.weight(1f).height(52.dp),
                 shape = MaterialTheme.shapes.medium

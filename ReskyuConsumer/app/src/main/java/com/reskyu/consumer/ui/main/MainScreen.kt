@@ -22,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.reskyu.consumer.TabNavigationBus
 import com.reskyu.consumer.ui.home.HomeScreen
 import com.reskyu.consumer.ui.notifications.NotificationsScreen
 import com.reskyu.consumer.ui.orders.MyOrdersScreen
@@ -51,6 +52,22 @@ private val NavLabelInactive = Color(0xFF8A9E93)
 @Composable
 fun MainScreen(outerNavController: NavController) {
     val innerNavController = rememberNavController()
+
+    // Observe TabNavigationBus — lets outer screens (e.g. ConfirmationScreen)
+    // request a specific tab switch inside this inner NavHost.
+    val pendingTab by TabNavigationBus.pendingTab.collectAsState()
+    LaunchedEffect(pendingTab) {
+        pendingTab?.let { route ->
+            TabNavigationBus.consume()
+            innerNavController.navigate(route) {
+                popUpTo(innerNavController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState    = true
+            }
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),   // screens handle their own insets
