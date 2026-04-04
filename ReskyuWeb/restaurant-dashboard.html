@@ -31,8 +31,36 @@
     </div>
   </nav>
 
-  <!-- LOADING -->
-  <div id="dash-loading" class="dash-loading"><div class="dash-spinner"></div></div>
+  <!-- SKELETON LOADING (Feature 6) -->
+  <div id="dash-loading" class="dash-loading" style="display:block;padding:0">
+    <div class="role-header" style="border-bottom:none">
+      <div class="dash-container">
+        <div class="skel-header-wrap">
+          <div class="skel-avatar skeleton"></div>
+          <div class="skel-name-block">
+            <div class="skel-greeting skeleton"></div>
+            <div class="skel-name skeleton"></div>
+            <div class="skel-badge skeleton"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-stats-strip">
+      <div class="dash-container">
+        <div class="dash-stats-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="skel-stat-card"><div class="skel-icon skeleton"></div><div class="skel-num skeleton"></div><div class="skel-label skeleton"></div></div>
+          <div class="skel-stat-card"><div class="skel-icon skeleton"></div><div class="skel-num skeleton"></div><div class="skel-label skeleton"></div></div>
+          <div class="skel-stat-card"><div class="skel-icon skeleton"></div><div class="skel-num skeleton"></div><div class="skel-label skeleton"></div></div>
+          <div class="skel-stat-card"><div class="skel-icon skeleton"></div><div class="skel-num skeleton"></div><div class="skel-label skeleton"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-content"><div class="dash-container">
+      <div class="skel-listing skeleton" style="height:80px"></div>
+      <div class="skel-listing skeleton" style="height:80px;opacity:.7"></div>
+      <div class="skel-listing skeleton" style="height:80px;opacity:.4"></div>
+    </div></div>
+  </div>
 
   <main id="dash-main" class="dash-main" hidden>
 
@@ -242,6 +270,18 @@
             </div>
             <button class="dash-btn-outline" id="generate-report-btn">📄 Download ESG Report</button>
           </div>
+
+          <!-- Chart.js Trend Chart -->
+          <div class="dash-card" style="margin-top:0">
+            <div class="dash-card-header">
+              <span class="dash-card-icon">📈</span>
+              <h2 class="dash-card-title">Meals Rescued — Last 7 Days</h2>
+            </div>
+            <p class="dash-card-desc" style="margin-bottom:20px">Daily trend of meals rescued from your listings.</p>
+            <div style="position:relative;height:220px">
+              <canvas id="meals-chart" aria-label="Meals rescued last 7 days" role="img"></canvas>
+            </div>
+          </div>
         </div>
 
         <!-- ── TAB: PROFILE ── -->
@@ -297,10 +337,23 @@
     </div>
   </main>
 
+  <!-- Mobile Bottom Tab Bar (Feature 8) -->
+  <nav class="mobile-tab-bar" aria-label="Mobile navigation">
+    <div class="mobile-tab-bar-inner">
+      <button class="mobile-tab-btn active" data-tab="listings"><span class="mtab-icon">📦</span>Listings</button>
+      <button class="mobile-tab-btn" data-tab="add"><span class="mtab-icon">➕</span>Add</button>
+      <button class="mobile-tab-btn" data-tab="analytics"><span class="mtab-icon">📊</span>Analytics</button>
+      <button class="mobile-tab-btn" data-tab="profile"><span class="mtab-icon">👤</span>Profile</button>
+    </div>
+  </nav>
+
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="js/firebase-config.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/onboarding.js"></script>
   <script src="js/restaurant-dashboard.js"></script>
 </body>
 </html>
