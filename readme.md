@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🍱 RESKYU
+# TEAM RESKYU
 ### *Rescue Food. Feed India. Zero Waste.*
 
 **Technocrats Innovation Challenge 2026 — Social Impact Track**
