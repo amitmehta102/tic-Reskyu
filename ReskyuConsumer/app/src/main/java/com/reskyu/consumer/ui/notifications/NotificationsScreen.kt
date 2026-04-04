@@ -23,6 +23,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,20 +38,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.reskyu.consumer.data.model.AppNotification
 import com.reskyu.consumer.data.model.NotificationType
+import com.reskyu.consumer.ui.navigation.Screen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 // ── Alerts screen light-theme palette ─────────────────────────────────────────
-private val ALBackground  = Color(0xFFEBF7EE)   // very light mint (app-wide bg)
-private val ALAccent      = Color(0xFF2DC653)   // Reskyu green
-private val ALText        = Color(0xFF133922)   // dark forest green text
-private val ALTextSub     = Color(0xFF5A7A65)   // muted sage grey
-private val ALOutline     = Color(0xFFB0CABB)   // soft green outline
-private val ALDivider     = Color(0xFFD4EDDA)   // light green divider
-private val ALUnreadBg    = Color(0xFFF0FBF3)   // very faint mint for unread rows
-private val ALUnreadBar   = Color(0xFF2DC653)   // left accent bar for unread
+private val ALBackground  = Color(0xFFF2F8F4)   // ScreenBg
+private val ALAccent      = Color(0xFF52B788)   // GreenAccent
+private val ALText        = Color(0xFF0C1E13)   // GreenDark
+private val ALTextSub     = Color(0xFF5A7A65)   // muted sage (keep)
+private val ALOutline     = Color(0xFFB0CABB)   // soft outline (keep)
+private val ALDivider     = Color(0xFFD4EDDA)   // light divider (keep)
+private val ALUnreadBg    = Color(0xFFF0FBF3)   // faint mint unread (keep)
+private val ALUnreadBar   = Color(0xFF52B788)   // GreenAccent unread bar
 
 /**
  * NotificationsScreen (Alerts) — matches app-wide light mint theme
@@ -66,12 +70,22 @@ private val ALUnreadBar   = Color(0xFF2DC653)   // left accent bar for unread
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NotificationsScreen(
-    navController: NavController,
+    navController: NavController,          // innerNavController (bottom-nav)
+    outerNavController: NavController? = null,  // root nav — used for listing deep links
     viewModel: NotificationsViewModel = viewModel()
 ) {
     val notifications by viewModel.notifications.collectAsState()
     val unreadCount = notifications.count { !it.isRead }
     val grouped = remember(notifications) { groupNotifications(notifications) }
+
+    // Wire navigation callback so ViewModel can trigger navigation without holding a NavController
+    LaunchedEffect(Unit) {
+        viewModel.onNavigateToListing = { listingId ->
+            (outerNavController ?: navController).navigate(
+                Screen.DetailListing.createRoute(listingId)
+            )
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -79,19 +93,19 @@ fun NotificationsScreen(
             .background(ALBackground)
     ) {
 
-        // ── Branded dark header ─────────────────────────────────────────────────
+        // ── Branded dark header — zIndex ensures it always draws above scrolling rows ──
         AlertsHeader(
-            unreadCount  = unreadCount,
+            unreadCount   = unreadCount,
             onMarkAllRead = { viewModel.markAllAsRead() }
         )
 
-        // ── Content ─────────────────────────────────────────────────────────────
+        // ── Content ───────────────────────────────────────────────────────────────
         if (notifications.isEmpty()) {
             AlertsEmptyState()
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 24.dp)
+                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
             ) {
                 grouped.forEach { (groupLabel, items) ->
 
@@ -108,7 +122,7 @@ fun NotificationsScreen(
                         ) {
                             AlertRow(
                                 notification = notification,
-                                onTap = { viewModel.markAsRead(notification.id) }
+                                onTap = { viewModel.onNotificationTapped(notification) }
                             )
                         }
                         HorizontalDivider(
@@ -123,23 +137,34 @@ fun NotificationsScreen(
     }
 }
 
-// ── Header (matches Orders white Surface style) ───────────────────────────────
+// ── Header gradient — matches HomeScreen / MyOrdersScreen ─────────────────────
+private val HGradN  = listOf(Color(0xFF0C1E13), Color(0xFF163823), Color(0xFF1F5235))
+private val HLightN = Color(0xFF95D5B2)   // GreenLight for subtitle on dark
 
 @Composable
 private fun AlertsHeader(
     unreadCount: Int,
     onMarkAllRead: () -> Unit
 ) {
-    Surface(
-        modifier        = Modifier.fillMaxWidth(),
-        color           = Color.White,
-        shadowElevation = 2.dp
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .zIndex(2f)                // always renders above scrolling list rows
+            .shadow(                   // drop shadow under the rounded shape
+                elevation    = 8.dp,
+                shape        = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                ambientColor = Color(0x401F5235),
+                spotColor    = Color(0x601F5235)
+            )
+            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+            .background(Brush.verticalGradient(HGradN))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 18.dp, bottom = 22.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -149,10 +174,10 @@ private fun AlertsHeader(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Alerts",
+                        "Alerts 🔔",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = ALText
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                     // Animated unread badge
                     AnimatedVisibility(
@@ -162,7 +187,7 @@ private fun AlertsHeader(
                     ) {
                         Box(
                             modifier = Modifier
-                                .background(ALAccent, CircleShape)
+                                .background(Color.White.copy(alpha = 0.25f), CircleShape)
                                 .size(22.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -179,17 +204,17 @@ private fun AlertsHeader(
                 Text(
                     if (unreadCount > 0) "$unreadCount unread" else "You're all caught up",
                     style = MaterialTheme.typography.bodySmall,
-                    color = ALTextSub
+                    color = HLightN
                 )
             }
 
-            // Mark-all-read button
+            // Mark-all-read button — restyled for dark header
             AnimatedVisibility(visible = unreadCount > 0) {
                 FilledTonalButton(
                     onClick = onMarkAllRead,
                     colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = Color(0xFFD4EDDA),
-                        contentColor   = ALText
+                        containerColor = Color.White.copy(alpha = 0.15f),
+                        contentColor   = Color.White
                     ),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {

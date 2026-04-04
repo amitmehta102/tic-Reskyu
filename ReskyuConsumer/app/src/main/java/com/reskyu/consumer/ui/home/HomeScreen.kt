@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Restaurant
@@ -36,6 +37,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -60,13 +62,15 @@ import org.osmdroid.views.overlay.Overlay
 import java.util.concurrent.TimeUnit
 import kotlin.math.*
 
-// ── Reskyu brand colors (matches screenshot) ──────────────────────────────────
-private val RGreenDark    = Color(0xFF0D2B1A)   // deep header dark green
-private val RGreenMid     = Color(0xFF133922)   // forest green (mid gradient)
-private val RGreenAccent  = Color(0xFF2DC653)   // Reskyu green (accent, buttons, chips)
-private val RPriceGreen   = Color(0xFF1A9E45)   // slightly darker green for prices
-private val RGreenSurface = Color(0xFFEBF7EE)   // very light mint background
-private val RGreenOnCard  = Color(0xFF133922)   // forest green text on cards
+// ── Reskyu brand colors — exact merchant palette ──────────────────────────────
+private val RGreenDark    = Color(0xFF0C1E13)   // header top  / exact merchant GreenDark
+private val RGreenDeep    = Color(0xFF163823)   // header mid  / exact merchant GreenDeep
+private val RGreenMid     = Color(0xFF1F5235)   // header btm  / exact merchant GreenMid
+private val RGreenAccent  = Color(0xFF52B788)   // CTA / chips / exact merchant GreenAccent
+private val RGreenLight   = Color(0xFF95D5B2)   // subtitle on dark / merchant GreenLight
+private val RPriceGreen   = Color(0xFF1F5235)   // price text  / = GreenMid
+private val RGreenSurface = Color(0xFFF2F8F4)   // screen bg   / exact merchant ScreenBg
+private val RGreenOnCard  = Color(0xFF0C1E13)   // card text   / = GreenDark
 
 private val MAP_HEIGHT_COLLAPSED = 150.dp
 private val MAP_HEIGHT_EXPANDED  = 340.dp
@@ -86,6 +90,8 @@ fun HomeScreen(
     val isLoading      by viewModel.isLoading.collectAsState()
     val error          by viewModel.error.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val merchantRatings by viewModel.merchantRatings.collectAsState()
+
     val userLat        by viewModel.userLat.collectAsState()
     val userLng        by viewModel.userLng.collectAsState()
 
@@ -140,7 +146,7 @@ fun HomeScreen(
             .background(RGreenSurface)
     ) {
         // ── Fixed: branded header ──────────────────────────────────────────────
-        HomeBanner()
+        HomeBanner(onNotificationsClick = { innerNavController.navigate(Screen.Notifications.route) })
 
         // ── Fixed: OSM map (animated height, interactive) ──────────────────────
         OsmMapCard(
@@ -221,11 +227,12 @@ fun HomeScreen(
 
                     else -> items(displayedListings, key = { it.id }) { listing ->
                         ListingCard(
-                            listing    = listing,
-                            distanceKm = haversineKm(userLat, userLng, listing.lat, listing.lng)
+                            listing       = listing,
+                            distanceKm    = haversineKm(userLat, userLng, listing.lat, listing.lng)
                                 .takeIf { listing.lat != 0.0 },
-                            onClick    = { selectedListing = listing },
-                            modifier   = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            merchantRating = merchantRatings[listing.merchantId],
+                            onClick       = { selectedListing = listing },
+                            modifier      = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -248,27 +255,58 @@ fun HomeScreen(
     }
 }
 
-// ── Header (matches Orders white Surface style) ───────────────────────────────
+// ── Header — dark gradient matching merchant app ──────────────────────────────
 
 @Composable
-private fun HomeBanner() {
-    Surface(
-        modifier        = Modifier.fillMaxWidth(),
-        color           = Color.White,
-        shadowElevation = 2.dp
+private fun HomeBanner(onNotificationsClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+            .background(
+                Brush.verticalGradient(listOf(RGreenDark, RGreenDeep, RGreenMid))
+            )
     ) {
-        Column(modifier = Modifier.statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
-            Text(
-                "Today's Food Drops",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = RGreenOnCard
-            )
-            Text(
-                "Rescue surplus meals near you",
-                style = MaterialTheme.typography.bodySmall,
-                color = RGreenOnCard.copy(alpha = 0.55f)
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp)
+                .padding(top = 18.dp, bottom = 22.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Title + subtitle
+            Column {
+                Text(
+                    "Today's Food Drops 🍱",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Rescue surplus meals near you",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = RGreenLight
+                )
+            }
+
+            // Notification bell — top-right (same pattern as merchant's profile icon)
+            IconButton(
+                onClick = onNotificationsClick,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.10f))
+            ) {
+                Icon(
+                    imageVector        = Icons.Rounded.Notifications,
+                    contentDescription = "Notifications",
+                    tint               = Color.White,
+                    modifier           = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -384,13 +422,16 @@ private fun OsmMapCard(
 
 @Composable
 private fun DietaryFilterChips(selected: DietaryTag?, onSelect: (DietaryTag?) -> Unit) {
-    val filters = listOf(null) + DietaryTag.values().toList()
+    // Explicit list — JAIN hidden (kept in enum for data compat), BAKERY & SWEETS added
+    val filters = listOf(null, DietaryTag.VEG, DietaryTag.NON_VEG, DietaryTag.VEGAN,
+                         DietaryTag.BAKERY, DietaryTag.SWEETS)
     val labels  = mapOf(
         null               to "All 🍽️",
         DietaryTag.VEG     to "Veg 🥗",
         DietaryTag.NON_VEG to "Non-Veg 🍗",
         DietaryTag.VEGAN   to "Vegan 🌱",
-        DietaryTag.JAIN    to "Jain ⚪"
+        DietaryTag.BAKERY  to "Bakery 🥐",
+        DietaryTag.SWEETS  to "Sweets 🍮"
     )
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),

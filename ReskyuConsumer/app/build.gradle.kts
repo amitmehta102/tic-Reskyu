@@ -107,6 +107,8 @@ dependencies {
     // ── Maps (OpenStreetMap via osmdroid — free, no API key needed) ───────────
     implementation(libs.osmdroid)
 
+    // ── QR Code (ZXing core — generates QR bitmaps on-device) ────────────────
+    implementation("com.google.zxing:core:3.5.3")
 
     // ── Tests ─────────────────────────────────────────────────────────────────
     testImplementation(libs.junit)

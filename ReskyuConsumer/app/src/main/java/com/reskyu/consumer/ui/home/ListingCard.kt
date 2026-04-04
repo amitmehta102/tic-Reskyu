@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,13 +28,13 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-// ── ListingCard light-theme palette (matches screenshot) ───────────────────
-private val LC_Text        = Color(0xFF133922)   // dark forest green
-private val LC_TextSub     = Color(0xFF5A7A65)   // muted sage green-grey
-private val LC_Outline     = Color(0xFFB0CABB)   // soft green outline
-private val LC_Green       = Color(0xFF1A9E45)   // darker price green
-private val LC_Error       = Color(0xFFD32F2F)   // error red
-private val LC_Surface     = Color(0xFFEBF7EE)   // very light mint (card placeholder)
+// ── ListingCard palette — exact merchant brand ────────────────────────────────
+private val LC_Text        = Color(0xFF0C1E13)   // GreenDark — main text
+private val LC_TextSub     = Color(0xFF5A7A65)   // muted sage (keep)
+private val LC_Outline     = Color(0xFFB0CABB)   // soft outline / date text (keep)
+private val LC_Green       = Color(0xFF1F5235)   // GreenMid — dark price / distance text
+private val LC_Error       = Color(0xFFD32F2F)   // urgency red (keep)
+private val LC_Surface     = Color(0xFFF2F8F4)   // ScreenBg — placeholder bg
 
 /**
  * ListingCard
@@ -51,6 +52,7 @@ fun ListingCard(
     listing: Listing,
     onClick: () -> Unit,
     distanceKm: Double? = null,
+    merchantRating: Double? = null,  // avg rating from /merchants collection
     modifier: Modifier = Modifier
 ) {
     val discountPct = if (listing.originalPrice > 0)
@@ -130,14 +132,74 @@ fun ListingCard(
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
 
-                // Business name
-                Text(
-                    text = listing.businessName,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = LC_TextSub,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // ── Top row: business name ← → expiry ─────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Business name (slightly bigger) + rating chip
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
+                        Text(
+                            text = listing.businessName,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = LC_TextSub,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        // Rating chip — only shown when we have data
+                        if (merchantRating != null && merchantRating > 0.0) {
+                            Surface(
+                                color = Color(0xFFFFF8E1),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Star,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(9.dp),
+                                        tint = Color(0xFFFFA000)
+                                    )
+                                    Text(
+                                        text = String.format("%.1f", merchantRating),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFFFA000),
+                                        fontSize = 9.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Expiry — top-right corner
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AccessTime,
+                            contentDescription = null,
+                            modifier = Modifier.size(10.dp),
+                            tint = if (isExpiringSoon) LC_Error else LC_Outline
+                        )
+                        Text(
+                            text = expiryText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isExpiringSoon) LC_Error else LC_Outline,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
 
                 // Hero item (main title)
                 Text(
@@ -188,49 +250,31 @@ fun ListingCard(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // Pricing row
+                // Pricing row — price left, distance right
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "₹${listing.discountedPrice.toInt()}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = LC_Green
-                    )
-                    Text(
-                        text = "₹${listing.originalPrice.toInt()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        textDecoration = TextDecoration.LineThrough,
-                        color = LC_TextSub
-                    )
-                }
-
-                // Expiry + distance row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccessTime,
-                            contentDescription = null,
-                            modifier = Modifier.size(11.dp),
-                            tint = if (isExpiringSoon) LC_Error else LC_Outline
+                        Text(
+                            text = "₹${listing.discountedPrice.toInt()}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = LC_Green
                         )
                         Text(
-                            text = expiryText,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isExpiringSoon) LC_Error else LC_Outline
+                            text = "₹${listing.originalPrice.toInt()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            textDecoration = TextDecoration.LineThrough,
+                            color = LC_TextSub
                         )
                     }
 
-                    // Distance pill
+                    // Distance — lower-right, beside pricing
                     if (distanceText != null) {
                         Text(
                             text = "📍 $distanceText",

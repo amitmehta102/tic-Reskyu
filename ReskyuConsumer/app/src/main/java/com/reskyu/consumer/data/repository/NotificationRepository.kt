@@ -41,7 +41,7 @@ class NotificationRepository {
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null || snapshot == null) {
-                    trySend(devSampleNotifications())
+                    trySend(emptyList())   // error — show empty state, not fake data
                     return@addSnapshotListener
                 }
                 val notifications = snapshot.documents.mapNotNull { doc ->
@@ -56,11 +56,15 @@ class NotificationRepository {
                             isRead    = doc.getBoolean("isRead") ?: false,
                             type      = NotificationType.valueOf(
                                 doc.getString("type") ?: "SYSTEM"
-                            )
+                            ),
+                            // Populate deepLink so AlertRow can navigate to the listing
+                            deepLink  = doc.getString("listingId")
                         )
                     } catch (_: Exception) { null }
                 }
-                trySend(if (notifications.isEmpty()) devSampleNotifications() else notifications)
+                // Return actual list (may be empty) — do NOT fall back to dev samples
+                // for authenticated users; they should see an empty state
+                trySend(notifications)
             }
         awaitClose { reg.remove() }
     }

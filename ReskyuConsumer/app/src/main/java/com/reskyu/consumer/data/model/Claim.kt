@@ -36,7 +36,8 @@ data class Claim(
     val timestamp: Timestamp = Timestamp.now(),
     val status: String = "PENDING_PICKUP",
     val rating: Int = 0,
-    val quantity: Int = 1       // number of portions claimed
+    val quantity: Int = 1,          // number of portions claimed
+    val pickupDeadlineMs: Long = 0  // epoch-ms of computed pickup window end
 ) {
-    constructor() : this("", "", "", "", "", "", "", 0.0, 0.0, Timestamp.now(), "PENDING_PICKUP", 0, 1)
+    constructor() : this("", "", "", "", "", "", "", 0.0, 0.0, Timestamp.now(), "PENDING_PICKUP", 0, 1, 0)
 }

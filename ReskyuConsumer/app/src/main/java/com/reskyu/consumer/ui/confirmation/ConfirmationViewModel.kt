@@ -43,7 +43,8 @@ class ConfirmationViewModel : ViewModel() {
                         amount = claim.amount,
                         paymentId = claim.paymentId,
                         pickupByTime = formatPickupTime(
-                            claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(2)
+                            if (claim.pickupDeadlineMs > 0) claim.pickupDeadlineMs
+                            else claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(2)
                         )
                     )
                 } else {

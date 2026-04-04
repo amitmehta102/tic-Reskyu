@@ -1,5 +1,7 @@
 package com.reskyu.consumer.ui.confirmation
 
+import android.graphics.Bitmap
+import android.graphics.Color as AndroidColor
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -21,13 +23,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 import com.reskyu.consumer.ui.navigation.Screen
 
 /**
@@ -92,6 +100,7 @@ fun ConfirmationScreen(
             "Claim Confirmed! 🎉",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
+            color = Color(0xFF1F5235),   // GreenMid — on-white brand emphasis
             modifier = Modifier.alpha(bodyAlpha.value)
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -179,18 +188,11 @@ fun ConfirmationScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            // QR code placeholder — replace with real QR when backend is ready
-                            Box(
-                                modifier = Modifier
-                                    .size(96.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = RoundedCornerShape(8.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("📱", fontSize = 40.sp)
-                            }
+                            // Real QR code from claimId
+                            QrCodeImage(
+                                content = ticket.claimId,
+                                size    = 120.dp
+                            )
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 "Show this at the counter",
@@ -331,4 +333,50 @@ private fun DashedDivider() {
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 12f), 0f)
         )
     }
+}
+
+// ── QR Code ───────────────────────────────────────────────────────────────────
+
+/**
+ * Composable that renders a square QR code for [content] using ZXing.
+ * The bitmap is generated once and memoised; on error a plain grey box is shown.
+ */
+@Composable
+private fun QrCodeImage(content: String, size: Dp, modifier: Modifier = Modifier) {
+    val bitmap = remember(content) { generateQrBitmap(content, 512) }
+
+    if (bitmap != null) {
+        androidx.compose.foundation.Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = "QR Code",
+            contentScale = ContentScale.Fit,
+            modifier = modifier.size(size)
+        )
+    } else {
+        // Fallback if ZXing encoding fails
+        Box(
+            modifier = modifier
+                .size(size)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("QR", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+private fun generateQrBitmap(content: String, px: Int): Bitmap? {
+    return try {
+        val bits = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, px, px)
+        Bitmap.createBitmap(px, px, Bitmap.Config.RGB_565).also { bmp ->
+            for (x in 0 until px) {
+                for (y in 0 until px) {
+                    bmp.setPixel(x, y, if (bits[x, y]) AndroidColor.BLACK else AndroidColor.WHITE)
+                }
+            }
+        }
+    } catch (_: Exception) { null }
 }
