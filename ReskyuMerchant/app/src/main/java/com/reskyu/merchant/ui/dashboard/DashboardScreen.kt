@@ -64,6 +64,7 @@ fun DashboardScreen(
 
     Scaffold(
         containerColor = ScreenBg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.DASHBOARD) }
     ) { padding ->
         Box(

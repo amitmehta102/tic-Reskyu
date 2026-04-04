@@ -2,6 +2,7 @@ package com.reskyu.merchant.ui.auth
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,9 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.reskyu.merchant.R
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.reskyu.merchant.data.model.LoginState
@@ -155,9 +158,12 @@ fun MerchantLoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ── Hero ──────────────────────────────────────────────────────────
-            Spacer(Modifier.height(64.dp))
-            Text("🌱", fontSize = 56.sp)
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(48.dp))
+            Image(
+                painter            = painterResource(id = R.drawable.ic_reskyu_logo_login),
+                contentDescription = "Reskyu logo",
+                modifier           = Modifier.size(180.dp)
+            )
             Text(
                 "Reskyu",
                 fontSize   = 44.sp,
@@ -165,15 +171,8 @@ fun MerchantLoginScreen(
                 color      = Color.White,
                 letterSpacing = (-1).sp
             )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "MERCHANT  PORTAL",
-                fontSize   = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color      = GreenAccent.copy(alpha = 0.85f),
-                letterSpacing = 4.sp
-            )
-            Spacer(Modifier.height(40.dp))
+
+            Spacer(Modifier.height(20.dp))
 
             // ── Card ──────────────────────────────────────────────────────────
             Card(

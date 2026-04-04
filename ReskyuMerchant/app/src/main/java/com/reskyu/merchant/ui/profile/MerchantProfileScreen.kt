@@ -75,6 +75,7 @@ fun MerchantProfileScreen(
 
     Scaffold(
         containerColor = RScreenBg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.PROFILE) }
     ) { padding ->
         Box(

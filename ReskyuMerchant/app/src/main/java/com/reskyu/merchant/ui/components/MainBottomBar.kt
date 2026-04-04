@@ -1,11 +1,14 @@
 package com.reskyu.merchant.ui.components
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -18,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.reskyu.merchant.ui.navigation.Screen
-import androidx.compose.material3.Icon
 
 // ── Colors ────────────────────────────────────────────────────────────────────
 private val NavDeep       = Color(0xFF163823)
@@ -40,6 +42,10 @@ private val navItems = listOf(
 /**
  * Shared Material 3 [NavigationBar] used on all main-tab screens.
  *
+ * [windowInsets] is set to [WindowInsets.navigationBars] so the bar always
+ * accounts for the bottom gesture strip / hardware button row, even when the
+ * hosting Scaffold uses `contentWindowInsets = WindowInsets(0)`.
+ *
  * @param navController  The app [NavController] for destination changes.
  * @param currentRoute   The route of the currently active screen — used to
  *                       highlight the correct tab.
@@ -48,7 +54,8 @@ private val navItems = listOf(
 fun MainBottomBar(navController: NavController, currentRoute: String) {
     NavigationBar(
         containerColor = Color.White,
-        tonalElevation = 0.dp
+        tonalElevation = 0.dp,
+        windowInsets   = WindowInsets.navigationBars
     ) {
         navItems.forEach { item ->
             val selected = currentRoute == item.route
@@ -57,7 +64,6 @@ fun MainBottomBar(navController: NavController, currentRoute: String) {
                 onClick = {
                     if (!selected) {
                         navController.navigate(item.route) {
-                            // Pop back to Dashboard so back-stack doesn't grow unboundedly
                             popUpTo(Screen.DASHBOARD) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
