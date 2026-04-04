@@ -16,3 +16,7 @@ local.properties
 
 # Gemini API key — never commit
 app/src/main/res/values/secrets.xml
+
+# Release build APKs
+app/build/outputs/apk/release/
+*.apk

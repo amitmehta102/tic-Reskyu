@@ -103,6 +103,9 @@ dependencies {
     // Google Play Services — Location (FusedLocationProviderClient for GPS)
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
+    // OSMDroid — free OpenStreetMap tiles for the onboarding location picker (no API key)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+
     // MPAndroidChart (used by EsgAnalyticsScreen weekly bar chart)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 

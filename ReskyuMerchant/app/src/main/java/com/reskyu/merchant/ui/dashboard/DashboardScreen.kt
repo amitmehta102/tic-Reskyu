@@ -65,6 +65,7 @@ fun DashboardScreen(
     Scaffold(
         containerColor = ScreenBg,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = { DashboardHeader(stats = stats, merchant = merchant, navController = navController) },
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.DASHBOARD) }
     ) { padding ->
         Box(
@@ -74,10 +75,7 @@ fun DashboardScreen(
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-                // ── Hero header ───────────────────────────────────────────────
-                item { DashboardHeader(stats = stats, merchant = merchant, navController = navController) }
-
-                // ── Body ─────────────────────────────────────────────────────
+                // ── Body ─────────────────────────────────────────────
                 item {
                     Column(
                         modifier = Modifier
@@ -126,21 +124,33 @@ fun DashboardScreen(
                             title      = "Post New Listing",
                             subtitle   = "Create a food-drop for today",
                             accentColor = GreenAccent,
-                            onClick    = { navController.navigate(Screen.POST_LISTING) }
+                            onClick    = {
+                                navController.navigate(Screen.POST_LISTING) {
+                                    launchSingleTop = true
+                                }
+                            }
                         )
                         ActionCard(
                             emoji      = "📋",
                             title      = "Manage Orders",
                             subtitle   = "Review pending & completed claims",
                             accentColor = Color(0xFF457B9D),
-                            onClick    = { navController.navigate(Screen.ORDER_MANAGEMENT) }
+                            onClick    = {
+                                navController.navigate(Screen.ORDER_MANAGEMENT) {
+                                    launchSingleTop = true
+                                }
+                            }
                         )
                         ActionCard(
                             emoji      = "🌱",
                             title      = "ESG Impact",
                             subtitle   = "Track your environmental contribution",
                             accentColor = Color(0xFF2D6A4F),
-                            onClick    = { navController.navigate(Screen.ESG_ANALYTICS) }
+                            onClick    = {
+                                navController.navigate(Screen.ESG_ANALYTICS) {
+                                    launchSingleTop = true
+                                }
+                            }
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))

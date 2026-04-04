@@ -1,10 +1,12 @@
 package com.reskyu.merchant
 
 import android.app.Application
+import android.preference.PreferenceManager
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.reskyu.merchant.service.ListingExpiryWorker
+import org.osmdroid.config.Configuration
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,6 +21,12 @@ class MerchantApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // ── OSMDroid — required before any map view is shown ──────────────────
+        Configuration.getInstance().apply {
+            load(this@MerchantApplication, PreferenceManager.getDefaultSharedPreferences(this@MerchantApplication))
+            userAgentValue = "ReskyuMerchantApp/1.0"
+        }
 
         // ── Schedule background listing expiry (15 min repeat) ────────────────
         val expiryRequest = PeriodicWorkRequestBuilder<ListingExpiryWorker>(

@@ -20,14 +20,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.github.mikephil.charting.charts.BarChart
-import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.reskyu.merchant.data.model.SurplusIqResult
 import com.reskyu.merchant.ui.components.LoadingOverlay
@@ -62,6 +58,7 @@ fun EsgAnalyticsScreen(
     val isLoading       by viewModel.isLoading.collectAsState()
     val isNewRestaurant by viewModel.isNewRestaurant.collectAsState()
     val surplusIq       by viewModel.surplusIq.collectAsState()
+    val demand          by viewModel.demand.collectAsState()
 
     val merchantId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
 
@@ -70,6 +67,12 @@ fun EsgAnalyticsScreen(
     Scaffold(
         containerColor = RScreenBg,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            ReskyuHeader(
+                title    = "🌱 ESG Impact",
+                subtitle = "Your environmental contribution"
+            )
+        },
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.ESG_ANALYTICS) }
     ) { padding ->
         Box(
@@ -78,14 +81,6 @@ fun EsgAnalyticsScreen(
                 .padding(padding)
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-
-                // ── Header ───────────────────────────────────────────────────────────────
-                item {
-                    ReskyuHeader(
-                        title    = "🌱 ESG Impact",
-                        subtitle = "Your environmental contribution"
-                    )
-                }
 
                 // ── Body ──────────────────────────────────────────────────────
                 item {
@@ -105,11 +100,28 @@ fun EsgAnalyticsScreen(
                         ) {
                             // ① SurplusIQ
                             SurplusIqSection(
-                                state   = surplusIq,
-                                onRetry = { viewModel.retryPrediction(merchantId) }
+                                state         = surplusIq,
+                                navController = navController,
+                                onRetry       = { viewModel.retryPrediction(merchantId) }
                             )
 
-                            // ② Metric grid
+                            // ② Local Demand Intelligence
+                            LocalDemandSection(
+                                state     = demand,
+                                onRefresh = { viewModel.refreshDemand(merchantId) }
+                            )
+
+                            // ③ Sell Everything Mode
+                            val sellEverythingState by viewModel.sellEverything.collectAsState()
+                            SellEverythingSection(
+                                state = sellEverythingState,
+                                onActivate = { viewModel.requestSellEverythingConfirmation() },
+                                onConfirm = { viewModel.confirmAndApplySellEverything(merchantId) },
+                                onCancel = { viewModel.cancelSellEverythingConfirmation() },
+                                onRetry = { viewModel.retrySellEverything(merchantId) }
+                            )
+
+                            // ④ Metric grid
                             SectionLabel("Total Impact")
                             Row(
                                 modifier              = Modifier.fillMaxWidth(),
@@ -136,15 +148,7 @@ fun EsgAnalyticsScreen(
                                 TopSellingItemsCard(items = stats.topSellingItems)
                             }
 
-                            // ④ Daily Revenue chart
-                            SectionLabel("Daily Revenue (₹)")
-                            RevenueBarChart(weeklyRevenue = stats.weeklyRevenue)
-
-                            // ⑤ Sales Loss Recovery Rate
-                            SectionLabel("Sales Loss Recovery Rate")
-                            RecoveryRateChart(recoveryRate = stats.recoveryRateWeekly)
-
-                            // ⑥ Order Outcome breakdown
+                            // ④ Order Outcome breakdown
                             SectionLabel("Order Outcomes")
                             OrderOutcomeCard(
                                 completed = stats.completedOrders,
@@ -217,12 +221,16 @@ private fun NewRestaurantEmptyState() {
 
 @Composable
 private fun SurplusIqSection(
-    state:   SurplusIqUiState,
-    onRetry: () -> Unit
+    state:         SurplusIqUiState,
+    navController: NavController,
+    onRetry:       () -> Unit
 ) {
     when (state) {
         is SurplusIqUiState.Loading       -> SurplusIqLoading()
-        is SurplusIqUiState.Success       -> SurplusIqCard(result = state.result)
+        is SurplusIqUiState.Success       -> SurplusIqCard(
+                                                result        = state.result,
+                                                navController = navController
+                                            )
         is SurplusIqUiState.NewRestaurant -> SurplusIqNewRestaurant(state)
         is SurplusIqUiState.Error         -> SurplusIqError(message = state.message, onRetry = onRetry)
     }
@@ -261,11 +269,7 @@ private fun SurplusIqLoading() {
                     fontWeight = FontWeight.SemiBold,
                     color      = Color.White
                 )
-                Text(
-                    text     = "Powered by Gemini 2.0 Flash",
-                    fontSize = 11.sp,
-                    color    = Color.White.copy(alpha = 0.45f)
-                )
+
             }
         }
     }
@@ -356,7 +360,7 @@ private fun SurplusIqNewRestaurant(state: SurplusIqUiState.NewRestaurant) {
 
 // Success state
 @Composable
-private fun SurplusIqCard(result: SurplusIqResult) {
+private fun SurplusIqCard(result: SurplusIqResult, navController: NavController) {
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(18.dp),
@@ -382,11 +386,7 @@ private fun SurplusIqCard(result: SurplusIqResult) {
                         letterSpacing = 1.5.sp,
                         fontWeight    = FontWeight.Bold
                     )
-                    Text(
-                        text     = "Powered by Gemini 2.0 Flash",
-                        fontSize = 11.sp,
-                        color    = Color.White.copy(alpha = 0.45f)
-                    )
+
                 }
             }
 
@@ -456,6 +456,31 @@ private fun SurplusIqCard(result: SurplusIqResult) {
                         )
                     }
                 }
+            }
+
+            // ── Create Surplus Listing CTA ────────────────────────────────
+            Button(
+                onClick = {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("prefill_meals", result.predictedMeals)
+                    navController.navigate(Screen.POST_LISTING)
+                },
+                modifier       = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape          = RoundedCornerShape(14.dp),
+                colors         = ButtonDefaults.buttonColors(
+                    containerColor = GreenAccent,
+                    contentColor   = Color.White
+                )
+            ) {
+                Text(
+                    text       = "🚀  Create Surplus Listing",
+                    fontSize   = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.3.sp
+                )
             }
 
             // Confidence bar
@@ -792,6 +817,233 @@ private fun TopSellingItemsCard(items: Map<String, Int>) {
     }
 }
 
+// ── Local Demand Intelligence Section ───────────────────────────────────
+
+@Composable
+private fun LocalDemandSection(
+    state:     DemandUiState,
+    onRefresh: () -> Unit
+) {
+    SectionLabel("Local Demand Status")
+    when (state) {
+        is DemandUiState.Idle,
+        is DemandUiState.Loading -> LocalDemandLoading()
+        is DemandUiState.Success -> LocalDemandCard(result = state.result, onRefresh = onRefresh)
+        is DemandUiState.Error   -> LocalDemandError(message = state.message, onRefresh = onRefresh)
+    }
+}
+
+@Composable
+private fun LocalDemandLoading() {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFF1B4332)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Row(
+            modifier              = Modifier.padding(20.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CircularProgressIndicator(
+                color       = GreenAccent,
+                modifier    = Modifier.size(28.dp),
+                strokeWidth = 2.5.dp
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text          = "LOCAL DEMAND",
+                    fontSize      = 10.sp,
+                    color         = GreenLight,
+                    letterSpacing = 1.5.sp,
+                    fontWeight    = FontWeight.Bold
+                )
+                Text(
+                    text       = "Scanning nearby listings…",
+                    fontSize   = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = Color.White
+                )
+
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocalDemandCard(
+    result:    com.reskyu.merchant.data.model.DemandResult,
+    onRefresh: () -> Unit
+) {
+    // Colour scheme based on demand level
+    val level        = result.demandLevel.uppercase()
+    val cardBg       = when (level) {
+        "HIGH"   -> Color(0xFF0D2B1A)
+        "MEDIUM" -> Color(0xFF1E2910)
+        else     -> Color(0xFF1A1E20)
+    }
+    val levelColor   = when (level) {
+        "HIGH"   -> Color(0xFF52B788)
+        "MEDIUM" -> Color(0xFFF4A261)
+        else     -> Color(0xFF9CA3AF)
+    }
+    val levelEmoji   = when (level) {
+        "HIGH"   -> "🔴"
+        "MEDIUM" -> "🟡"
+        else     -> "⚪"
+    }
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        colors    = CardDefaults.cardColors(containerColor = cardBg),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+
+            // ── Header row ────────────────────────────────────────────
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(text = "📡", fontSize = 24.sp)
+                    Column {
+                        Text(
+                            text          = "LOCAL DEMAND",
+                            fontSize      = 10.sp,
+                            color         = GreenLight,
+                            letterSpacing = 1.5.sp,
+                            fontWeight    = FontWeight.Bold
+                        )
+
+                    }
+                }
+                TextButton(onClick = onRefresh) {
+                    Text(
+                        text       = "Refresh",
+                        fontSize   = 12.sp,
+                        color      = GreenAccent,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // ── Demand level badge ─────────────────────────────────────
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(levelColor.copy(alpha = 0.18f))
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(text = levelEmoji, fontSize = 16.sp)
+                        Text(
+                            text       = level,
+                            fontSize   = 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color      = levelColor,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+                Text(
+                    text     = "demand in your area",
+                    fontSize = 13.sp,
+                    color    = Color.White.copy(alpha = 0.65f)
+                )
+            }
+
+            // ── Insight chips ────────────────────────────────────────
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (result.bestAction.isNotBlank()) {
+                    InsightChip(
+                        emoji = "🎯",
+                        label = "Suggested action",
+                        value = result.bestAction
+                    )
+                }
+                if (result.bestListingWindow.isNotBlank()) {
+                    InsightChip(
+                        emoji = "⏱",
+                        label = "Best window",
+                        value = result.bestListingWindow
+                    )
+                }
+                if (result.reason.isNotBlank()) {
+                    InsightChip(
+                        emoji = "💬",
+                        label = "Why",
+                        value = result.reason
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocalDemandError(message: String, onRefresh: () -> Unit) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFF1A1E20)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                modifier              = Modifier.weight(1f)
+            ) {
+                Text("📡", fontSize = 24.sp)
+                Column {
+                    Text(
+                        text          = "LOCAL DEMAND",
+                        fontSize      = 10.sp,
+                        color         = GreenLight,
+                        letterSpacing = 1.sp,
+                        fontWeight    = FontWeight.Bold
+                    )
+                    Text(
+                        text  = "Demand signal unavailable",
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+            TextButton(onClick = onRefresh) {
+                Text(
+                    text       = "Retry",
+                    color      = GreenAccent,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
 // ── Revenue Bar Chart ──────────────────────────────────────────────────────────
 
 @Composable
@@ -862,104 +1114,7 @@ private fun BarChart.applyRevenueStyle(data: List<Float>) {
     invalidate()
 }
 
-// ── Sales Loss Recovery Rate Line Chart ───────────────────────────────────────
 
-@Composable
-private fun RecoveryRateChart(recoveryRate: List<Float>) {
-    val safeData = remember(recoveryRate) {
-        List(7) { i -> recoveryRate.getOrElse(i) { 0f } }
-    }
-
-    Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                Text(
-                    text       = "% of loss successfully recovered",
-                    fontSize   = 12.sp,
-                    color      = Color(0xFF9CA3AF),
-                    fontWeight = FontWeight.Medium
-                )
-                val avg = if (safeData.all { it == 0f }) 0 else safeData.average().toInt()
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF2D6A4F).copy(alpha = 0.10f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text     = "Avg $avg%",
-                        fontSize = 11.sp,
-                        color    = Color(0xFF2D6A4F)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            AndroidView(
-                factory = { ctx -> LineChart(ctx).apply { applyRecoveryStyle(safeData) } },
-                update  = { chart -> chart.applyRecoveryStyle(safeData) },
-                modifier = Modifier.fillMaxWidth().height(190.dp)
-            )
-        }
-    }
-}
-
-private fun LineChart.applyRecoveryStyle(data: List<Float>) {
-    val entries = data.mapIndexed { i, v -> Entry(i.toFloat(), v) }
-    val dataSet = LineDataSet(entries, "").apply {
-        color               = AndroidColor.parseColor("#52B788")
-        lineWidth           = 2.5f
-        circleRadius        = 4f
-        setCircleColor(AndroidColor.parseColor("#52B788"))
-        circleHoleColor     = AndroidColor.WHITE
-        circleHoleRadius    = 2f
-        setDrawValues(false)
-        setDrawFilled(true)
-        fillColor           = AndroidColor.parseColor("#52B788")
-        fillAlpha           = 35
-        mode                = LineDataSet.Mode.CUBIC_BEZIER
-        highLightColor      = AndroidColor.parseColor("#2D6A4F")
-    }
-    this.data = LineData(dataSet)
-
-    description.isEnabled = false
-    legend.isEnabled      = false
-    setDrawGridBackground(false)
-    setDrawBorders(false)
-    setTouchEnabled(false)
-    setScaleEnabled(false)
-    setBackgroundColor(AndroidColor.TRANSPARENT)
-    extraBottomOffset = 4f
-
-    xAxis.apply {
-        position       = XAxis.XAxisPosition.BOTTOM
-        setDrawGridLines(false)
-        setDrawAxisLine(false)
-        granularity    = 1f
-        valueFormatter = IndexAxisValueFormatter(DAY_LABELS)
-        textColor      = AndroidColor.parseColor("#9CA3AF")
-        textSize       = 10f
-    }
-    axisLeft.apply {
-        setDrawGridLines(true)
-        gridColor      = AndroidColor.parseColor("#F3F4F6")
-        setDrawAxisLine(false)
-        textColor      = AndroidColor.parseColor("#9CA3AF")
-        textSize       = 10f
-        axisMinimum    = 0f
-        axisMaximum    = 105f
-    }
-    axisRight.isEnabled = false
-    invalidate()
-}
 
 // ── Order Outcome Breakdown Card ───────────────────────────────────────────────
 
@@ -1085,5 +1240,271 @@ private fun OrderOutcomeCard(completed: Int, disputed: Int) {
                 )
             }
         }
+    }
+}
+
+// ── Sell Everything Mode Section ─────────────────────────────────────────────
+
+@Composable
+private fun SellEverythingSection(
+    state: SellEverythingUiState,
+    onActivate: () -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    onRetry: () -> Unit
+) {
+    SectionLabel("Sell Everything Mode")
+
+    when (state) {
+        is SellEverythingUiState.Idle -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F4F6)),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                }
+            }
+        }
+        is SellEverythingUiState.FetchingStrategy -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)), //Amber 100
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(color = Color(0xFFD97706), modifier = Modifier.size(24.dp))
+                    Text("AI is strategising...", color = Color(0xFF92400E), fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+        is SellEverythingUiState.NotTriggered -> SellEverythingNotTriggeredCard(state.minutesUntilClose)
+        is SellEverythingUiState.NoListings -> SellEverythingNoListingsCard()
+        is SellEverythingUiState.Ready -> SellEverythingReadyCard(state, onActivate)
+        is SellEverythingUiState.Confirming -> {
+            SellEverythingReadyCard(state = SellEverythingUiState.Ready(state.result, state.mealsLeft, state.minutesUntilClose), onActivate = {})
+            AlertDialog(
+                onDismissRequest = onCancel,
+                title = { Text("Activate Sell Everything Mode?") },
+                text = { Text("This will apply a ${state.result.discountPercentage}% discount to your active listings and auto-create a ${state.result.bundleMeals}-meal bundle listing priced at ₹${state.result.bundlePrice.toInt()}.") },
+                confirmButton = {
+                    TextButton(onClick = onConfirm) {
+                        Text("Confirm & Apply", color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onCancel) {
+                        Text("Cancel", color = Color.Gray)
+                    }
+                }
+            )
+        }
+        is SellEverythingUiState.Applying -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(color = Color(0xFFD97706), modifier = Modifier.size(24.dp))
+                    Text("Applying discounts & bundles...", color = Color(0xFF92400E), fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+        is SellEverythingUiState.Applied -> SellEverythingAppliedCard(state)
+        is SellEverythingUiState.Error -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(state.message, color = Color(0xFFB91C1C))
+                    TextButton(onClick = onRetry) {
+                        Text("Retry", color = Color(0xFFB91C1C), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SellEverythingNotTriggeredCard(minutes: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF3F4F6)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🤫", fontSize = 20.sp)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Sell Everything Mode",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF374151)
+                )
+                if (minutes < 0) {
+                     Text("Set closing time in profile to use.", fontSize = 12.sp, color = Color.Gray)
+                } else {
+                     Text("Activates 90 mins before closing. ($minutes mins left)", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SellEverythingNoListingsCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+             Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF3F4F6)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🤷", fontSize = 20.sp)
+            }
+            Column {
+                Text("Sell Everything Mode", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF374151))
+                Text("No active listings to sell out.", fontSize = 12.sp, color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SellEverythingReadyCard(state: SellEverythingUiState.Ready, onActivate: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)), // Light amber
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                 modifier = Modifier.fillMaxWidth(),
+                 horizontalArrangement = Arrangement.SpaceBetween,
+                 verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("🔥", fontSize = 24.sp)
+                    Text("SELL EVERYTHING", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFFD97706), letterSpacing = 1.sp)
+                }
+                Box(
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFFFEF3C7)).padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text("${state.minutesUntilClose} mins left", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("AI Strategy for remaining ${state.mealsLeft} meals:", fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                StrategyItem("💸", "Apply ${state.result.discountPercentage}% discount to all active listings")
+                StrategyItem("📦", "Create Bundle: ${state.result.bundleMeals} meals for ₹${state.result.bundlePrice.toInt()}")
+                if (state.result.pushRequired) {
+                    StrategyItem("📣", "Send push: \"${state.result.urgencyMessage}\"")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = onActivate,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
+            ) {
+                Text("Activate Strategy", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SellEverythingAppliedCard(state: SellEverythingUiState.Applied) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFECFDF5)), // Light emerald
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFD1FAE5)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✅", fontSize = 20.sp)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Sell Everything Active",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF065F46)
+                )
+                Text("${state.result.discountPercentage}% discount and bundle applied.", fontSize = 12.sp, color = Color(0xFF059669))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrategyItem(emoji: String, text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.White.copy(alpha=0.6f)).padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(emoji, fontSize = 16.sp)
+        Text(text, fontSize = 13.sp, color = Color(0xFF4B5563), fontWeight = FontWeight.Medium)
     }
 }

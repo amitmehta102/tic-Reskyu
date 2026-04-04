@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -64,8 +65,13 @@ fun MerchantSplashScreen(
         )
     }
 
+    // Guard: only navigate once — prevents re-triggering if authState recomposes
+    // or if the StateFlow briefly resets (e.g. WhileSubscribed restart).
+    val navigated = remember { mutableStateOf(false) }
+
     LaunchedEffect(authState) {
-        if (authState !is MerchantAuthState.Loading) {
+        if (!navigated.value && authState !is MerchantAuthState.Loading) {
+            navigated.value = true
             delay(MIN_SPLASH_MS)
             val destination = when (authState) {
                 is MerchantAuthState.Authenticated   -> Screen.DASHBOARD

@@ -16,7 +16,7 @@ class MerchantSplashViewModel : ViewModel() {
     val authState: StateFlow<MerchantAuthState> = authRepository.observeAuthState()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            started = SharingStarted.Eagerly,   // Never restart — auth state must stay stable
             initialValue = MerchantAuthState.Loading
         )
 }

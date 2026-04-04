@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.reskyu.merchant.data.model.ClaimTab
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
@@ -58,14 +59,20 @@ fun OrderManagementScreen(
 
     LaunchedEffect(Unit) { viewModel.loadClaims(merchantId) }
 
-    // Handle QR scan result from the back stack
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    LaunchedEffect(Unit) {
-        savedStateHandle?.getStateFlow<String?>("qr_result", null)
+    // Handle QR scan result from the back stack.
+    // IMPORTANT: use currentBackStackEntryAsState() so we always hold a live
+    // reference to the current entry. Keying the LaunchedEffect on the entry
+    // itself ensures the collector is restarted if the entry changes (e.g. after
+    // tab switching with restoreState), preventing stale-handle bugs where the
+    // old collector keeps running on a dead back-stack entry.
+    val currentEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(currentEntry) {
+        currentEntry?.savedStateHandle
+            ?.getStateFlow<String?>("qr_result", null)
             ?.collect { raw ->
                 raw?.let {
                     viewModel.scanAndComplete(it, merchantId)
-                    savedStateHandle["qr_result"] = null
+                    currentEntry?.savedStateHandle?.set("qr_result", null)
                 }
             }
     }

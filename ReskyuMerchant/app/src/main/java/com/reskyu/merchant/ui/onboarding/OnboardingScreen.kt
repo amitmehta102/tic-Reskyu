@@ -9,10 +9,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,11 +25,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -39,6 +45,11 @@ import com.reskyu.merchant.ui.theme.RGreenDeep
 import com.reskyu.merchant.ui.theme.RGreenLight
 import com.reskyu.merchant.ui.theme.RGreenMid
 import kotlinx.coroutines.launch
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
 private val GreenDark   = RGreenDark
@@ -57,7 +68,7 @@ private val PAGE_META = listOf(
     PageMeta("✅", "You're all set!",                 "Review your details and go live")
 )
 
-private val CLOSING_PRESETS = listOf("6 PM", "8 PM", "10 PM", "12 AM")
+
 
 /**
  * Multi-step onboarding (4 pages) using [HorizontalPager].
@@ -70,14 +81,14 @@ fun OnboardingScreen(
     navController: NavController,
     viewModel: OnboardingViewModel = viewModel()
 ) {
-    val draft     by viewModel.draft.collectAsState()
-    val saveState by viewModel.saveState.collectAsState()
+    val draft        by viewModel.draft.collectAsState()
+    val saveState    by viewModel.saveState.collectAsState()
+    val locationState by viewModel.locationState.collectAsState()
+    val mapCenter    by viewModel.mapCenter.collectAsState()
 
-    val pagerState    = rememberPagerState(pageCount = { PAGE_META.size })
+    val pagerState     = rememberPagerState(pageCount = { PAGE_META.size })
     val coroutineScope = rememberCoroutineScope()
-
-    val context           = LocalContext.current
-    val locationState     by viewModel.locationState.collectAsState()
+    val context        = LocalContext.current
 
     var businessNameInput by remember { mutableStateOf("") }
     var closingTimeInput  by remember { mutableStateOf("") }
@@ -87,7 +98,6 @@ fun OnboardingScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) viewModel.fetchLocation(context)
-        // if denied, locationState stays Idle — user can still skip
     }
 
     // Navigate to Dashboard once onboarding save succeeds
@@ -185,18 +195,16 @@ fun OnboardingScreen(
                         meta          = PAGE_META[0]
                     )
                     1 -> StepLocation(
-                        locationState  = locationState,
-                        onLocationPick = {
+                        locationState   = locationState,
+                        mapCenter       = mapCenter,
+                        onMapMoved      = { lat, lng -> viewModel.onMapCenterChanged(lat, lng) },
+                        onConfirmMap    = { lat, lng -> viewModel.reverseGeocode(lat, lng) },
+                        onGpsClick      = {
                             val hasPerm = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.ACCESS_FINE_LOCATION
+                                context, Manifest.permission.ACCESS_FINE_LOCATION
                             ) == PackageManager.PERMISSION_GRANTED
-
-                            if (hasPerm) {
-                                viewModel.fetchLocation(context)
-                            } else {
-                                locationPermLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                            }
+                            if (hasPerm) viewModel.fetchLocation(context)
+                            else locationPermLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                         },
                         meta = PAGE_META[1]
                     )
@@ -328,11 +336,52 @@ private fun PageShell(
     }
 }
 
+// ── Compact page shell — keyboard-safe, scrollable (used for input slides) ──────
+
+@Composable
+private fun CompactPageShell(
+    meta:    PageMeta,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier            = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Spacer(Modifier.height(8.dp))
+        Text(text = meta.emoji, fontSize = 48.sp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text       = meta.title,
+                fontSize   = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color      = Color.White,
+                textAlign  = TextAlign.Center,
+                lineHeight = 30.sp
+            )
+            Text(
+                text      = meta.subtitle,
+                fontSize  = 14.sp,
+                color     = Color.White.copy(alpha = 0.58f),
+                textAlign = TextAlign.Center
+            )
+        }
+        content()
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
 // ── Step 0: Business Name ─────────────────────────────────────────────────────
 
 @Composable
 private fun StepBusinessName(value: String, onValueChange: (String) -> Unit, meta: PageMeta) {
-    PageShell(meta = meta) {
+    CompactPageShell(meta = meta) {
         OutlinedTextField(
             value         = value,
             onValueChange = onValueChange,
@@ -350,155 +399,198 @@ private fun StepBusinessName(value: String, onValueChange: (String) -> Unit, met
 @Composable
 private fun StepLocation(
     locationState: LocationState,
-    onLocationPick: () -> Unit,
-    meta: PageMeta
+    mapCenter:     Pair<Double, Double>,
+    onMapMoved:    (Double, Double) -> Unit,
+    onConfirmMap:  (Double, Double) -> Unit,
+    onGpsClick:    () -> Unit,
+    meta:          PageMeta
 ) {
-    PageShell(meta = meta) {
-        when (locationState) {
+    val isFetching = locationState is LocationState.Fetching
 
-            // ── Idle: show the button ─────────────────────────────────────────
-            LocationState.Idle -> {
-                Button(
-                    onClick  = onLocationPick,
-                    shape    = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors   = ButtonDefaults.buttonColors(
-                        containerColor = Color.White.copy(alpha = 0.12f),
-                        contentColor   = Color.White
-                    )
-                ) {
-                    Icon(
-                        imageVector        = Icons.Rounded.LocationOn,
-                        contentDescription = null,
-                        modifier           = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Use My Location", fontWeight = FontWeight.SemiBold)
-                }
+    Column(
+        modifier            = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Spacer(Modifier.height(4.dp))
+
+        // ── Compact header ────────────────────────────────────────────────────
+        Column(
+            modifier            = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(text = meta.emoji, fontSize = 40.sp)
+            Text(
+                text       = meta.title,
+                fontSize   = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color      = Color.White,
+                textAlign  = TextAlign.Center,
+                lineHeight = 28.sp
+            )
+            Text(
+                text      = meta.subtitle,
+                fontSize  = 13.sp,
+                color     = Color.White.copy(alpha = 0.58f),
+                textAlign = TextAlign.Center
+            )
+        }
+
+        // ── OSMDroid map with fixed crosshair ─────────────────────────────────
+        Box(
+            modifier        = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .clip(RoundedCornerShape(16.dp))
+        ) {
+            AndroidView(
+                factory = { ctx ->
+                    MapView(ctx).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        setMultiTouchControls(true)
+                        isTilesScaledToDpi = true
+                        controller.setZoom(if (mapCenter == Pair(20.5937, 78.9629)) 5.0 else 15.0)
+                        controller.setCenter(GeoPoint(mapCenter.first, mapCenter.second))
+                        addMapListener(object : org.osmdroid.events.MapListener {
+                            override fun onScroll(event: org.osmdroid.events.ScrollEvent?): Boolean {
+                                val c = this@apply.mapCenter
+                                onMapMoved(c.latitude, c.longitude)
+                                return false
+                            }
+                            override fun onZoom(event: org.osmdroid.events.ZoomEvent?) = false
+                        })
+                    }
+                },
+                update = { mapView ->
+                    val curLat = mapView.mapCenter.latitude
+                    val curLng = mapView.mapCenter.longitude
+                    val dLat   = Math.abs(curLat - mapCenter.first)
+                    val dLng   = Math.abs(curLng - mapCenter.second)
+                    if (dLat > 0.0005 || dLng > 0.0005) {
+                        mapView.controller.animateTo(GeoPoint(mapCenter.first, mapCenter.second))
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Fixed crosshair pin at center
+            Text(
+                text     = "⊕",
+                fontSize = 28.sp,
+                color    = Color(0xFFE63946),
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+
+        // ── Address pill (shown when captured) ────────────────────────────────
+        if (locationState is LocationState.Captured) {
+            Row(
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(GreenAccent.copy(alpha = 0.16f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector        = Icons.Rounded.LocationOn,
+                    contentDescription = null,
+                    tint               = GreenAccent,
+                    modifier           = Modifier.size(18.dp)
+                )
                 Text(
-                    text      = "Enables geo-based listing discovery for nearby customers.",
-                    fontSize  = 12.sp,
-                    color     = Color.White.copy(alpha = 0.45f),
-                    textAlign = TextAlign.Center,
-                    modifier  = Modifier.fillMaxWidth()
+                    text       = locationState.display,
+                    fontSize   = 13.sp,
+                    color      = Color.White,
+                    fontWeight = FontWeight.Medium
                 )
             }
+        }
 
-            // ── Fetching: spinner ─────────────────────────────────────────────
-            LocationState.Fetching -> {
-                Row(
-                    modifier              = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White.copy(alpha = 0.09f))
-                        .padding(16.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier    = Modifier.size(20.dp),
-                        color       = GreenAccent,
-                        strokeWidth = 2.5.dp
-                    )
-                    Text(
-                        text     = "Getting your location…",
-                        fontSize = 14.sp,
-                        color    = Color.White.copy(alpha = 0.75f)
-                    )
-                }
-            }
-
-            // ── Captured: success card ────────────────────────────────────────
-            is LocationState.Captured -> {
-                Row(
-                    modifier              = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(GreenAccent.copy(alpha = 0.16f))
-                        .padding(16.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("📍", fontSize = 24.sp)
-                    Column {
-                        Text(
-                            text       = "Location confirmed!",
-                            fontWeight = FontWeight.SemiBold,
-                            color      = GreenAccent
-                        )
-                        Text(
-                            text     = locationState.display,
-                            fontSize = 12.sp,
-                            color    = Color.White.copy(alpha = 0.65f)
-                        )
-                    }
-                }
-            }
-
-            // ── Error: retry option ───────────────────────────────────────────
-            is LocationState.Error -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier              = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFE63946).copy(alpha = 0.12f))
-                            .padding(14.dp),
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text("⚠️", fontSize = 20.sp)
-                        Text(
-                            text     = locationState.msg,
-                            fontSize = 13.sp,
-                            color    = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-                    TextButton(onClick = onLocationPick) {
-                        Text(
-                            text       = "Try again",
-                            color      = GreenAccent,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+        // ── Confirm button ────────────────────────────────────────────────────
+        Button(
+            onClick  = { onConfirmMap(mapCenter.first, mapCenter.second) },
+            enabled  = !isFetching,
+            shape    = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors   = ButtonDefaults.buttonColors(
+                containerColor         = GreenAccent,
+                contentColor           = Color.White,
+                disabledContainerColor = GreenAccent.copy(alpha = 0.35f),
+                disabledContentColor   = Color.White.copy(alpha = 0.5f)
+            )
+        ) {
+            if (isFetching) {
+                CircularProgressIndicator(
+                    modifier    = Modifier.size(18.dp),
+                    color       = Color.White,
+                    strokeWidth = 2.dp
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Getting address…", fontWeight = FontWeight.SemiBold)
+            } else {
+                Text("✓  Confirm this location", fontWeight = FontWeight.SemiBold)
             }
         }
+
+        // ── GPS snap button ───────────────────────────────────────────────────
+        OutlinedButton(
+            onClick  = onGpsClick,
+            enabled  = !isFetching,
+            shape    = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth().height(46.dp),
+            colors   = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+            border   = ButtonDefaults.outlinedButtonBorder.copy(
+                brush = SolidColor(Color.White.copy(alpha = 0.35f))
+            )
+        ) {
+            Icon(Icons.Rounded.LocationOn, null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Snap to GPS", fontSize = 14.sp)
+        }
+
+        Spacer(Modifier.height(4.dp))
     }
 }
 
+
 // ── Step 2: Closing Time ──────────────────────────────────────────────────────
+
+private val CLOSING_PRESETS = listOf("7 PM", "8 PM", "9 PM", "10 PM", "11 PM", "12 AM")
 
 @Composable
 private fun StepClosingTime(value: String, onValueChange: (String) -> Unit, meta: PageMeta) {
-    PageShell(meta = meta) {
-        // Quick-pick chips
-        Row(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            CLOSING_PRESETS.forEach { preset ->
-                val isSelected = value == preset
-                FilterChip(
-                    selected = isSelected,
-                    onClick  = { onValueChange(preset) },
-                    label    = { Text(preset, fontSize = 12.sp) },
-                    colors   = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = GreenAccent.copy(alpha = 0.22f),
-                        selectedLabelColor     = Color.White,
-                        containerColor         = Color.White.copy(alpha = 0.08f),
-                        labelColor             = Color.White.copy(alpha = 0.65f)
-                    ),
-                    border   = FilterChipDefaults.filterChipBorder(
-                        enabled             = true,
-                        selected            = isSelected,
-                        selectedBorderColor = GreenAccent,
-                        borderColor         = Color.White.copy(alpha = 0.20f)
+    CompactPageShell(meta = meta) {
+        // Two rows of 3 chips — equal width, no overflow
+        listOf(CLOSING_PRESETS.take(3), CLOSING_PRESETS.drop(3)).forEach { rowPresets ->
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowPresets.forEach { preset ->
+                    val isSelected = value == preset
+                    FilterChip(
+                        selected = isSelected,
+                        onClick  = { onValueChange(preset) },
+                        label    = { Text(preset, fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        colors   = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = GreenAccent.copy(alpha = 0.22f),
+                            selectedLabelColor     = Color.White,
+                            containerColor         = Color.White.copy(alpha = 0.08f),
+                            labelColor             = Color.White.copy(alpha = 0.65f)
+                        ),
+                        border   = FilterChipDefaults.filterChipBorder(
+                            enabled             = true,
+                            selected            = isSelected,
+                            selectedBorderColor = GreenAccent,
+                            borderColor         = Color.White.copy(alpha = 0.20f)
+                        )
                     )
-                )
+                }
             }
         }
 
@@ -506,7 +598,7 @@ private fun StepClosingTime(value: String, onValueChange: (String) -> Unit, meta
         OutlinedTextField(
             value         = value,
             onValueChange = onValueChange,
-            label         = { Text("Or enter custom time") },
+            label         = { Text("Or type a custom time, e.g. 9:30 PM") },
             modifier      = Modifier.fillMaxWidth(),
             singleLine    = true,
             shape         = RoundedCornerShape(14.dp),
@@ -520,24 +612,21 @@ private fun StepClosingTime(value: String, onValueChange: (String) -> Unit, meta
 @Composable
 private fun StepConfirm(draft: MerchantDraft, locationState: LocationState, meta: PageMeta) {
     PageShell(meta = meta) {
+        val locationDisplay = when {
+            locationState is LocationState.Captured -> locationState.display
+            draft.lat != 0.0 -> "%.4f°, %.4f°".format(draft.lat, draft.lng)
+            else             -> "Not set"
+        }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            ConfirmRow("🏢", "Business Name", draft.businessName.ifBlank { "Not entered" })
-
-            // Show real GPS display from locationState, falling back to geohash hint, then "Not set"
-            val locationDisplay = when {
-                locationState is LocationState.Captured -> locationState.display
-                draft.lat != 0.0 -> "%.4f°, %.4f°".format(draft.lat, draft.lng)
-                else -> "Not set"
-            }
-            ConfirmRow("📍", "Location", locationDisplay)
-
-            ConfirmRow("🕐", "Closing Time",  draft.closingTime.ifBlank { "Not entered" })
+            ConfirmRow(Icons.Rounded.Store,      GreenAccent,       "Business Name", draft.businessName.ifBlank { "Not entered" })
+            ConfirmRow(Icons.Rounded.LocationOn, Color(0xFF5BA4D5), "Location",      locationDisplay)
+            ConfirmRow(Icons.Rounded.Schedule,   Color(0xFFFFD166), "Closing Time",  draft.closingTime.ifBlank { "Not entered" })
         }
     }
 }
 
 @Composable
-private fun ConfirmRow(emoji: String, label: String, value: String) {
+private fun ConfirmRow(icon: ImageVector, iconTint: Color, label: String, value: String) {
     Row(
         modifier              = Modifier
             .fillMaxWidth()
@@ -547,7 +636,20 @@ private fun ConfirmRow(emoji: String, label: String, value: String) {
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment     = Alignment.CenterVertically
     ) {
-        Text(text = emoji, fontSize = 20.sp)
+        Box(
+            modifier         = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconTint.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector        = icon,
+                contentDescription = null,
+                tint               = iconTint,
+                modifier           = Modifier.size(20.dp)
+            )
+        }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text          = label,

@@ -135,5 +135,16 @@ class PostListingViewModel(app: Application) : AndroidViewModel(app) {
     fun resetUploadState() {
         _uploadState.value = UploadState.Idle
     }
+
+    /**
+     * Pre-fills the meals available field from a SurplusIQ AI prediction.
+     * Called when the user taps "Create Surplus Listing" on the ESG screen.
+     * A count ≤ 0 is ignored so accidental zero-values never clear an existing entry.
+     */
+    fun preFillMeals(count: Int) {
+        if (count > 0) {
+            _form.value = _form.value.copy(mealsAvailable = count)
+        }
+    }
 }
 

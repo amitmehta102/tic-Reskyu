@@ -1,13 +1,19 @@
 package com.reskyu.merchant.ui.profile
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.StarHalf
@@ -19,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,31 +41,39 @@ import com.reskyu.merchant.ui.theme.RGreenAccent
 import com.reskyu.merchant.ui.theme.RGreenDark
 import com.reskyu.merchant.ui.theme.RGreenDeep
 import com.reskyu.merchant.ui.theme.RGreenLight
+import com.reskyu.merchant.ui.theme.RGreenMid
 import com.reskyu.merchant.ui.theme.RScreenBg
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
 private val GreenDark   = RGreenDark
 private val GreenDeep   = RGreenDeep
+private val GreenMid    = RGreenMid
 private val GreenAccent = RGreenAccent
 private val GreenLight  = RGreenLight
 
 /**
  * Merchant profile screen — avatar header, editable business details, and sign-out.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerchantProfileScreen(
     navController: NavController,
     viewModel: MerchantProfileViewModel = viewModel()
 ) {
-    val merchant   by viewModel.merchant.collectAsState()
-    val saveState  by viewModel.saveState.collectAsState()
+    val context        = LocalContext.current
+    val merchant       by viewModel.merchant.collectAsState()
+    val saveState      by viewModel.saveState.collectAsState()
+    val showPrivacy    by viewModel.showPrivacySheet.collectAsState()
+    val showSupport    by viewModel.showSupportSheet.collectAsState()
+    val privacyContent by viewModel.privacyContent.collectAsState()
+    val privacyLoading by viewModel.privacyLoading.collectAsState()
 
     var closingTimeInput by remember { mutableStateOf("") }
     var isEditing        by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.loadProfile() }
 
-    DarkStatusBar()
+    // DarkStatusBar is called inside ProfileHeader
 
     // Sync input when merchant loads
     LaunchedEffect(merchant) {
@@ -76,6 +91,7 @@ fun MerchantProfileScreen(
     Scaffold(
         containerColor = RScreenBg,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = { ProfileHeader(merchant = merchant) },
         bottomBar = { MainBottomBar(navController = navController, currentRoute = Screen.PROFILE) }
     ) { padding ->
         Box(
@@ -84,9 +100,6 @@ fun MerchantProfileScreen(
                 .padding(padding)
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-
-                // ── Avatar header ─────────────────────────────────────────────
-                item { ProfileHeader(merchant = merchant) }
 
                 item {
                     Column(
@@ -128,9 +141,9 @@ fun MerchantProfileScreen(
                         // ── Account ───────────────────────────────────────────
                         SectionLabel("Account")
 
-                        AccountRow(emoji = "📞", label = "Support",             onClick = {})
-                        AccountRow(emoji = "📄", label = "Terms of Service",     onClick = {})
-                        AccountRow(emoji = "🔒", label = "Privacy Policy",       onClick = {})
+                        AccountRow(emoji = "📞", label = "Support",         onClick = { viewModel.openSupport() })
+                        AccountRow(emoji = "📄", label = "Terms of Service", onClick = {})
+                        AccountRow(emoji = "🔒", label = "Privacy Policy",   onClick = { viewModel.openPrivacyPolicy() })
 
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -179,9 +192,183 @@ fun MerchantProfileScreen(
             LoadingOverlay(isVisible = saveState is SaveState.Saving)
         }
     }
+
+    // ── Privacy Policy bottom sheet ───────────────────────────────────────────
+    if (showPrivacy) {
+        ModalBottomSheet(
+            onDismissRequest  = { viewModel.closePrivacyPolicy() },
+            containerColor    = Color.White,
+            shape             = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text       = "🔒  Privacy Policy",
+                        fontSize   = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color(0xFF111827)
+                    )
+                    Text(
+                        text     = "Last updated: April 2025",
+                        fontSize = 11.sp,
+                        color    = Color(0xFF9CA3AF)
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = Color(0xFFF3F4F6))
+                Spacer(Modifier.height(16.dp))
+
+                // Content
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    when {
+                        privacyLoading -> CircularProgressIndicator(
+                            modifier    = Modifier.align(Alignment.Center),
+                            color       = RGreenAccent,
+                            strokeWidth = 2.dp
+                        )
+                        privacyContent != null -> Text(
+                            text       = privacyContent!!,
+                            fontSize   = 13.sp,
+                            color      = Color(0xFF374151),
+                            lineHeight = 22.sp
+                        )
+                        else -> Text(
+                            text  = "Loading…",
+                            color = Color(0xFF9CA3AF)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Support bottom sheet ──────────────────────────────────────────────────
+    if (showSupport) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.closeSupport() },
+            containerColor   = Color.White,
+            shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 40.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text       = "📞  Support",
+                    fontSize   = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF111827)
+                )
+                Text(
+                    text     = "Need help? Reach out to the Reskyu team and we'll get back to you within 24 hours.",
+                    fontSize = 13.sp,
+                    color    = Color(0xFF6B7280),
+                    lineHeight = 20.sp
+                )
+
+                Spacer(Modifier.height(4.dp))
+                HorizontalDivider(color = Color(0xFFF3F4F6))
+                Spacer(Modifier.height(4.dp))
+
+                // Email button
+                SupportContactButton(
+                    icon  = Icons.Rounded.Email,
+                    label = "Email Support",
+                    value = "reskyu123@gmail.com",
+                    tint  = RGreenAccent
+                ) {
+                    val intent = Intent(Intent.ACTION_SENDTO).apply {
+                        data    = Uri.parse("mailto:reskyu123@gmail.com")
+                        putExtra(Intent.EXTRA_SUBJECT, "Merchant Support Request")
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Send email"))
+                }
+
+                // Phone button
+                SupportContactButton(
+                    icon  = Icons.Rounded.Phone,
+                    label = "Call Support",
+                    value = "+91 83051 25667",
+                    tint  = Color(0xFF457B9D)
+                ) {
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:+918305125667")
+                    }
+                    context.startActivity(intent)
+                }
+            }
+        }
+    }
+}
+
+// ── Support contact button ────────────────────────────────────────────────────
+
+@Composable
+private fun SupportContactButton(
+    icon:    ImageVector,
+    label:   String,
+    value:   String,
+    tint:    Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(14.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+        elevation = CardDefaults.cardElevation(0.dp),
+        onClick   = onClick
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier         = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF111827))
+                Text(text = value, fontSize = 12.sp, color = Color(0xFF6B7280))
+            }
+            Icon(
+                imageVector        = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint               = Color(0xFFD1D5DB),
+                modifier           = Modifier.size(18.dp)
+            )
+        }
+    }
 }
 
 // ── Profile header ────────────────────────────────────────────────────────────
+
 
 @Composable
 private fun ProfileHeader(merchant: Merchant?) {
@@ -193,13 +380,17 @@ private fun ProfileHeader(merchant: Merchant?) {
     val hasRating   = ratingCount >= 5
     val avgRating   = if (hasRating) ratingSum.toFloat() / ratingCount else 0f
 
+    // Match ReskyuHeader style: dark status bar + 3-stop gradient + rounded bottom corners
+    DarkStatusBar()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(GreenDark, GreenDeep)))
+            .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+            .background(Brush.verticalGradient(listOf(GreenDark, GreenDeep, GreenMid)))
             .statusBarsPadding()
             .padding(horizontal = 20.dp)
-            .padding(top = 24.dp, bottom = 28.dp),
+            .padding(top = 24.dp, bottom = 32.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(

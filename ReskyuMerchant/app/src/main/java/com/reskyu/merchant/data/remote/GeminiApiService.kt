@@ -1,6 +1,10 @@
 package com.reskyu.merchant.data.remote
 
 import com.reskyu.merchant.BuildConfig
+import com.reskyu.merchant.data.model.DemandContext
+import com.reskyu.merchant.data.model.DemandResult
+import com.reskyu.merchant.data.model.SellEverythingContext
+import com.reskyu.merchant.data.model.SellEverythingResult
 import com.reskyu.merchant.data.model.SurplusIqContext
 import com.reskyu.merchant.data.model.SurplusIqResult
 import kotlinx.coroutines.Dispatchers
@@ -162,6 +166,256 @@ JSON format:
                 predictedMeals = fallback,
                 reasoning      = "AI prediction",
                 confidence     = 0.70f
+            )
+        }
+    }
+    // ── Demand interpretation ─────────────────────────────────────────────
+
+    /**
+     * Interprets a locally-pre-aggregated [DemandContext] and returns a short
+     * actionable [DemandResult] — Gemini is used ONLY for this interpretation
+     * layer; all aggregation / scoring was done without AI in [DemandRepository].
+     */
+    suspend fun interpretDemand(ctx: DemandContext): DemandResult = withContext(Dispatchers.IO) {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        check(apiKey.isNotBlank()) { "GEMINI_API_KEY is not set in local.properties" }
+
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+                  "gemini-2.0-flash:generateContent?key=$apiKey"
+
+        val prompt = buildDemandPrompt(ctx)
+
+        val body = JSONObject().apply {
+            put("contents", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply { put("text", prompt) })
+                    })
+                })
+            })
+            put("generationConfig", JSONObject().apply {
+                put("temperature",    0.25)
+                put("maxOutputTokens", 128)
+            })
+        }.toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw Exception("Gemini ${response.code}: ${response.message}")
+            }
+            val raw = response.body?.string()
+                ?: throw Exception("Empty response from Gemini")
+            parseDemandResponse(raw)
+        }
+    }
+
+    private fun buildDemandPrompt(ctx: DemandContext): String {
+        val priceBreakdown = when {
+            ctx.budgetListings > 0 && ctx.premiumListings > 0 ->
+                "${ctx.budgetListings} budget (≤₹99), ${ctx.premiumListings} premium (>₹99)"
+            ctx.budgetListings > 0 -> "${ctx.budgetListings} budget (≤₹99)"
+            ctx.premiumListings > 0 -> "${ctx.premiumListings} premium (>₹99)"
+            else -> "unknown"
+        }
+        val dietaryBreakdown = when {
+            ctx.vegListings > 0 && ctx.nonVegListings > 0 ->
+                "${ctx.vegListings} veg, ${ctx.nonVegListings} non-veg"
+            ctx.vegListings > 0 -> "${ctx.vegListings} veg"
+            ctx.nonVegListings > 0 -> "${ctx.nonVegListings} non-veg"
+            else -> "mixed"
+        }
+        return """
+You are a local food-market analyst embedded in a merchant app in India.
+You receive pre-aggregated demand data (computed WITHOUT AI) and must
+interpret it into a short actionable recommendation for the merchant.
+
+━━━ LOCAL DEMAND DATA (pre-aggregated, no AI) ━━━
+Day / Hour        : ${ctx.dayOfWeek}, ${ctx.hourOfDay}:00
+Nearby open food listings (within 2 km, last 2 hours): ${ctx.totalActiveListings}
+Dietary breakdown : $dietaryBreakdown
+Price breakdown   : $priceBreakdown
+Local demand score: ${ctx.demandScore}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Respond ONLY with valid JSON — no markdown, no code fences, no commentary.
+Use Indian meal-time context (breakfast 7-10 AM, lunch 12-2 PM, snack 4-6 PM, dinner 7-9 PM).
+
+Strict JSON format:
+{
+  "demand_level": "LOW | MEDIUM | HIGH",
+  "best_action": "<1 sentence — what should the merchant do RIGHT NOW>",
+  "best_listing_window": "next X minutes",
+  "reason": "<max 12 words — why>"
+}
+        """.trimIndent()
+    }
+
+    private fun parseDemandResponse(raw: String): DemandResult {
+        return try {
+            val text = JSONObject(raw)
+                .getJSONArray("candidates")
+                .getJSONObject(0)
+                .getJSONObject("content")
+                .getJSONArray("parts")
+                .getJSONObject(0)
+                .getString("text")
+                .trim()
+                .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+
+            val json   = JSONObject(text)
+            DemandResult(
+                demandLevel       = json.optString("demand_level",        "MEDIUM"),
+                bestAction        = json.optString("best_action",          "List your surplus food now"),
+                bestListingWindow = json.optString("best_listing_window",  "next 30 minutes"),
+                reason            = json.optString("reason",               "Moderate local activity")
+            )
+        } catch (e: Exception) {
+            // Graceful fallback — never crash
+            DemandResult(
+                demandLevel       = "MEDIUM",
+                bestAction        = "Consider listing your surplus food now",
+                bestListingWindow = "next 30 minutes",
+                reason            = "Demand data available"
+            )
+        }
+    }
+
+    // ── Sell Everything Mode ───────────────────────────────────────────────
+
+    /**
+     * Generates an AI-powered sell-out strategy for a merchant approaching closing time.
+     *
+     * Sends [SellEverythingContext] to Gemini 2.0 Flash and receives:
+     *  - discount_percentage  : how aggressively to discount existing listings
+     *  - bundle_price         : ₹ price for the auto-created bundle listing
+     *  - bundle_meals         : how many meals per bundle unit (typically 2)
+     *  - bundle_strategy      : human-readable explanation shown to merchant
+     *  - urgency_message      : short emoji-rich message for consumer push notifications
+     *  - push_required        : whether a push notification is warranted
+     */
+    suspend fun planSellEverything(ctx: SellEverythingContext): SellEverythingResult =
+        withContext(Dispatchers.IO) {
+            val apiKey = BuildConfig.GEMINI_API_KEY
+            check(apiKey.isNotBlank()) { "GEMINI_API_KEY is not set in local.properties" }
+
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+                      "gemini-2.0-flash:generateContent?key=$apiKey"
+
+            val prompt = buildSellEverythingPrompt(ctx)
+
+            val body = JSONObject().apply {
+                put("contents", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("parts", JSONArray().apply {
+                            put(JSONObject().apply { put("text", prompt) })
+                        })
+                    })
+                })
+                put("generationConfig", JSONObject().apply {
+                    put("temperature",     0.30)
+                    put("maxOutputTokens", 200)
+                })
+            }.toString()
+
+            val request = Request.Builder()
+                .url(url)
+                .post(body.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw Exception("Gemini ${response.code}: ${response.message}")
+                }
+                val raw = response.body?.string()
+                    ?: throw Exception("Empty response from Gemini")
+                parseSellEverythingResponse(raw, ctx)
+            }
+        }
+
+    private fun buildSellEverythingPrompt(ctx: SellEverythingContext): String {
+        val sellOutRatePct = (ctx.historicalSellOutRate * 100).toInt()
+        val avgPriceStr    = "₹${ctx.originalPriceAvg.toInt()}"
+        return """
+You are a food-rescue pricing expert for an Indian merchant app (Reskyu).
+A merchant needs to sell ALL remaining food before they close. Help them.
+
+━━━ SITUATION ━━━
+Merchant         : ${ctx.merchantName.ifBlank { "Unknown" }}
+Meals remaining  : ${ctx.mealsLeft}
+Minutes to close : ${ctx.minutesUntilClose}
+Avg item price   : $avgPriceStr
+Top item         : ${ctx.topHeroItem.ifBlank { "Mixed items" }}
+Historic sell-out: $sellOutRatePct% of listings sold out when active
+━━━━━━━━━━━━━━━━━
+
+Rules:
+- Be aggressive: closing in ${ctx.minutesUntilClose} minutes — no time to be conservative.
+- Discount must make it irresistible. Suggest 30-60% off.
+- Bundle should combine 2 meals into a single deal at a compelling price.
+- bundle_meals should be 2 (always pair them).
+- urgency_message must be short, punchy, emoji-rich, under 12 words.
+- push_required is true if mealsLeft > 3.
+- Use Indian Rupee (₹) and Indian food culture context.
+
+Respond ONLY with valid JSON — no markdown, no code fences, no commentary:
+{
+  "discount_percentage": <int 30-60>,
+  "bundle_price": <float — ₹ price for a 2-meal bundle, lower than 2x discounted price>,
+  "bundle_meals": 2,
+  "bundle_strategy": "<1 sentence — what the bundle is and why buy it>",
+  "urgency_message": "<emoji-rich, max 12 words, for push notification to consumers>",
+  "push_required": <true|false>
+}
+        """.trimIndent()
+    }
+
+    private fun parseSellEverythingResponse(
+        raw: String,
+        ctx: SellEverythingContext
+    ): SellEverythingResult {
+        return try {
+            val text = JSONObject(raw)
+                .getJSONArray("candidates")
+                .getJSONObject(0)
+                .getJSONObject("content")
+                .getJSONArray("parts")
+                .getJSONObject(0)
+                .getString("text")
+                .trim()
+                .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+
+            val json            = JSONObject(text)
+            val discountPct     = json.optInt("discount_percentage", 40).coerceIn(10, 70)
+            val bundlePrice     = json.optDouble("bundle_price",
+                ctx.originalPriceAvg * 1.6 * (1.0 - discountPct / 100.0)).coerceAtLeast(1.0)
+            val bundleMeals     = json.optInt("bundle_meals",    2).coerceIn(2, 5)
+            val bundleStrategy  = json.optString("bundle_strategy",  "Bundle deal — great value!")
+            val urgencyMessage  = json.optString("urgency_message",   "🔥 Last chance — closing soon!")
+            val pushRequired    = json.optBoolean("push_required",    ctx.mealsLeft > 3)
+
+            SellEverythingResult(
+                discountPercentage = discountPct,
+                bundlePrice        = bundlePrice,
+                bundleMeals        = bundleMeals,
+                bundleStrategy     = bundleStrategy,
+                urgencyMessage     = urgencyMessage,
+                pushRequired       = pushRequired
+            )
+        } catch (e: Exception) {
+            // Safe fallback — 40% off, ₹2 bundle at avg_price * 1.5 * 0.6
+            val fallbackBundle = (ctx.originalPriceAvg * 1.5 * 0.6).coerceAtLeast(39.0)
+            SellEverythingResult(
+                discountPercentage = 40,
+                bundlePrice        = fallbackBundle,
+                bundleMeals        = 2,
+                bundleStrategy     = "2-meal bundle deal — grab it before we close!",
+                urgencyMessage     = "🔥 Closing soon — grab our last meals cheap!",
+                pushRequired       = ctx.mealsLeft > 3
             )
         }
     }

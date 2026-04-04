@@ -63,10 +63,29 @@ fun MainBottomBar(navController: NavController, currentRoute: String) {
                 selected = selected,
                 onClick = {
                     if (!selected) {
-                        navController.navigate(item.route) {
-                            popUpTo(Screen.DASHBOARD) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (item.route == Screen.DASHBOARD) {
+                            // For Home: always pop directly back to Dashboard.
+                            // Using navigate() + launchSingleTop here causes a no-op
+                            // when Dashboard is already at the top of the stack (e.g.
+                            // when entering Orders via the dashboard ActionCard shortcut).
+                            // popBackStack() is guaranteed to work regardless of how
+                            // the current screen was reached.
+                            val popped = navController.popBackStack(Screen.DASHBOARD, inclusive = false)
+                            if (!popped) {
+                                // Fallback: Dashboard not in stack — navigate fresh
+                                navController.navigate(Screen.DASHBOARD) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        } else {
+                            navController.navigate(item.route) {
+                                popUpTo(Screen.DASHBOARD) {
+                                    saveState = true
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                                restoreState    = true
+                            }
                         }
                     }
                 },

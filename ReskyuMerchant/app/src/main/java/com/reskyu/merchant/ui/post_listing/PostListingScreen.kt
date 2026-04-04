@@ -86,6 +86,16 @@ fun PostListingScreen(
         }
     }
 
+    // Pre-fill quantity from SurplusIQ "Create Surplus Listing" CTA
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    LaunchedEffect(Unit) {
+        val prefill = savedStateHandle?.get<Int>("prefill_meals") ?: 0
+        if (prefill > 0) {
+            viewModel.preFillMeals(prefill)
+            savedStateHandle?.remove<Int>("prefill_meals")
+        }
+    }
+
     val canPublish = if (isMysteryBox) {
         form.heroItem.isNotBlank() &&
                 form.discountedPrice > 0.0 &&
