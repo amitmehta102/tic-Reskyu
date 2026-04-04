@@ -2,7 +2,9 @@ package com.reskyu.merchant.data.remote
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -21,32 +23,44 @@ import java.util.concurrent.TimeUnit
  *
  * Expected JSON response:
  *   { "secure_url": "https://res.cloudinary.com/.../image.jpg", ... }
+ *
+ * Retry policy: up to [MAX_RETRIES] attempts with [RETRY_DELAY_MS] between each.
+ * Render free tier cold-starts can cause the first request to fail.
  */
 class CloudinaryUploadService {
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)   // image upload can be slow
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(45, TimeUnit.SECONDS)   // Render cold-start can take ~30s
+        .writeTimeout(90, TimeUnit.SECONDS)      // Large images need more write time
+        .readTimeout(45, TimeUnit.SECONDS)
         .build()
 
     private val uploadEndpoint = "https://cloudnary-api.onrender.com/upload"
 
+    companion object {
+        private const val TAG           = "CloudinaryUpload"
+        private const val MAX_RETRIES   = 2
+        private const val RETRY_DELAY_MS = 3000L
+    }
+
     /**
      * Uploads the image at [uri] to Cloudinary via the proxy.
+     * Retries up to [MAX_RETRIES] times on failure (handles Render cold-starts).
      *
      * @param context  Used to open the content-URI input stream.
      * @param uri      The local Android content URI selected from gallery.
      * @return         The public Cloudinary `secure_url` for use in the listing.
-     * @throws IOException on any network or parse error.
+     * @throws IOException on network / parse error after all retries exhausted.
      */
     suspend fun upload(context: Context, uri: Uri): String = withContext(Dispatchers.IO) {
-        // ── Read image bytes from ContentResolver ────────────────────────────
+
+        // ── Read image bytes once (before retry loop) ────────────────────────
         val inputStream = context.contentResolver.openInputStream(uri)
-            ?: throw IOException("Could not open image URI: $uri")
+            ?: throw IOException("Could not open image: check storage permission")
         val imageBytes = inputStream.use { it.readBytes() }
 
-        // Infer MIME type — default to JPEG
+        if (imageBytes.isEmpty()) throw IOException("Selected image is empty")
+
         val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
         val extension = when (mimeType) {
             "image/png"  -> "png"
@@ -54,35 +68,62 @@ class CloudinaryUploadService {
             else         -> "jpg"
         }
 
-        // ── Build multipart body ─────────────────────────────────────────────
-        val requestBody = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart(
-                name     = "file",
-                filename = "listing_image.$extension",
-                body     = imageBytes.toRequestBody(mimeType.toMediaTypeOrNull())
-            )
-            .build()
+        Log.d(TAG, "Uploading ${imageBytes.size / 1024}KB $mimeType image…")
 
-        // ── POST to proxy ────────────────────────────────────────────────────
-        val request = Request.Builder()
-            .url(uploadEndpoint)
-            .post(requestBody)
-            .build()
+        // ── Retry loop ───────────────────────────────────────────────────────
+        var lastError: Exception = IOException("Upload failed")
 
-        val responseBody = client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException("Cloudinary upload failed: HTTP ${response.code} — ${response.message}")
+        repeat(MAX_RETRIES + 1) { attempt ->
+            if (attempt > 0) {
+                Log.w(TAG, "Retry $attempt after failure: ${lastError.message}")
+                delay(RETRY_DELAY_MS)
             }
-            response.body?.string()
-                ?: throw IOException("Empty response from Cloudinary proxy")
+            try {
+                val requestBody = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart(
+                        name     = "file",
+                        filename = "listing_image.$extension",
+                        body     = imageBytes.toRequestBody(mimeType.toMediaTypeOrNull())
+                    )
+                    .build()
+
+                val request = Request.Builder()
+                    .url(uploadEndpoint)
+                    .post(requestBody)
+                    .build()
+
+                val responseBody = client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        val msg = when (response.code) {
+                            404  -> "Upload server not found (404) — check Render deployment"
+                            413  -> "Image too large — try a smaller photo"
+                            500  -> "Server error — try again in a moment"
+                            else -> "HTTP ${response.code}: ${response.message}"
+                        }
+                        throw IOException(msg)
+                    }
+                    response.body?.string()
+                        ?: throw IOException("Empty response from upload server")
+                }
+
+                // ── Parse secure_url ─────────────────────────────────────────
+                val secureUrl = try {
+                    JSONObject(responseBody).getString("secure_url")
+                } catch (e: Exception) {
+                    throw IOException("Unexpected server response: $responseBody")
+                }
+
+                Log.d(TAG, "Upload success: $secureUrl")
+                return@withContext secureUrl      // ← success, exit retry loop
+
+            } catch (e: Exception) {
+                lastError = e
+                Log.e(TAG, "Upload attempt ${attempt + 1} failed: ${e.message}")
+            }
         }
 
-        // ── Parse secure_url ─────────────────────────────────────────────────
-        return@withContext try {
-            JSONObject(responseBody).getString("secure_url")
-        } catch (e: Exception) {
-            throw IOException("Could not parse Cloudinary response: $responseBody")
-        }
+        // All retries exhausted
+        throw IOException("Upload failed after ${MAX_RETRIES + 1} attempts: ${lastError.message}")
     }
 }

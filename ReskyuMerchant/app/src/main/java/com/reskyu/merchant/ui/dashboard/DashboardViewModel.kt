@@ -10,9 +10,7 @@ import com.reskyu.merchant.data.repository.ListingRepository
 import com.reskyu.merchant.data.repository.MerchantClaimRepository
 import com.reskyu.merchant.data.repository.MerchantRepository
 import com.reskyu.merchant.data.repository.SurplusIqRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class DashboardViewModel : ViewModel() {
@@ -31,56 +29,65 @@ class DashboardViewModel : ViewModel() {
     private val _surplusIqResult = MutableStateFlow<SurplusIqResult?>(null)
     val surplusIqResult: StateFlow<SurplusIqResult?> = _surplusIqResult
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     /**
-     * Loads the full dashboard in parallel:
-     *  1. Merchant profile  → business name header + SurplusIQ cache keys
-     *  2. Claims            → pending / completed counts + revenue
-     *  3. Active listings   → activeListings count
-     *  4. SurplusIQ         → Gemini prediction (uses Firestore cache, refreshes if stale)
+     * Subscribes to real-time listings + claims Flows and automatically recomputes
+     * dashboard stats on every change.
+     *
+     * Architecture:
+     *  - [observeActiveListings] + [observeClaimsForMerchant] are hot Firestore snapshot flows.
+     *  - [combine] merges both into a single emission whenever either updates.
+     *  - SurplusIQ is a ONE-SHOT call (Gemini is expensive) — runs once on first load.
      */
     fun loadDashboard(merchantId: String) {
         if (merchantId.isBlank()) return
-        _isLoading.value = true
 
+        // ── One-shot: load merchant profile ──────────────────────────────────
         viewModelScope.launch {
-            // ── Parallel fetch of merchant profile + claims + listings ──────────
-            val merchantDeferred  = async { runCatching { merchantRepository.getMerchant(merchantId) }.getOrNull() }
-            val claimsDeferred    = async { runCatching { claimRepository.getClaimsForMerchant(merchantId) }.getOrDefault(emptyList()) }
-            val listingsDeferred  = async { runCatching { listingRepository.getActiveListings(merchantId) }.getOrDefault(emptyList()) }
+            _merchant.value = runCatching { merchantRepository.getMerchant(merchantId) }.getOrNull()
+        }
 
-            val merchant      = merchantDeferred.await()
-            val claims        = claimsDeferred.await()
-            val activeCount   = listingsDeferred.await().size
+        // ── Reactive: combine live listings + claims into dashboard stats ─────
+        viewModelScope.launch {
+            combine(
+                listingRepository.observeActiveListings(merchantId),
+                claimRepository.observeClaimsForMerchant(merchantId)
+            ) { listings, claims ->
+                val completed = claims.count { it.status == "COMPLETED" }
+                val pending   = claims.count { it.status == "PENDING_PICKUP" }
+                val revenue   = claims.filter { it.status == "COMPLETED" }.sumOf { it.amount }
 
-            _merchant.value = merchant
-
-            val completed = claims.count { it.status == "COMPLETED" }
-            val pending   = claims.count { it.status == "PENDING_PICKUP" }
-            val revenue   = claims.filter { it.status == "COMPLETED" }.sumOf { it.amount }
-
-            _stats.value = DashboardStats(
-                totalMealsRescued = completed,
-                totalRevenue      = revenue,
-                pendingClaims     = pending,
-                activeListings    = activeCount
-            )
-
-            // ── SurplusIQ (separate try — Gemini can be slow / fail) ───────────
-            try {
-                val prediction = surplusIqRepo.getPrediction(
-                    uid           = merchantId,
-                    lastPredDate  = merchant?.lastPredictionDate  ?: "",
-                    lastPredMeals = merchant?.lastPredictionMeals ?: 0,
-                    salesHistory  = buildSalesHistory(claims)
+                DashboardStats(
+                    totalMealsRescued = completed,
+                    totalRevenue      = revenue,
+                    pendingClaims     = pending,
+                    activeListings    = listings.size
                 )
-                _surplusIqResult.value = prediction
-            } catch (e: Throwable) {
-                // SurplusIQ is optional — banner stays hidden on failure
-            } finally {
+            }
+            .onStart  { _isLoading.value = true }
+            .catch    { _isLoading.value = false }
+            .collect  { stats ->
+                _stats.value    = stats
                 _isLoading.value = false
+
+                // ── One-shot SurplusIQ — only on first successful stats load ──
+                if (_surplusIqResult.value == null) {
+                    launch {
+                        runCatching {
+                            val merchant = _merchant.value
+                            surplusIqRepo.getPrediction(
+                                uid           = merchantId,
+                                lastPredDate  = merchant?.lastPredictionDate  ?: "",
+                                lastPredMeals = merchant?.lastPredictionMeals ?: 0,
+                                salesHistory  = buildSalesHistory(
+                                    claimRepository.getClaimsForMerchant(merchantId)
+                                )
+                            )
+                        }.getOrNull()?.let { _surplusIqResult.value = it }
+                    }
+                }
             }
         }
     }
@@ -88,7 +95,7 @@ class DashboardViewModel : ViewModel() {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * Groups completed claims into bucket by calendar day over the last 7 days.
+     * Groups completed claims into buckets by calendar day over the last 7 days.
      * Day 0 = 7 days ago, Day 6 = today.
      */
     private fun buildSalesHistory(claims: List<MerchantClaim>): List<Int> {
@@ -100,3 +107,4 @@ class DashboardViewModel : ViewModel() {
         }
     }
 }
+

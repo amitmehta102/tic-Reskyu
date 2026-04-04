@@ -8,6 +8,7 @@ import com.reskyu.merchant.data.model.ListingForm
 import com.reskyu.merchant.data.model.PublishState
 import com.reskyu.merchant.data.model.UploadState
 import com.reskyu.merchant.data.remote.CloudinaryUploadService
+import com.reskyu.merchant.data.remote.NotificationService
 import com.reskyu.merchant.data.repository.ListingRepository
 import com.reskyu.merchant.data.repository.MerchantRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ class PostListingViewModel(app: Application) : AndroidViewModel(app) {
     private val listingRepository   = ListingRepository()
     private val merchantRepository  = MerchantRepository()
     private val cloudinaryService   = CloudinaryUploadService()
+    private val notificationService = NotificationService()
 
     private val _form = MutableStateFlow(ListingForm())
     val form: StateFlow<ListingForm> = _form
@@ -40,35 +42,53 @@ class PostListingViewModel(app: Application) : AndroidViewModel(app) {
         _form.value = _form.value.update()
     }
 
+    // Remembers the last picked URI so retryUpload() can re-use it
+    private var lastLocalUri: String = ""
+
     /**
      * Uploads the image selected from gallery to Cloudinary via the proxy API.
      * On success, writes the returned `secure_url` into [ListingForm.imageUrl]
      * so it gets stored in Firestore and served to consumers.
      */
     fun uploadImage(localUri: String) {
+        lastLocalUri = localUri
         _uploadState.value = UploadState.Uploading
         // Keep a local URI preview immediately so the UI can show the thumbnail
-        _form.value = _form.value.copy(imageUri = localUri)
+        _form.value = _form.value.copy(imageUri = localUri, imageUrl = "")
 
         viewModelScope.launch {
             try {
-                val uri        = Uri.parse(localUri)
-                val context    = getApplication<Application>()
-                val secureUrl  = cloudinaryService.upload(context, uri)
+                val uri       = Uri.parse(localUri)
+                val context   = getApplication<Application>()
+                val secureUrl = cloudinaryService.upload(context, uri)
 
                 _form.value        = _form.value.copy(imageUrl = secureUrl)
                 _uploadState.value = UploadState.Success(secureUrl)
             } catch (e: Exception) {
                 _uploadState.value = UploadState.Error(
-                    e.localizedMessage ?: "Image upload failed"
+                    e.localizedMessage ?: "Image upload failed — tap to retry"
                 )
             }
         }
     }
 
     /**
-     * Publishes the listing to Firestore /listings.
-     * Loads the merchant's profile to denormalize [businessName] and [geoHash].
+     * Retries the last failed upload without requiring the user to pick a new image.
+     * No-op if there is no previous URI to retry.
+     */
+    fun retryUpload() {
+        if (lastLocalUri.isNotBlank()) {
+            uploadImage(lastLocalUri)
+        }
+    }
+
+    /**
+     * Publishes the listing to Firestore /listings, then fires an FCM push
+     * notification to all consumer devices via the Render proxy API.
+     *
+     * The notification is fire-and-forget — a network failure there will never
+     * block or roll back the listing publish. The merchant sees [PublishState.Live]
+     * as soon as Firestore confirms the write.
      */
     fun publishListing(merchantId: String) {
         if (merchantId.isBlank()) {
@@ -79,13 +99,27 @@ class PostListingViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val merchant  = merchantRepository.getMerchant(merchantId)
+                val form      = _form.value
                 val listingId = listingRepository.postListing(
-                    form         = _form.value,
+                    form         = form,
                     merchantId   = merchantId,
                     businessName = merchant?.businessName ?: "",
                     geoHash      = merchant?.geoHash      ?: ""
                 )
+
+                // ── Listing written to Firestore — mark as Live immediately ────
                 _publishState.value = PublishState.Live(listingId)
+
+                // ── Fire FCM notification (fire-and-forget, won't affect UX) ───
+                launch {
+                    notificationService.notifyNewDrop(
+                        businessName    = merchant?.businessName ?: "",
+                        heroItem        = form.heroItem,
+                        discountedPrice = form.discountedPrice.toInt().toString(),
+                        listingId       = listingId
+                    )
+                }
+
             } catch (e: Exception) {
                 _publishState.value = PublishState.Error(e.localizedMessage ?: "Publish failed")
             }
@@ -94,6 +128,10 @@ class PostListingViewModel(app: Application) : AndroidViewModel(app) {
 
     fun resetPublishState() {
         _publishState.value = PublishState.Idle
+    }
+
+    fun resetUploadState() {
+        _uploadState.value = UploadState.Idle
     }
 }
 

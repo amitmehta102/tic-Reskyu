@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
@@ -17,14 +18,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.reskyu.merchant.data.model.DietaryTag
 import com.reskyu.merchant.data.model.ListingForm
 import com.reskyu.merchant.data.model.PublishState
@@ -82,6 +88,12 @@ fun PostListingScreen(
             form.mealsAvailable >= 1 &&
             publishState !is PublishState.Publishing
 
+    // Reset stale upload state when navigating back to this screen
+    // (prevents ghost error state from a previous attempt)
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { viewModel.resetUploadState() }
+    }
+
     Scaffold(
         containerColor = Color(0xFFF2F8F4)
     ) { padding ->
@@ -96,9 +108,9 @@ fun PostListingScreen(
             ) {
 
                 // ── Top bar ───────────────────────────────────────────────────
-                item { PostListingHeader(onBack = { navController.navigateUp() }) }
+                item(key = "header") { PostListingHeader(onBack = { navController.navigateUp() }) }
 
-                item {
+                item(key = "form") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -110,19 +122,25 @@ fun PostListingScreen(
                         ImagePickerSection(
                             form        = form,
                             uploadState = uploadState,
-                            onPick      = { imagePicker.launch("image/*") }
+                            onPick      = { imagePicker.launch("image/*") },
+                            onRetry     = { viewModel.retryUpload() }
                         )
 
                         // ② Item name ─────────────────────────────────────────
+                        val focusManager = LocalFocusManager.current
                         FormSection(label = "Item Name") {
                             OutlinedTextField(
-                                value         = form.heroItem,
-                                onValueChange = { viewModel.updateForm { copy(heroItem = it) } },
-                                placeholder   = { Text("e.g. Assorted Pastries") },
-                                modifier      = Modifier.fillMaxWidth(),
-                                singleLine    = true,
-                                shape         = RoundedCornerShape(12.dp),
-                                colors        = greenFieldColors()
+                                value           = form.heroItem,
+                                onValueChange   = { viewModel.updateForm { copy(heroItem = it) } },
+                                placeholder     = { Text("e.g. Assorted Pastries") },
+                                modifier        = Modifier.fillMaxWidth(),
+                                singleLine      = true,
+                                shape           = RoundedCornerShape(12.dp),
+                                colors          = greenFieldColors(),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                )
                             )
                         }
 
@@ -174,20 +192,29 @@ fun PostListingScreen(
                                     onValueChange = { viewModel.updateForm { copy(originalPrice = it.toDoubleOrNull() ?: 0.0) } },
                                     label         = { Text("Original ₹") },
                                     modifier      = Modifier.weight(1f),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine    = true,
-                                    shape         = RoundedCornerShape(12.dp),
-                                    colors        = greenFieldColors()
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction    = ImeAction.Next
+                                    ),
+                                    singleLine      = true,
+                                    shape           = RoundedCornerShape(12.dp),
+                                    colors          = greenFieldColors()
                                 )
                                 OutlinedTextField(
-                                    value         = if (form.discountedPrice > 0) form.discountedPrice.toInt().toString() else "",
-                                    onValueChange = { viewModel.updateForm { copy(discountedPrice = it.toDoubleOrNull() ?: 0.0) } },
-                                    label         = { Text("Discounted ₹") },
-                                    modifier      = Modifier.weight(1f),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine    = true,
-                                    shape         = RoundedCornerShape(12.dp),
-                                    colors        = greenFieldColors()
+                                    value           = if (form.discountedPrice > 0) form.discountedPrice.toInt().toString() else "",
+                                    onValueChange   = { viewModel.updateForm { copy(discountedPrice = it.toDoubleOrNull() ?: 0.0) } },
+                                    label           = { Text("Discounted ₹") },
+                                    modifier        = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction    = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = { focusManager.clearFocus() }
+                                    ),
+                                    singleLine      = true,
+                                    shape           = RoundedCornerShape(12.dp),
+                                    colors          = greenFieldColors()
                                 )
                             }
                             // Discount % hint
@@ -317,41 +344,141 @@ private fun PostListingHeader(onBack: () -> Unit) {
 private fun ImagePickerSection(
     form:        ListingForm,
     uploadState: UploadState,
-    onPick:      () -> Unit
+    onPick:      () -> Unit,
+    onRetry:     () -> Unit = {}
 ) {
-    val hasImage  = form.imageUri.isNotEmpty()
-    val borderClr = if (hasImage) GreenAccent else Color(0xFFD1D5DB)
-    val bgClr     = if (hasImage) GreenAccent.copy(alpha = 0.06f) else Color(0xFFF9FAFB)
+    val displayUri = form.imageUrl.ifBlank { form.imageUri }  // prefer Cloudinary URL, else local URI
+    val hasImage   = displayUri.isNotEmpty()
+    val isError    = uploadState is UploadState.Error
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(170.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(bgClr)
-            .border(width = 1.5.dp, color = borderClr, shape = RoundedCornerShape(16.dp))
-            .clickable { onPick() },
+            .background(
+                if (hasImage) Color.Transparent
+                else if (isError) Color(0xFFE63946).copy(alpha = 0.05f)
+                else Color(0xFFF9FAFB)
+            )
+            .border(
+                width  = 1.5.dp,
+                color  = when {
+                    isError  -> Color(0xFFE63946)
+                    hasImage -> GreenAccent
+                    else     -> Color(0xFFD1D5DB)
+                },
+                shape  = RoundedCornerShape(16.dp)
+            )
+            // Error state taps retry; otherwise open gallery
+            .clickable { if (isError) onRetry() else onPick() },
         contentAlignment = Alignment.Center
     ) {
+        // ── Real thumbnail (shown as soon as local URI is available) ─────────────
+        if (hasImage) {
+            AsyncImage(
+                model             = displayUri,
+                contentDescription = "Listing image",
+                contentScale      = ContentScale.Crop,
+                modifier          = Modifier.fillMaxSize()
+            )
+        }
+
+        // ── Upload progress overlay on top of thumbnail ──────────────────────
         when (uploadState) {
-            is UploadState.Uploading -> CircularProgressIndicator(color = GreenAccent)
-            else -> {
+            is UploadState.Uploading -> {
+                Box(
+                    modifier         = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            color       = Color.White,
+                            modifier    = Modifier.size(32.dp),
+                            strokeWidth = 3.dp
+                        )
+                        Text(
+                            text       = "Uploading image…",
+                            fontSize   = 13.sp,
+                            color      = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            is UploadState.Error -> {
+                // Show error state — tap retries upload, no need to re-pick from gallery
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(text = if (hasImage) "✅" else "📷", fontSize = 40.sp)
+                    Text("❌", fontSize = 32.sp)
                     Text(
-                        text       = if (hasImage) "Photo selected" else "Add a photo",
-                        fontSize   = 14.sp,
+                        text       = "Upload failed",
+                        fontSize   = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color      = if (hasImage) GreenAccent else Color(0xFF374151)
+                        color      = Color(0xFFE63946)
                     )
                     Text(
-                        text    = if (hasImage) "Tap to change" else "Tap to select from gallery",
-                        fontSize = 12.sp,
-                        color   = Color(0xFF9CA3AF)
+                        text     = (uploadState as UploadState.Error).message
+                            .take(60)
+                            .let { if (it.length == 60) "$it…" else it },
+                        fontSize  = 10.sp,
+                        color     = Color(0xFF9CA3AF),
+                        modifier  = Modifier.padding(horizontal = 16.dp)
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text       = "🔄  Tap to retry",
+                        fontSize   = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color(0xFFE63946)
+                    )
+                }
+            }
+
+            else -> {
+                // Idle or Success without a thumbnail: show prompt
+                if (!hasImage) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "📷", fontSize = 40.sp)
+                        Text(
+                            text       = "Add a photo",
+                            fontSize   = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = Color(0xFF374151)
+                        )
+                        Text(
+                            text     = "Tap to select from gallery",
+                            fontSize = 12.sp,
+                            color    = Color(0xFF9CA3AF)
+                        )
+                    }
+                } else {
+                    // Image loaded — show a subtle "Tap to change" chip at the bottom
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 10.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .padding(horizontal = 14.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text     = "Tap to change",
+                            fontSize = 11.sp,
+                            color    = Color.White
+                        )
+                    }
                 }
             }
         }

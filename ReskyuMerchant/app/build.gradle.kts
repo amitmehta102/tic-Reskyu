@@ -88,4 +88,7 @@ dependencies {
 
     // MPAndroidChart (used by EsgAnalyticsScreen weekly bar chart)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
-}
+
+    // Coil — image loading library (AsyncImage in PostListingScreen thumbnail)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+}

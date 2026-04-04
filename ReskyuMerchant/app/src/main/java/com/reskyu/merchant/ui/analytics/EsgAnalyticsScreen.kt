@@ -20,10 +20,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.reskyu.merchant.data.model.SurplusIqResult
 import com.reskyu.merchant.ui.components.LoadingOverlay
@@ -105,9 +109,24 @@ fun EsgAnalyticsScreen(
                             ImpactMetricCard("💰", "Revenue Earned",   "₹${stats.totalRevenue.toInt()}",              GreenAccent,       Modifier.weight(1f))
                         }
 
-                        // ③ Weekly chart ──────────────────────────────────────
+                        // ③ Weekly meals chart ────────────────────────────────
                         SectionLabel("Weekly Performance")
                         WeeklyBarChart(weeklyData = stats.weeklyData)
+
+                        // ④ Daily Revenue chart ───────────────────────────────
+                        SectionLabel("Daily Revenue (₹)")
+                        RevenueBarChart(weeklyRevenue = stats.weeklyRevenue)
+
+                        // ⑤ Sales Loss Recovery Rate ──────────────────────────
+                        SectionLabel("Sales Loss Recovery Rate")
+                        RecoveryRateChart(recoveryRate = stats.recoveryRateWeekly)
+
+                        // ⑥ Order Outcome breakdown ───────────────────────────
+                        SectionLabel("Order Outcomes")
+                        OrderOutcomeCard(
+                            completed = stats.completedOrders,
+                            disputed  = stats.disputedOrders
+                        )
 
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -491,3 +510,306 @@ private fun BarChart.applyChartStyle(data: List<Float>) {
     axisRight.isEnabled = false
     invalidate()
 }
+
+// ── Revenue Bar Chart ──────────────────────────────────────────────────────────
+
+@Composable
+private fun RevenueBarChart(weeklyRevenue: List<Float>) {
+    val safeData = remember(weeklyRevenue) {
+        List(7) { i -> weeklyRevenue.getOrElse(i) { 0f } }
+    }
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text       = "Revenue earned per day (₹)",
+                fontSize   = 12.sp,
+                color      = Color(0xFF9CA3AF),
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            AndroidView(
+                factory = { ctx ->
+                    BarChart(ctx).apply { applyRevenueStyle(safeData) }
+                },
+                update  = { chart -> chart.applyRevenueStyle(safeData) },
+                modifier = Modifier.fillMaxWidth().height(190.dp)
+            )
+        }
+    }
+}
+
+private fun BarChart.applyRevenueStyle(data: List<Float>) {
+    val entries = data.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
+    val dataSet = BarDataSet(entries, "").apply {
+        color          = AndroidColor.parseColor("#F4A261")
+        highLightColor = AndroidColor.parseColor("#E76F51")
+        setDrawValues(false)
+    }
+    this.data = BarData(dataSet).apply { barWidth = 0.55f }
+
+    description.isEnabled = false
+    legend.isEnabled      = false
+    setDrawGridBackground(false)
+    setDrawBorders(false)
+    setTouchEnabled(false)
+    setScaleEnabled(false)
+    setBackgroundColor(AndroidColor.TRANSPARENT)
+    extraBottomOffset = 4f
+
+    xAxis.apply {
+        position       = XAxis.XAxisPosition.BOTTOM
+        setDrawGridLines(false)
+        setDrawAxisLine(false)
+        granularity    = 1f
+        valueFormatter = IndexAxisValueFormatter(DAY_LABELS)
+        textColor      = AndroidColor.parseColor("#9CA3AF")
+        textSize       = 10f
+    }
+    axisLeft.apply {
+        setDrawGridLines(true)
+        gridColor      = AndroidColor.parseColor("#F3F4F6")
+        setDrawAxisLine(false)
+        textColor      = AndroidColor.parseColor("#9CA3AF")
+        textSize       = 10f
+        axisMinimum    = 0f
+    }
+    axisRight.isEnabled = false
+    invalidate()
+}
+
+// ── Sales Loss Recovery Rate Line Chart ───────────────────────────────────────
+
+@Composable
+private fun RecoveryRateChart(recoveryRate: List<Float>) {
+    val safeData = remember(recoveryRate) {
+        List(7) { i -> recoveryRate.getOrElse(i) { 0f } }
+    }
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Text(
+                    text       = "% of loss successfully recovered",
+                    fontSize   = 12.sp,
+                    color      = Color(0xFF9CA3AF),
+                    fontWeight = FontWeight.Medium
+                )
+                // Overall average badge
+                val avg = if (safeData.all { it == 0f }) 0 else safeData.average().toInt()
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF2D6A4F).copy(alpha = 0.10f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text       = "Avg $avg%",
+                        fontSize   = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color(0xFF2D6A4F)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            AndroidView(
+                factory = { ctx ->
+                    LineChart(ctx).apply { applyRecoveryStyle(safeData) }
+                },
+                update  = { chart -> chart.applyRecoveryStyle(safeData) },
+                modifier = Modifier.fillMaxWidth().height(190.dp)
+            )
+        }
+    }
+}
+
+private fun LineChart.applyRecoveryStyle(data: List<Float>) {
+    val entries = data.mapIndexed { i, v -> Entry(i.toFloat(), v) }
+    val dataSet = LineDataSet(entries, "").apply {
+        color               = AndroidColor.parseColor("#52B788")
+        lineWidth           = 2.5f
+        circleRadius        = 4f
+        setCircleColor(AndroidColor.parseColor("#52B788"))
+        circleHoleColor     = AndroidColor.WHITE
+        circleHoleRadius    = 2f
+        setDrawValues(false)
+        setDrawFilled(true)
+        fillColor           = AndroidColor.parseColor("#52B788")
+        fillAlpha           = 35
+        mode                = LineDataSet.Mode.CUBIC_BEZIER
+        highLightColor      = AndroidColor.parseColor("#2D6A4F")
+    }
+    this.data = LineData(dataSet)
+
+    description.isEnabled = false
+    legend.isEnabled      = false
+    setDrawGridBackground(false)
+    setDrawBorders(false)
+    setTouchEnabled(false)
+    setScaleEnabled(false)
+    setBackgroundColor(AndroidColor.TRANSPARENT)
+    extraBottomOffset = 4f
+
+    xAxis.apply {
+        position       = XAxis.XAxisPosition.BOTTOM
+        setDrawGridLines(false)
+        setDrawAxisLine(false)
+        granularity    = 1f
+        valueFormatter = IndexAxisValueFormatter(DAY_LABELS)
+        textColor      = AndroidColor.parseColor("#9CA3AF")
+        textSize       = 10f
+    }
+    axisLeft.apply {
+        setDrawGridLines(true)
+        gridColor      = AndroidColor.parseColor("#F3F4F6")
+        setDrawAxisLine(false)
+        textColor      = AndroidColor.parseColor("#9CA3AF")
+        textSize       = 10f
+        axisMinimum    = 0f
+        axisMaximum    = 105f   // 0–100% + small buffer
+    }
+    axisRight.isEnabled = false
+    invalidate()
+}
+
+// ── Order Outcome Breakdown Card ───────────────────────────────────────────────
+
+@Composable
+private fun OrderOutcomeCard(completed: Int, disputed: Int) {
+    val total   = completed + disputed
+    val compPct = if (total > 0) completed.toFloat() / total else 0f
+    val dispPct = if (total > 0) disputed.toFloat() / total  else 0f
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // ── Stacked horizontal bar ─────────────────────────────────────────
+            if (total > 0) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                ) {
+                    if (compPct > 0f) Box(
+                        modifier = Modifier
+                            .weight(compPct)
+                            .fillMaxHeight()
+                            .background(Color(0xFF52B788))
+                    )
+                    if (dispPct > 0f) Box(
+                        modifier = Modifier
+                            .weight(dispPct)
+                            .fillMaxHeight()
+                            .background(Color(0xFFEF4444))
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(Color(0xFFF3F4F6))
+                )
+            }
+
+            // ── Legend rows ───────────────────────────────────────────────────
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Completed
+                Row(
+                    modifier          = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xFF52B788))
+                    )
+                    Column {
+                        Text(
+                            text       = "$completed",
+                            fontSize   = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color      = Color(0xFF52B788)
+                        )
+                        Text(
+                            text     = "Completed",
+                            fontSize = 11.sp,
+                            color    = Color(0xFF9CA3AF)
+                        )
+                    }
+                }
+                // Disputed
+                Row(
+                    modifier          = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xFFEF4444))
+                    )
+                    Column {
+                        Text(
+                            text       = "$disputed",
+                            fontSize   = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color      = Color(0xFFEF4444)
+                        )
+                        Text(
+                            text     = "Disputed",
+                            fontSize = 11.sp,
+                            color    = Color(0xFF9CA3AF)
+                        )
+                    }
+                }
+            }
+
+            // ── Recovery rate summary line ─────────────────────────────────────
+            if (total > 0) {
+                val rateStr = "%.0f%%".format(compPct * 100f)
+                Text(
+                    text     = "✅ $rateStr of all orders completed successfully",
+                    fontSize = 12.sp,
+                    color    = Color(0xFF6B7280)
+                )
+            } else {
+                Text(
+                    text     = "No orders yet — start listing to see outcomes",
+                    fontSize = 12.sp,
+                    color    = Color(0xFFB0B8C4)
+                )
+            }
+        }
+    }
+}
+

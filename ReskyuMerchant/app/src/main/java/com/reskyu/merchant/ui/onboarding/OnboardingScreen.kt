@@ -199,7 +199,7 @@ fun OnboardingScreen(
                         onValueChange = { closingTimeInput = it },
                         meta          = PAGE_META[2]
                     )
-                    3 -> StepConfirm(draft = draft, meta = PAGE_META[3])
+                    3 -> StepConfirm(draft = draft, locationState = locationState, meta = PAGE_META[3])
                 }
             }
 
@@ -512,11 +512,19 @@ private fun StepClosingTime(value: String, onValueChange: (String) -> Unit, meta
 // ── Step 3: Confirm ───────────────────────────────────────────────────────────
 
 @Composable
-private fun StepConfirm(draft: MerchantDraft, meta: PageMeta) {
+private fun StepConfirm(draft: MerchantDraft, locationState: LocationState, meta: PageMeta) {
     PageShell(meta = meta) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             ConfirmRow("🏢", "Business Name", draft.businessName.ifBlank { "Not entered" })
-            ConfirmRow("📍", "Location",      if (draft.lat != 0.0) "New Delhi, India" else "Not set")
+
+            // Show real GPS display from locationState, falling back to geohash hint, then "Not set"
+            val locationDisplay = when {
+                locationState is LocationState.Captured -> locationState.display
+                draft.lat != 0.0 -> "%.4f°, %.4f°".format(draft.lat, draft.lng)
+                else -> "Not set"
+            }
+            ConfirmRow("📍", "Location", locationDisplay)
+
             ConfirmRow("🕐", "Closing Time",  draft.closingTime.ifBlank { "Not entered" })
         }
     }
