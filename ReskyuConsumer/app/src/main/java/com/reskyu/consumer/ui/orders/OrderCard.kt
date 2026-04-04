@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+
+// ── OrderCard light-theme palette (matches screenshot) ────────────────────────
+private val OC_Surface         = Color.White
+private val OC_Text            = Color(0xFF133922)   // dark forest green
+private val OC_TextSub         = Color(0xFF5A7A65)   // muted sage green-grey
+private val OC_Outline         = Color(0xFFB0CABB)   // soft green outline
+private val OC_Primary         = Color(0xFF1A9E45)   // darker price green
+private val OC_DividerAlpha    = Color(0xFFD4EDDA)   // light green divider
 
 /**
  * OrderCard — premium redesign
@@ -42,6 +51,7 @@ fun OrderCard(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var userRating by remember { mutableStateOf(0) }   // 0 = not rated yet
 
     val accentColor = statusAccentColor(claim.status)
     val savedAmount  = (claim.originalPrice - claim.amount).coerceAtLeast(0.0)
@@ -52,7 +62,7 @@ fun OrderCard(
         modifier = modifier.clickable { expanded = !expanded },
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = OC_Surface)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
 
@@ -87,12 +97,12 @@ fun OrderCard(
                             Icons.Rounded.Store,
                             contentDescription = null,
                             modifier = Modifier.size(13.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = OC_TextSub
                         )
                         Text(
                             claim.businessName,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = OC_TextSub,
                             maxLines = 1
                         )
                     }
@@ -104,6 +114,7 @@ fun OrderCard(
                     claim.heroItem,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
+                    color = OC_Text,
                     lineHeight = 18.sp
                 )
 
@@ -112,7 +123,7 @@ fun OrderCard(
                     PickupCodeRow(claim = claim)
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f))
+                HorizontalDivider(color = OC_DividerAlpha)
 
                 // ── Pricing row ───────────────────────────────────────────────
                 Row(
@@ -128,14 +139,14 @@ fun OrderCard(
                             "₹${claim.amount.toInt()}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = OC_Primary
                         )
                         if (claim.originalPrice > claim.amount) {
                             Text(
                                 "₹${claim.originalPrice.toInt()}",
                                 style = MaterialTheme.typography.bodySmall,
                                 textDecoration = TextDecoration.LineThrough,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = OC_TextSub
                             )
                         }
                     }
@@ -145,7 +156,7 @@ fun OrderCard(
                         Box(
                             modifier = Modifier
                                 .background(
-                                    Color(0xFF2E7D32).copy(alpha = .1f),
+                                    Color(0xFFD1FAE5),   // very light mint
                                     RoundedCornerShape(20.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
@@ -153,7 +164,7 @@ fun OrderCard(
                             Text(
                                 "💚 Saved ₹${savedAmount.toInt()}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF2E7D32),
+                                color = Color(0xFF059669),   // emerald
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -174,12 +185,12 @@ fun OrderCard(
                             Icons.Rounded.CalendarToday,
                             contentDescription = null,
                             modifier = Modifier.size(11.dp),
-                            tint = MaterialTheme.colorScheme.outline
+                            tint = OC_Outline
                         )
                         Text(
                             formatTimestamp(claim.timestamp.toDate().time),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
+                            color = OC_Outline
                         )
                     }
 
@@ -188,7 +199,30 @@ fun OrderCard(
                         if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                         contentDescription = if (expanded) "Collapse" else "More details",
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.outline
+                        tint = OC_Outline
+                    )
+                }
+
+                // ── REFUNDED status note ──────────────────────────────────────
+                if (claim.status == "REFUNDED") {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE3F2FD)
+                    ) {
+                        Text(
+                            "↩️ Refund processed · amount returned to your original payment method",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF1565C0),
+                            modifier = androidx.compose.ui.Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+
+                // ── Star rating (past orders only) ────────────────────────────
+                if (claim.status != "PENDING_PICKUP") {
+                    RatingRow(
+                        rating    = userRating,
+                        onRate    = { userRating = it }
                     )
                 }
 
@@ -199,7 +233,7 @@ fun OrderCard(
                     exit = shrinkVertically()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f))
+                        HorizontalDivider(color = OC_DividerAlpha)
                         DetailRow(label = "Order ID", value = claim.id.take(12) + "…")
                         DetailRow(label = "Payment ID", value = claim.paymentId)
                         if (discountPct > 0) {
@@ -212,6 +246,7 @@ fun OrderCard(
                                 "COMPLETED"      -> "Picked up successfully"
                                 "EXPIRED"        -> "Pickup window missed"
                                 "DISPUTED"       -> "Under review"
+                                "REFUNDED"       -> "Refund processed"
                                 else             -> claim.status
                             }
                         )
@@ -286,13 +321,13 @@ private fun DetailRow(label: String, value: String) {
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = OC_TextSub
         )
         Text(
             value,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = OC_Text
         )
     }
 }
@@ -302,9 +337,10 @@ private fun DetailRow(label: String, value: String) {
 @Composable
 private fun StatusBadge(status: String) {
     val (bgColor, textColor, label) = when (status) {
-        "PENDING_PICKUP" -> Triple(Color(0xFFFFF3E0), Color(0xFFE65100), "⏳ Pickup pending")
-        "COMPLETED"      -> Triple(Color(0xFFE8F5E9), Color(0xFF2E7D32), "✅ Completed")
-        "DISPUTED"       -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "⚠️ Disputed")
+        "PENDING_PICKUP" -> Triple(Color(0xFFE8F5E9), Color(0xFF2E7D32), "⏳ Pickup pending")
+        "COMPLETED"      -> Triple(Color(0xFFE8F5E9), Color(0xFF1B5E20), "✅ Completed")
+        "DISPUTED"       -> Triple(Color(0xFFFCE4EC), Color(0xFFC62828), "⚠️ Disputed")
+        "REFUNDED"       -> Triple(Color(0xFFE3F2FD), Color(0xFF1565C0), "↩️ Refunded")
         "EXPIRED"        -> Triple(Color(0xFFF5F5F5), Color(0xFF757575), "😔 Missed")
         else             -> Triple(Color(0xFFF5F5F5), Color(0xFF757575), status)
     }
@@ -327,10 +363,11 @@ private fun StatusBadge(status: String) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 private fun statusAccentColor(status: String): Color = when (status) {
-    "PENDING_PICKUP" -> Color(0xFFE65100)   // deep orange
-    "COMPLETED"      -> Color(0xFF2E7D32)   // dark green
-    "DISPUTED"       -> Color(0xFFC62828)   // dark red
-    else             -> Color(0xFF9E9E9E)   // grey
+    "PENDING_PICKUP" -> Color(0xFFFB923C)   // soft amber-orange
+    "COMPLETED"      -> Color(0xFF34D399)   // soft emerald green
+    "DISPUTED"       -> Color(0xFFF87171)   // soft rose red
+    "REFUNDED"       -> Color(0xFF60A5FA)   // soft sky blue
+    else             -> Color(0xFFD1D5DB)   // light grey
 }
 
 private fun formatTimestamp(ms: Long): String =
@@ -342,4 +379,45 @@ private fun countdownText(pickupDeadlineMs: Long): String {
     val h = TimeUnit.MILLISECONDS.toHours(left)
     val m = TimeUnit.MILLISECONDS.toMinutes(left) % 60
     return if (h > 0) "Pick up within ${h}h ${m}m" else "Pick up within ${m}m!"
+}
+
+// ── Star Rating Row ────────────────────────────────────────────────────────────
+
+@Composable
+fun RatingRow(
+    rating: Int,
+    onRate: (Int) -> Unit
+) {
+    val starFilled   = Color(0xFFFFC107)   // gold
+    val starEmpty    = Color(0xFFDDD9CC)
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            if (rating == 0) "Rate this order" else "Thanks for rating!",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = if (rating == 0) Color(0xFF555555) else Color(0xFF2E7D32)
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (i in 1..5) {
+                val filled  = i <= rating
+                val scale by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = if (filled) 1.15f else 1f,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy
+                    ),
+                    label = "star_scale_$i"
+                )
+                Icon(
+                    imageVector = if (filled) Icons.Rounded.Star else Icons.Rounded.StarOutline,
+                    contentDescription = "$i star",
+                    tint = if (filled) starFilled else starEmpty,
+                    modifier = Modifier
+                        .size(26.dp)
+                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .clickable { onRate(i) }
+                )
+            }
+        }
+    }
 }

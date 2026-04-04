@@ -27,6 +27,14 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+// ── ListingCard light-theme palette (matches screenshot) ───────────────────
+private val LC_Text        = Color(0xFF133922)   // dark forest green
+private val LC_TextSub     = Color(0xFF5A7A65)   // muted sage green-grey
+private val LC_Outline     = Color(0xFFB0CABB)   // soft green outline
+private val LC_Green       = Color(0xFF1A9E45)   // darker price green
+private val LC_Error       = Color(0xFFD32F2F)   // error red
+private val LC_Surface     = Color(0xFFEBF7EE)   // very light mint (card placeholder)
+
 /**
  * ListingCard
  *
@@ -59,7 +67,8 @@ fun ListingCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -85,7 +94,7 @@ fun ListingCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                            .background(LC_Surface),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("🍱", fontSize = 28.sp)
@@ -98,14 +107,14 @@ fun ListingCard(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .background(
-                                color = MaterialTheme.colorScheme.primary,
+                                color = Color(0xFF2DC653),
                                 shape = RoundedCornerShape(bottomStart = 8.dp)
                             )
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "-$discountPct%",
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -125,7 +134,7 @@ fun ListingCard(
                 Text(
                     text = listing.businessName,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = LC_TextSub,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -135,6 +144,7 @@ fun ListingCard(
                     text = listing.heroItem,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
+                    color = LC_Text,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -152,9 +162,9 @@ fun ListingCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
                         color = when {
-                            listing.mealsLeft <= 1 -> MaterialTheme.colorScheme.error
-                            listing.mealsLeft <= 3 -> Color(0xFFE65100) // deep orange
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            listing.mealsLeft <= 1 -> LC_Error
+                            listing.mealsLeft <= 3 -> Color(0xFFE65100)
+                            else -> LC_TextSub
                         }
                     )
                 }
@@ -170,13 +180,13 @@ fun ListingCard(
                         text = "₹${listing.discountedPrice.toInt()}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = LC_Green
                     )
                     Text(
                         text = "₹${listing.originalPrice.toInt()}",
                         style = MaterialTheme.typography.bodySmall,
                         textDecoration = TextDecoration.LineThrough,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = LC_TextSub
                     )
                 }
 
@@ -194,14 +204,12 @@ fun ListingCard(
                             imageVector = Icons.Rounded.AccessTime,
                             contentDescription = null,
                             modifier = Modifier.size(11.dp),
-                            tint = if (isExpiringSoon) MaterialTheme.colorScheme.error
-                                   else MaterialTheme.colorScheme.outline
+                            tint = if (isExpiringSoon) LC_Error else LC_Outline
                         )
                         Text(
                             text = expiryText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isExpiringSoon) MaterialTheme.colorScheme.error
-                                    else MaterialTheme.colorScheme.outline
+                            color = if (isExpiringSoon) LC_Error else LC_Outline
                         )
                     }
 
@@ -210,7 +218,7 @@ fun ListingCard(
                         Text(
                             text = "📍 $distanceText",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = LC_Green,
                             fontWeight = FontWeight.Medium
                         )
                     }

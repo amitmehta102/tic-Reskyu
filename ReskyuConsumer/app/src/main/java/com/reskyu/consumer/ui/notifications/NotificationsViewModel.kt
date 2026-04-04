@@ -44,5 +44,11 @@ class NotificationsViewModel : ViewModel() {
         _notifications.value = notificationRepository.getNotifications()
     }
 
+    /** Removes a notification from the list (swipe-to-dismiss). */
+    fun dismiss(id: String) {
+        notificationRepository.dismiss(id)
+        _notifications.value = notificationRepository.getNotifications()
+    }
+
     fun getUnreadCount(): Int = notificationRepository.getUnreadCount()
 }
