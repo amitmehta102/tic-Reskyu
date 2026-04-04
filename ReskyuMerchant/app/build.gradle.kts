@@ -107,4 +107,15 @@ dependencies {
 
     // Coil — image loading library (AsyncImage in PostListingScreen thumbnail)
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // WorkManager — background listing expiry (runs every 15 min even when app is closed)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // CameraX — live camera preview for QR scanner
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+
+    // ML Kit — QR / barcode recognition (runs fully on-device, no network needed)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 }

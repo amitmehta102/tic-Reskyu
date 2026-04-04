@@ -4,9 +4,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.reskyu.merchant.data.model.Listing
 import com.reskyu.merchant.data.model.ListingForm
 import com.reskyu.merchant.data.model.ListingStatus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -70,6 +73,10 @@ class ListingRepository {
     /**
      * Emits the merchant's active listings (OPEN / CLOSING) in real-time.
      * The Flow stays open until the caller's coroutine is cancelled.
+     *
+     * On every snapshot emission, any listing whose [Listing.expiresAt] ≤ now is
+     * immediately expired in Firestore (status → EXPIRED). The snapshot listener
+     * will re-fire automatically, removing those listings from the emitted list.
      */
     fun observeActiveListings(merchantId: String): Flow<List<Listing>> = callbackFlow {
         val activeStatuses = setOf(ListingStatus.OPEN.name, ListingStatus.CLOSING.name)
@@ -77,8 +84,29 @@ class ListingRepository {
             .whereEqualTo("merchantId", merchantId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) { close(error); return@addSnapshotListener }
-                val sorted = (snapshot?.documents?.mapNotNull { mapListing(it) } ?: emptyList())
-                    .filter  { it.status in activeStatuses }
+
+                val now      = System.currentTimeMillis()
+                val allMapped = snapshot?.documents?.mapNotNull { mapListing(it) } ?: emptyList()
+
+                // ── Auto-expire overdue listings in Firestore ──────────────────
+                val overdue = allMapped.filter {
+                    it.status in activeStatuses && it.expiresAt > 0L && it.expiresAt <= now
+                }
+                if (overdue.isNotEmpty()) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        overdue.forEach { listing ->
+                            runCatching {
+                                listingsCollection.document(listing.id)
+                                    .update("status", ListingStatus.EXPIRED.name)
+                                    .await()
+                            }
+                        }
+                    }
+                }
+
+                // Emit only still-active, not-yet-expired listings
+                val sorted = allMapped
+                    .filter { it.status in activeStatuses && (it.expiresAt == 0L || it.expiresAt > now) }
                     .sortedBy { it.expiresAt }
                 trySend(sorted)
             }
@@ -109,6 +137,41 @@ class ListingRepository {
         listingsCollection.document(listingId)
             .delete()
             .await()
+    }
+
+    /**
+     * Scans all OPEN/CLOSING listings for [merchantId] and sets status to EXPIRED
+     * for any whose [Listing.expiresAt] is in the past.
+     *
+     * Safe to call repeatedly — only updates listings that actually need it.
+     * Used by [ListingExpiryWorker] and [LiveListingsViewModel] for proactive cleanup.
+     *
+     * @return Number of listings expired.
+     */
+    suspend fun expireOverdueListings(merchantId: String): Int {
+        val activeStatuses = setOf(ListingStatus.OPEN.name, ListingStatus.CLOSING.name)
+        val now = System.currentTimeMillis()
+
+        val overdueIds = listingsCollection
+            .whereEqualTo("merchantId", merchantId)
+            .get().await()
+            .documents
+            .mapNotNull { doc ->
+                val status    = doc.getString("status") ?: return@mapNotNull null
+                val expiresAt = doc.getLong("expiresAt") ?: 0L
+                if (status in activeStatuses && expiresAt > 0L && expiresAt <= now) doc.id
+                else null
+            }
+
+        overdueIds.forEach { id ->
+            runCatching {
+                listingsCollection.document(id)
+                    .update("status", ListingStatus.EXPIRED.name)
+                    .await()
+            }
+        }
+
+        return overdueIds.size
     }
 
     // ── Atomic transaction ────────────────────────────────────────────────────

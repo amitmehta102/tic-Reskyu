@@ -33,14 +33,19 @@ import com.reskyu.merchant.data.model.MerchantDraft
 import com.reskyu.merchant.data.model.SaveState
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.navigation.Screen
+import com.reskyu.merchant.ui.theme.RGreenAccent
+import com.reskyu.merchant.ui.theme.RGreenDark
+import com.reskyu.merchant.ui.theme.RGreenDeep
+import com.reskyu.merchant.ui.theme.RGreenLight
+import com.reskyu.merchant.ui.theme.RGreenMid
 import kotlinx.coroutines.launch
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
-private val GreenDark   = Color(0xFF0C1E13)
-private val GreenDeep   = Color(0xFF163823)
-private val GreenMid    = Color(0xFF1F5235)
-private val GreenAccent = Color(0xFF52B788)
-private val GreenLight  = Color(0xFF95D5B2)
+private val GreenDark   = RGreenDark
+private val GreenDeep   = RGreenDeep
+private val GreenMid    = RGreenMid
+private val GreenAccent = RGreenAccent
+private val GreenLight  = RGreenLight
 
 // ── Per-page static content ───────────────────────────────────────────────────
 private data class PageMeta(val emoji: String, val title: String, val subtitle: String)
@@ -143,6 +148,7 @@ fun OnboardingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .imePadding()
         ) {
 
             // ── Top: branding + step dots ─────────────────────────────────────

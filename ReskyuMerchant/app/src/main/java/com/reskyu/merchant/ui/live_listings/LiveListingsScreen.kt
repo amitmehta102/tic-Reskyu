@@ -23,11 +23,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.reskyu.merchant.ui.components.LoadingOverlay
 import com.reskyu.merchant.ui.components.MainBottomBar
 import com.reskyu.merchant.ui.navigation.Screen
+import com.reskyu.merchant.ui.components.ReskyuHeader
+import com.reskyu.merchant.ui.theme.RGreenAccent
+import com.reskyu.merchant.ui.theme.RScreenBg
 import kotlinx.coroutines.launch
-
-private val GreenDark   = Color(0xFF0C1E13)
-private val GreenDeep   = Color(0xFF163823)
-private val GreenAccent = Color(0xFF52B788)
 
 /**
  * Live Listings screen — displays all OPEN / CLOSING listings for the merchant.
@@ -65,12 +64,12 @@ fun LiveListingsScreen(
     }
 
     Scaffold(
-        containerColor   = Color(0xFFF2F8F4),
+        containerColor   = RScreenBg,
         snackbarHost     = { SnackbarHost(hostState = snackbarHost) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick        = { navController.navigate(Screen.POST_LISTING) },
-                containerColor = GreenAccent,
+                containerColor = RGreenAccent,
                 contentColor   = Color.White,
                 shape          = RoundedCornerShape(16.dp)
             ) {
@@ -89,7 +88,14 @@ fun LiveListingsScreen(
                 .padding(padding)
         ) {
             // ── Header ───────────────────────────────────────────────────────
-            ListingsHeader(count = listings.size)
+            ReskyuHeader(
+                title    = "Live Listings",
+                subtitle = when (listings.size) {
+                    0    -> "No active listings"
+                    1    -> "1 listing active right now"
+                    else -> "${listings.size} listings active right now"
+                }
+            )
 
             // ── Body ─────────────────────────────────────────────────────────
             Box(modifier = Modifier.fillMaxSize()) {
@@ -114,38 +120,6 @@ fun LiveListingsScreen(
 
                 LoadingOverlay(isVisible = isLoading)
             }
-        }
-    }
-}
-
-// ── Header ────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun ListingsHeader(count: Int) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(GreenDark, GreenDeep)))
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 20.dp)
-    ) {
-        Column {
-            Text(
-                text       = "Live Listings",
-                fontSize   = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color      = Color.White
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text     = when (count) {
-                    0    -> "No active listings"
-                    1    -> "1 listing active right now"
-                    else -> "$count listings active right now"
-                },
-                fontSize = 13.sp,
-                color    = Color.White.copy(alpha = 0.65f)
-            )
         }
     }
 }
@@ -180,7 +154,7 @@ private fun EmptyListingsState(navController: NavController) {
         Button(
             onClick  = { navController.navigate(Screen.POST_LISTING) },
             shape    = RoundedCornerShape(14.dp),
-            colors   = ButtonDefaults.buttonColors(containerColor = GreenAccent),
+            colors   = ButtonDefaults.buttonColors(containerColor = RGreenAccent),
             modifier = Modifier.height(50.dp)
         ) {
             Text(
