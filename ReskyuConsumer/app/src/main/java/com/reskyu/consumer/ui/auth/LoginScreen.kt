@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.auth
+﻿package com.reskyu.consumer.ui.auth
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -38,22 +38,17 @@ import com.reskyu.consumer.data.model.LoginState
 import com.reskyu.consumer.ui.components.LoadingOverlay
 import com.reskyu.consumer.ui.navigation.Screen
 
-// ── Theme colors ───────────────────────────────────────────────────────────────
 private val GreenDark    = Color(0xFF0A2E1A)
 private val GreenMid     = Color(0xFF0D3D22)
 private val GreenAccent  = Color(0xFF2DC653)
 private val GreenSurface = Color(0xFFE8F5ED)
 private val GreenOnCard  = Color(0xFF1B4332)
 
-// Consumer types
 enum class ConsumerType(val label: String, val emoji: String, val description: String) {
     INDIVIDUAL("Individual", "🙋", "Personal use — rescue food for yourself"),
     NGO("NGO / Organisation", "🏢", "Bulk rescue for a charity or community")
 }
 
-/**
- * LoginScreen — email-only auth + consumer type selection on sign-up
- */
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -94,7 +89,6 @@ fun LoginScreen(
         ) {
             Spacer(Modifier.height(52.dp))
 
-            // ── Branding ──────────────────────────────────────────────────────
             Text("🌱", fontSize = 56.sp)
             Spacer(Modifier.height(12.dp))
             Text(
@@ -114,7 +108,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(40.dp))
 
-            // ── Auth Card ─────────────────────────────────────────────────────
             Card(
                 modifier  = Modifier.fillMaxWidth(),
                 shape     = RoundedCornerShape(24.dp),
@@ -123,7 +116,6 @@ fun LoginScreen(
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
 
-                    // Title
                     Text(
                         if (isSignUp) "Create Account" else "Welcome back",
                         style = MaterialTheme.typography.titleLarge,
@@ -138,7 +130,6 @@ fun LoginScreen(
                         modifier = Modifier.padding(bottom = 20.dp)
                     )
 
-                    // ── Consumer type picker (sign-up only) ───────────────────
                     AnimatedVisibility(
                         visible = isSignUp,
                         enter   = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
@@ -169,7 +160,6 @@ fun LoginScreen(
                         }
                     }
 
-                    // ── Email form ────────────────────────────────────────────
                     EmailAuthSection(
                         name                   = name,
                         onNameChange           = { name = it },
@@ -207,7 +197,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── Dev bypass ────────────────────────────────────────────────────
             TextButton(
                 onClick  = { viewModel.devBypass() },
                 modifier = Modifier.fillMaxWidth()
@@ -225,8 +214,6 @@ fun LoginScreen(
         if (loginState is LoginState.Loading) LoadingOverlay()
     }
 }
-
-// ── Consumer type card ─────────────────────────────────────────────────────────
 
 @Composable
 private fun ConsumerTypeCard(
@@ -274,8 +261,6 @@ private fun ConsumerTypeCard(
     }
 }
 
-// ── Email Auth Section ────────────────────────────────────────────────────────
-
 @Composable
 private fun EmailAuthSection(
     name:                   String,
@@ -296,7 +281,6 @@ private fun EmailAuthSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-        // Full name — sign-up only
         AnimatedVisibility(
             visible = isSignUp,
             enter   = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
@@ -389,8 +373,6 @@ private fun EmailAuthSection(
         }
     }
 }
-
-// ── Shared field colors ────────────────────────────────────────────────────────
 
 @Composable
 private fun greenFieldColors() = OutlinedTextFieldDefaults.colors(

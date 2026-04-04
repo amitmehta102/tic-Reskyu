@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.notifications
+﻿package com.reskyu.consumer.ui.notifications
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,15 +14,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * NotificationItem
- *
- * A composable representing a single notification row.
- * Unread notifications are highlighted with a subtle background tint.
- *
- * @param notification  The [AppNotification] to display
- * @param onRead        Called when the item is tapped (marks as read)
- */
 @Composable
 fun NotificationItem(
     notification: AppNotification,
@@ -47,7 +38,6 @@ fun NotificationItem(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Unread dot indicator
             if (!notification.isRead) {
                 Box(
                     modifier = Modifier

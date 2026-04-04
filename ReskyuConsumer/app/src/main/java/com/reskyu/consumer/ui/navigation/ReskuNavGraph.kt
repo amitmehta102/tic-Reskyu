@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.navigation
+﻿package com.reskyu.consumer.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
@@ -15,19 +15,6 @@ import com.reskyu.consumer.ui.main.MainScreen
 import com.reskyu.consumer.ui.splash.SplashScreen
 import com.reskyu.consumer.utils.Constants
 
-/**
- * ReskuNavGraph
- *
- * Root NavHost — maps the top-level routes to their composables.
- *
- * Flow:
- *   Splash → auth check → Login  OR  Main
- *   Main (bottom nav shell) → [Home | Orders | Notifications | Profile]
- *   Home → DetailListing → Claim → Confirmation  (all outside bottom nav)
- *
- * The bottom-nav destinations (Home, Orders, Notifications, Profile) are
- * nested inside [MainScreen], which has its own inner NavHost.
- */
 @Composable
 fun ReskuNavGraph(
     navController: NavHostController = rememberNavController(),
@@ -38,7 +25,6 @@ fun ReskuNavGraph(
         startDestination = startDestination
     ) {
 
-        // ── Auth Flow ─────────────────────────────────────────────────────────
         composable(Screen.Splash.route) {
             SplashScreen(navController = navController)
         }
@@ -47,12 +33,10 @@ fun ReskuNavGraph(
             LoginScreen(navController = navController)
         }
 
-        // ── Main Shell (bottom nav) ────────────────────────────────────────────
         composable(Screen.Main.route) {
             MainScreen(outerNavController = navController)
         }
 
-        // ── Listing Detail ────────────────────────────────────────────────────
         composable(
             route = Screen.DetailListing.route,
             arguments = listOf(
@@ -64,7 +48,6 @@ fun ReskuNavGraph(
             ListingDetailScreen(listingId = listingId, navController = navController)
         }
 
-        // ── Claim / Checkout ─────────────────────────────────────────────────
         composable(
             route = Screen.Claim.route,
             arguments = listOf(
@@ -78,7 +61,6 @@ fun ReskuNavGraph(
             ClaimScreen(listingId = listingId, initialQuantity = quantity, navController = navController)
         }
 
-        // ── Confirmation / Ticket ─────────────────────────────────────────────
         composable(
             route = Screen.Confirmation.route,
             arguments = listOf(

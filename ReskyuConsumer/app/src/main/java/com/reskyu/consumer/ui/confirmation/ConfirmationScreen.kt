@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.confirmation
+﻿package com.reskyu.consumer.ui.confirmation
 
 import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
@@ -38,15 +38,6 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import com.reskyu.consumer.ui.navigation.Screen
 
-/**
- * ConfirmationScreen
- *
- * Shown after a successful claim. Features:
- *  - Animated scale+fade entrance on the success icon
- *  - Dashed-border "ticket" card (mimics a real pickup ticket)
- *  - Ticket rows: business, item, amount, payment ID, pickup deadline
- *  - "View My Orders" and "Back to Home" CTAs
- */
 @Composable
 fun ConfirmationScreen(
     claimId: String,
@@ -57,7 +48,6 @@ fun ConfirmationScreen(
 
     LaunchedEffect(claimId) { viewModel.loadTicket(claimId) }
 
-    // Entrance animations
     val iconScale  = remember { Animatable(0f) }
     val bodyAlpha  = remember { Animatable(0f) }
 
@@ -75,7 +65,6 @@ fun ConfirmationScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // ── Animated success icon ─────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .size(100.dp)
@@ -113,21 +102,18 @@ fun ConfirmationScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // ── Ticket Card ───────────────────────────────────────────────────────
         ticketState?.let { ticket ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .alpha(bodyAlpha.value)
             ) {
-                // Top half of ticket
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
                     elevation = CardDefaults.cardElevation(4.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        // Header row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -163,7 +149,6 @@ fun ConfirmationScreen(
                         HorizontalDivider()
                         Spacer(Modifier.height(16.dp))
 
-                        // Ticket rows
                         TicketRow(label = "Amount Paid", value = "₹${ticket.amount.toInt()}", bold = true)
                         Spacer(Modifier.height(8.dp))
                         TicketRow(label = "Pickup Before", value = ticket.pickupByTime, highlight = true)
@@ -172,10 +157,8 @@ fun ConfirmationScreen(
                     }
                 }
 
-                // ── Dashed tear line ──────────────────────────────────────────
                 DashedDivider()
 
-                // Bottom half of ticket (QR placeholder / emoji)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
@@ -188,7 +171,6 @@ fun ConfirmationScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            // Real QR code from claimId
                             QrCodeImage(
                                 content = ticket.claimId,
                                 size    = 120.dp
@@ -208,7 +190,6 @@ fun ConfirmationScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ── Impact summary row ────────────────────────────────────────────────
         ticketState?.let {
             Surface(
                 modifier = Modifier
@@ -245,7 +226,6 @@ fun ConfirmationScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── CTAs ──────────────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -267,7 +247,6 @@ fun ConfirmationScreen(
             }
             Button(
                 onClick = {
-                    // Signal MainScreen to switch inner nav to Orders tab
                     com.reskyu.consumer.TabNavigationBus.navigateTo(Screen.MyOrders.route)
                     navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Main.route) { inclusive = false }
@@ -283,8 +262,6 @@ fun ConfirmationScreen(
         }
     }
 }
-
-// ── Helper Composables ─────────────────────────────────────────────────────────
 
 @Composable
 private fun TicketRow(
@@ -335,12 +312,6 @@ private fun DashedDivider() {
     }
 }
 
-// ── QR Code ───────────────────────────────────────────────────────────────────
-
-/**
- * Composable that renders a square QR code for [content] using ZXing.
- * The bitmap is generated once and memoised; on error a plain grey box is shown.
- */
 @Composable
 private fun QrCodeImage(content: String, size: Dp, modifier: Modifier = Modifier) {
     val bitmap = remember(content) { generateQrBitmap(content, 512) }
@@ -353,7 +324,6 @@ private fun QrCodeImage(content: String, size: Dp, modifier: Modifier = Modifier
             modifier = modifier.size(size)
         )
     } else {
-        // Fallback if ZXing encoding fails
         Box(
             modifier = modifier
                 .size(size)

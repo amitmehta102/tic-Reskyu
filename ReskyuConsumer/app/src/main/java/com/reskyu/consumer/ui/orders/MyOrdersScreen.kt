@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.orders
+﻿package com.reskyu.consumer.ui.orders
 
 import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
@@ -43,7 +43,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-// ── Orders palette — exact merchant brand ─────────────────────────────────────
 private val LBackground  = Color(0xFFF2F8F4)   // ScreenBg
 private val LSurface     = Color.White
 private val LAccent      = Color(0xFF52B788)   // GreenAccent
@@ -55,13 +54,9 @@ private val LChipSel     = Color(0xFF52B788)   // GreenAccent
 private val LChipUnsel   = Color(0xFFF0F4F2)   // light surface (keep)
 private val LIconTint    = Color(0xFF52B788)   // GreenAccent
 
-// Header gradient — matches HomeScreen / merchant dashboard
 private val HGrad = listOf(Color(0xFF0C1E13), Color(0xFF163823), Color(0xFF1F5235))
 private val HLight = Color(0xFF95D5B2)   // GreenLight for subtitle on dark
 
-/**
- * MyOrdersScreen — dark gradient header matching HomeScreen + dialog ticket for current orders
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyOrdersScreen(
@@ -81,14 +76,12 @@ fun MyOrdersScreen(
     val totalSaved   = allClaims.sumOf { (it.originalPrice - it.amount).coerceAtLeast(0.0) }
     val mealsRescued = allClaims.count { it.status == "COMPLETED" }
 
-    // Order detail dialog — shown when a current order card is tapped
     selectedOrder?.let { claim ->
         OrderDetailDialog(claim = claim, onDismiss = { selectedOrder = null })
     }
 
     Column(modifier = Modifier.fillMaxSize().background(LBackground)) {
 
-        // ── Dark gradient header — pinned, never scrolls ───────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -117,7 +110,6 @@ fun MyOrdersScreen(
             }
         }
 
-        // ── Scrollable list below the pinned header ────────────────────────────
         PullToRefreshBox(
             isRefreshing = isLoading,
             onRefresh    = { viewModel.refresh() },
@@ -129,7 +121,6 @@ fun MyOrdersScreen(
                     .background(LBackground)
             ) {
 
-                // ── 3 stat chips ────────────────────────────────────────────────
                 item {
                     Row(
                         modifier = Modifier
@@ -159,7 +150,6 @@ fun MyOrdersScreen(
                     }
                 }
 
-                // ── Current / Past pill tabs ─────────────────────────────────────
                 item {
                     Row(
                         modifier = Modifier
@@ -184,7 +174,6 @@ fun MyOrdersScreen(
                     }
                 }
 
-                // ── Content ──────────────────────────────────────────────────────
                 if (displayedOrders.isEmpty()) {
                     item {
                         Box(
@@ -223,7 +212,6 @@ fun MyOrdersScreen(
                             modifier    = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 5.dp),
-                            // current orders → open dialog; past orders → inline expand
                             onCardClick = if (isCurrent) ({ selectedOrder = claim }) else null,
                             onRate      = { stars -> viewModel.submitRating(claim.id, claim.merchantId, stars) }
                         )
@@ -235,14 +223,11 @@ fun MyOrdersScreen(
     }           // end outer Column
 }
 
-// ── Order Detail Dialog ───────────────────────────────────────────────────────
-
 @Composable
 private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
     val savedAmount = (claim.originalPrice - claim.amount).coerceAtLeast(0.0)
     val pickupCode  = claim.paymentId.takeLast(6).uppercase()
 
-    // Countdown timer
     val deadlineMs = claim.pickupDeadlineMs
         ?: (claim.timestamp?.toDate()?.time?.plus(TimeUnit.HOURS.toMillis(1)))
     var timeLeftMs by remember { mutableStateOf(
@@ -265,7 +250,6 @@ private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
 
-                // ── Dark gradient header ────────────────────────────────────────
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -302,7 +286,6 @@ private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
                     }
                 }
 
-                // ── Body ───────────────────────────────────────────────────────
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -310,7 +293,6 @@ private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    // QR code
                     QrCodeImageLocal(content = claim.id, size = 160.dp)
                     Spacer(Modifier.height(6.dp))
                     Text(
@@ -321,7 +303,6 @@ private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
 
                     Spacer(Modifier.height(14.dp))
 
-                    // Pickup code + countdown row
                     val urgentColor = if (isUrgent) Color(0xFFE65100) else LAccent
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -371,7 +352,6 @@ private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
                     HorizontalDivider(color = LDivider)
                     Spacer(Modifier.height(12.dp))
 
-                    // Transaction details
                     DetailRow("Amount Paid",     "₹${claim.amount.toInt()}")
                     DetailRow("Original Price",  "₹${claim.originalPrice.toInt()}")
                     DetailRow("You Saved",       "₹${savedAmount.toInt()}")
@@ -397,8 +377,6 @@ private fun OrderDetailDialog(claim: Claim, onDismiss: () -> Unit) {
         }
     }
 }
-
-// ── Helper composables / functions ────────────────────────────────────────────
 
 @Composable
 private fun DetailRow(label: String, value: String) {
@@ -471,8 +449,6 @@ private fun generateQrBitmapLocal(content: String, px: Int): Bitmap? {
     } catch (_: Exception) { null }
 }
 
-// ── Light Pill Tab ────────────────────────────────────────────────────────────
-
 @Composable
 private fun LightPillTab(
     label: String,
@@ -521,8 +497,6 @@ private fun LightPillTab(
         }
     }
 }
-
-// ── Light Stat Chip ───────────────────────────────────────────────────────────
 
 @Composable
 private fun LightStatChip(

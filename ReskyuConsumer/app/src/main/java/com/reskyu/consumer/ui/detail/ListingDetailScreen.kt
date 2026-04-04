@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.detail
+﻿package com.reskyu.consumer.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -30,23 +30,6 @@ import com.reskyu.consumer.ui.components.DietaryChip
 import com.reskyu.consumer.ui.navigation.Screen
 import java.util.concurrent.TimeUnit
 
-/**
- * ListingDetailScreen
- *
- * Full-detail view of a single food listing.
- *
- * Layout:
- *  ┌── Full-width hero image (with back button overlay) ──────────────┐
- *  │   Scrollable body:                                               │
- *  │    · Business name + dietary chip + rating row                   │
- *  │    · Hero item title + description row                           │
- *  │    · Pricing pill (discounted + crossed original + savings %)    │
- *  │    · Info rows: meals left, location, expiry                     │
- *  │    · Divider                                                     │
- *  │    · Impact card: CO₂ saved estimate, money saved                │
- *  └──────────────────────────────────────────────────────────────────┘
- *  Sticky bottom bar: "Claim Now — ₹X" button
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingDetailScreen(
@@ -88,12 +71,10 @@ fun ListingDetailScreen(
                 val isOpen = l.status == "OPEN" && l.mealsLeft > 0 && timeLeftMs > 0
                 val co2Saved = 2.5  // kg per meal (configurable)
 
-                // Quantity state — drives the stepper in the bottom bar and impact card
                 var quantity     by remember { mutableStateOf(1) }
                 val maxQty       = l.mealsLeft.coerceAtLeast(1)
                 val totalPayable = l.discountedPrice * quantity
 
-                // ── Scrollable content ────────────────────────────────────────
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -101,7 +82,6 @@ fun ListingDetailScreen(
                         .padding(bottom = 152.dp) // space for quantity stepper + claim button
                 ) {
 
-                    // ── Hero Image ────────────────────────────────────────────
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -125,7 +105,6 @@ fun ListingDetailScreen(
                             }
                         }
 
-                        // Gradient scrim at bottom of image
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -141,7 +120,6 @@ fun ListingDetailScreen(
                                 )
                         )
 
-                        // Back button
                         IconButton(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier
@@ -158,7 +136,6 @@ fun ListingDetailScreen(
                             )
                         }
 
-                        // Discount badge (standard) or Mystery Box badge
                         if (l.isMysteryBox) {
                             Box(
                                 modifier = Modifier
@@ -199,13 +176,11 @@ fun ListingDetailScreen(
                         }
                     }
 
-                    // ── Body Content ──────────────────────────────────────────
                     Column(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
 
-                        // Business name + dietary chip row
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -220,7 +195,6 @@ fun ListingDetailScreen(
                             DietaryChip(tag = DietaryTag.valueOf(l.dietaryTag))
                         }
 
-                        // Hero item title — mystery box shows type + hint, standard shows item name
                         if (l.isMysteryBox) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
@@ -253,7 +227,6 @@ fun ListingDetailScreen(
                             )
                         }
 
-                        // ── Pricing ───────────────────────────────────────────
                         if (l.isMysteryBox) {
                             Row(verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -307,7 +280,6 @@ fun ListingDetailScreen(
 
                         HorizontalDivider()
 
-                        // ── Info rows ─────────────────────────────────────────
                         InfoRow(
                             icon = "🍽️",
                             label = "Portions available",
@@ -336,7 +308,6 @@ fun ListingDetailScreen(
 
                         HorizontalDivider()
 
-                        // ── Impact Card ───────────────────────────────────────
                         Surface(
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             shape = MaterialTheme.shapes.medium,
@@ -359,7 +330,6 @@ fun ListingDetailScreen(
                             }
                         }
 
-                        // Sold out / cancelled notice
                         if (!isOpen) {
                             Surface(
                                 color = MaterialTheme.colorScheme.errorContainer,
@@ -381,7 +351,6 @@ fun ListingDetailScreen(
                     }
                 }
 
-                // ── Sticky Bottom Bar (quantity stepper + claim) ──────────────────
                 Box(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
@@ -396,13 +365,11 @@ fun ListingDetailScreen(
                                 .padding(horizontal = 20.dp, vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // ── Portions stepper + reactive total ────────────────
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // [Portions label] [−] [qty] [+]
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -450,7 +417,6 @@ fun ListingDetailScreen(
                                     }
                                 }
 
-                                // Reactive total
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         "₹${totalPayable.toInt()}",
@@ -469,7 +435,6 @@ fun ListingDetailScreen(
                                 }
                             }
 
-                            // ── Claim button (full width) ──────────────────────────
                             Button(
                                 onClick = {
                                     navController.navigate(
@@ -492,8 +457,6 @@ fun ListingDetailScreen(
         }
     }
 }
-
-// ── Helper Composables ─────────────────────────────────────────────────────────
 
 @Composable
 private fun InfoRow(

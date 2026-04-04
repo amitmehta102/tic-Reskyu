@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.home
+﻿package com.reskyu.consumer.ui.home
 
 import android.Manifest
 import android.graphics.Bitmap
@@ -62,7 +62,6 @@ import org.osmdroid.views.overlay.Overlay
 import java.util.concurrent.TimeUnit
 import kotlin.math.*
 
-// ── Reskyu brand colors — exact merchant palette ──────────────────────────────
 private val RGreenDark    = Color(0xFF0C1E13)   // header top  / exact merchant GreenDark
 private val RGreenDeep    = Color(0xFF163823)   // header mid  / exact merchant GreenDeep
 private val RGreenMid     = Color(0xFF1F5235)   // header btm  / exact merchant GreenMid
@@ -102,7 +101,6 @@ fun HomeScreen(
     var mapExpanded by remember { mutableStateOf(false) }
     var selectedListing by remember { mutableStateOf<Listing?>(null) }
 
-    // ── GPS permission ────────────────────────────────────────────────────────
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -111,7 +109,6 @@ fun HomeScreen(
         viewModel.onLocationPermissionResult(granted)
     }
 
-    // Request location on first composition
     LaunchedEffect(Unit) {
         locationPermissionLauncher.launch(
             arrayOf(
@@ -121,7 +118,6 @@ fun HomeScreen(
         )
     }
 
-    // ── Notification deep link: navigate directly to listing when tapped ───────
     val pendingListingId by NotificationDeepLinkBus.pendingListingId.collectAsState()
     LaunchedEffect(pendingListingId) {
         pendingListingId?.let { listingId ->
@@ -131,9 +127,7 @@ fun HomeScreen(
             )
         }
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
-    // Animate map height between collapsed and expanded
     val mapHeight by animateDpAsState(
         targetValue = if (mapExpanded) MAP_HEIGHT_EXPANDED else MAP_HEIGHT_COLLAPSED,
         animationSpec = tween(durationMillis = 300),
@@ -145,10 +139,8 @@ fun HomeScreen(
             .fillMaxSize()
             .background(RGreenSurface)
     ) {
-        // ── Fixed: branded header ──────────────────────────────────────────────
         HomeBanner(onNotificationsClick = { innerNavController.navigate(Screen.Notifications.route) })
 
-        // ── Fixed: OSM map (animated height, interactive) ──────────────────────
         OsmMapCard(
             listings      = listings,
             userLat       = userLat,
@@ -159,7 +151,6 @@ fun HomeScreen(
             onToggleExpand = { mapExpanded = !mapExpanded }
         )
 
-        // ── Scrollable: filter chips + listing cards ───────────────────────────
         PullToRefreshBox(
             isRefreshing = isLoading,
             onRefresh    = { viewModel.refresh() },
@@ -242,7 +233,6 @@ fun HomeScreen(
         }
     }
 
-    // ── Order Bottom Sheet ──────────────────────────────────────────────
     selectedListing?.let { listing ->
         OrderBottomSheet(
             listing   = listing,
@@ -254,8 +244,6 @@ fun HomeScreen(
         )
     }
 }
-
-// ── Header — dark gradient matching merchant app ──────────────────────────────
 
 @Composable
 private fun HomeBanner(onNotificationsClick: () -> Unit) {
@@ -276,7 +264,6 @@ private fun HomeBanner(onNotificationsClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Title + subtitle
             Column {
                 Text(
                     "Today's Food Drops 🍱",
@@ -292,7 +279,6 @@ private fun HomeBanner(onNotificationsClick: () -> Unit) {
                 )
             }
 
-            // Notification bell — top-right (same pattern as merchant's profile icon)
             IconButton(
                 onClick = onNotificationsClick,
                 modifier = Modifier
@@ -310,8 +296,6 @@ private fun HomeBanner(onNotificationsClick: () -> Unit) {
         }
     }
 }
-
-// ── OSM Map Card — animated height, fully interactive ─────────────────────────
 
 @Composable
 private fun OsmMapCard(
@@ -388,7 +372,6 @@ private fun OsmMapCard(
             DisposableEffect(Unit) { onDispose { radarOverlay.stopAnimation() } }
         }
 
-        // ── Expand / Collapse chip — ONLY button that triggers resize ──────────
         Surface(
             onClick   = onToggleExpand,
             modifier  = Modifier
@@ -418,11 +401,8 @@ private fun OsmMapCard(
     }
 }
 
-// ── Dietary Filter Chips ──────────────────────────────────────────────────────
-
 @Composable
 private fun DietaryFilterChips(selected: DietaryTag?, onSelect: (DietaryTag?) -> Unit) {
-    // Explicit list — JAIN hidden (kept in enum for data compat), BAKERY & SWEETS added
     val filters = listOf(null, DietaryTag.VEG, DietaryTag.NON_VEG, DietaryTag.VEGAN,
                          DietaryTag.BAKERY, DietaryTag.SWEETS)
     val labels  = mapOf(
@@ -451,8 +431,6 @@ private fun DietaryFilterChips(selected: DietaryTag?, onSelect: (DietaryTag?) ->
     }
 }
 
-// ── Distance Utilities ────────────────────────────────────────────────────────
-
 fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
     if (lat2 == 0.0 && lon2 == 0.0) return 0.0
     val R    = 6371.0
@@ -469,8 +447,6 @@ fun formatDistance(km: Double?): String? {
     return if (km < 1.0) "${(km * 1000).toInt()}m" else "%.1f km".format(km)
 }
 
-// ── Order Bottom Sheet ────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OrderBottomSheet(
@@ -485,7 +461,6 @@ private fun OrderBottomSheet(
     val timeLeftMs = listing.expiresAt.toDate().time - System.currentTimeMillis()
     val maxQty     = listing.mealsLeft.coerceAtLeast(1)
 
-    // Quantity state — drives stepper and all price rows
     var quantity    by remember { mutableStateOf(1) }
     val savings     = (listing.originalPrice - listing.discountedPrice) * quantity
     val totalPrice  = listing.discountedPrice * quantity
@@ -502,7 +477,6 @@ private fun OrderBottomSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp)
         ) {
-            // ── Hero image ──────────────────────────────────────────────────────
             if (listing.imageUrl.isNotBlank()) {
                 AsyncImage(
                     model              = listing.imageUrl,
@@ -525,7 +499,6 @@ private fun OrderBottomSheet(
             }
             Spacer(Modifier.height(16.dp))
 
-            // ── Restaurant row ──────────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     modifier = Modifier
@@ -550,7 +523,6 @@ private fun OrderBottomSheet(
             HorizontalDivider(color = Color(0xFFB2DFBB))
             Spacer(Modifier.height(14.dp))
 
-            // ── What's in the bag ───────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.ShoppingBag, null, tint = RGreenAccent, modifier = Modifier.size(18.dp))
                 Text(
@@ -561,7 +533,6 @@ private fun OrderBottomSheet(
             Spacer(Modifier.height(8.dp))
 
             if (listing.isMysteryBox) {
-                // Mystery box — show surprise message with hint
                 Surface(
                     color = Color(0xFFF3EEFF),
                     shape = RoundedCornerShape(12.dp),
@@ -598,7 +569,6 @@ private fun OrderBottomSheet(
                 }
 
             } else {
-                // Standard listing — show item name + stepper in a row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -612,7 +582,6 @@ private fun OrderBottomSheet(
                         modifier = Modifier.weight(1f)
                     )
 
-                    // Quantity stepper
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -646,7 +615,6 @@ private fun OrderBottomSheet(
                 }
             }
 
-            // Availability note — shown for both types
             Spacer(Modifier.height(6.dp))
             Text(
                 "${listing.mealsLeft} portion${if (listing.mealsLeft != 1) "s" else ""} available",
@@ -672,11 +640,9 @@ private fun OrderBottomSheet(
             HorizontalDivider(color = Color(0xFFB2DFBB))
             Spacer(Modifier.height(14.dp))
 
-            // ── Price breakdown ─────────────────────────────────────────────────
             Text("Price Breakdown", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RGreenOnCard)
             Spacer(Modifier.height(8.dp))
             if (listing.isMysteryBox) {
-                // Mystery box: show value range + you pay
                 if (listing.priceRangeMin > 0 || listing.priceRangeMax > 0) {
                     PriceRow("Box value (est.)", "₹${listing.priceRangeMin.toInt()}–₹${listing.priceRangeMax.toInt()}")
                 }
@@ -688,7 +654,6 @@ private fun OrderBottomSheet(
                 Spacer(Modifier.height(6.dp))
                 PriceRow("You Pay", "₹${(listing.discountedPrice * quantity).toInt()}", bold = true, valueColor = Color(0xFF5C35C7))
             } else {
-                // Standard listing: show discount breakdown
                 PriceRow("Original price", "₹${(listing.originalPrice * quantity).toInt()}", strikethrough = true)
                 PriceRow("Discount ($discountPct%)", "-₹${savings.toInt()}", valueColor = RPriceGreen)
                 Spacer(Modifier.height(6.dp))
@@ -699,7 +664,6 @@ private fun OrderBottomSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            // ── Confirm Payment ─────────────────────────────────────────────────
             Button(
                 onClick  = { onConfirm(quantity) },
                 modifier = Modifier.fillMaxWidth().height(54.dp),
@@ -740,7 +704,6 @@ private fun PriceRow(
     }
 }
 
-// ── Radar Pulse Overlay ───────────────────────────────────────────────────────
 private class RadarPulseOverlay(
     private var center: GeoPoint,
     private val radiusMeters: Double = 2000.0
@@ -767,7 +730,6 @@ private class RadarPulseOverlay(
         val sp   = Point(); proj.toPixels(center, sp)
         val cx = sp.x.toFloat(); val cy = sp.y.toFloat()
 
-        // Radius in pixels
         val off = GeoPoint(
             center.latitude,
             center.longitude + radiusMeters / (111_320.0 * cos(Math.toRadians(center.latitude)))
@@ -775,16 +737,13 @@ private class RadarPulseOverlay(
         val op = Point(); proj.toPixels(off, op)
         val rPx = abs(op.x - sp.x).toFloat()
 
-        // Faint fill
         canvas.drawCircle(cx, cy, rPx, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             style = AndroidPaint.Style.FILL; color = AndroidColor.argb(18, 45, 198, 83)
         })
-        // Border ring
         canvas.drawCircle(cx, cy, rPx, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             style = AndroidPaint.Style.STROKE; strokeWidth = 2.5f
             color = AndroidColor.argb(140, 45, 198, 83)
         })
-        // 3 pulsing rings
         for (i in 0..2) {
             val phase = (animProgress + i / 3f) % 1f
             canvas.drawCircle(cx, cy, rPx * 0.40f * phase,
@@ -797,22 +756,18 @@ private class RadarPulseOverlay(
     }
 }
 
-// ── User Location Icon ────────────────────────────────────────────────────────
 private fun userLocationIcon(context: android.content.Context): BitmapDrawable {
     val dp = context.resources.displayMetrics.density
     val sz = (52 * dp).toInt()
     val bm = Bitmap.createBitmap(sz, sz, Bitmap.Config.ARGB_8888)
     val cv = AndroidCanvas(bm)
     val cx = sz / 2f; val cy = sz / 2f
-    // Glow halo
     cv.drawCircle(cx, cy, sz * 0.46f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.argb(55, 220, 40, 40); style = AndroidPaint.Style.FILL
     })
-    // White ring
     cv.drawCircle(cx, cy, sz * 0.30f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.WHITE; style = AndroidPaint.Style.FILL
     })
-    // Red dot
     cv.drawCircle(cx, cy, sz * 0.20f, AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.rgb(210, 35, 35); style = AndroidPaint.Style.FILL
     })

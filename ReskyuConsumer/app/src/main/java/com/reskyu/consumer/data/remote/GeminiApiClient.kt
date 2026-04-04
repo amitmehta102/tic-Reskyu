@@ -1,22 +1,10 @@
-package com.reskyu.consumer.data.remote
+﻿package com.reskyu.consumer.data.remote
 
 import com.google.ai.client.generativeai.GenerativeModel
 import com.reskyu.consumer.BuildConfig
 
-/**
- * GeminiApiClient
- *
- * Singleton wrapper for the Google Generative AI SDK (Gemini 2.5 Flash).
- * Used on the consumer side to generate short, enthusiastic food-rescue insights
- * shown on the Listing Detail screen.
- *
- * The API key is read from BuildConfig (sourced from local.properties → GEMINI_API_KEY).
- * The key is never hardcoded in source.
- */
 object GeminiApiClient {
 
-    // gemini-2.5-flash: best quality for insight text, and user has Gemini Pro quota
-    // Cache-first strategy in ListingDetailViewModel keeps actual calls minimal
     private const val MODEL_NAME = "gemini-2.5-flash"
 
     private val model: GenerativeModel by lazy {
@@ -26,17 +14,6 @@ object GeminiApiClient {
         )
     }
 
-    /**
-     * Generates a short, enthusiastic 1-sentence insight for a food listing.
-     * Shown in a shimmer AI chip on the Listing Detail screen.
-     *
-     * Fails silently — returns null if the API is unavailable or key is missing.
-     *
-     * @param heroItem    The name of the food item
-     * @param dietaryTag  e.g. "VEG", "VEGAN", "NON_VEG", "JAIN"
-     * @param businessName The restaurant / bakery name
-     * @return            1-sentence AI insight, or null on error
-     */
     suspend fun generateListingInsight(
         heroItem: String,
         dietaryTag: String,

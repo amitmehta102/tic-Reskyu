@@ -1,4 +1,4 @@
-package com.reskyu.consumer.service
+﻿package com.reskyu.consumer.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -18,23 +18,6 @@ import com.reskyu.consumer.NotificationDeepLinkBus
 import com.reskyu.consumer.R
 import kotlin.random.Random
 
-/**
- * ReskuMessagingService
- *
- * Handles FCM messages in ALL app states:
- *
- *  ┌───────────────────┬───────────────────────────────────────────────────┐
- *  │ App state         │ What happens                                      │
- *  ├───────────────────┼───────────────────────────────────────────────────┤
- *  │ FOREGROUND        │ onMessageReceived() called → show local notif     │
- *  │                   │  + write to Firestore notifications subcollection │
- *  │ BACKGROUND/KILLED │ Android system shows notification automatically   │
- *  │                   │ onMessageReceived() NOT called in this state      │
- *  │                   │ (FCM handles it via notification payload)          │
- *  └───────────────────┴───────────────────────────────────────────────────┘
- *
- * Notification channel is created here and in ReskyuApplication.
- */
 class ReskuMessagingService : FirebaseMessagingService() {
 
     private val db   = FirebaseFirestore.getInstance()
@@ -53,18 +36,9 @@ class ReskuMessagingService : FirebaseMessagingService() {
         val type      = message.data["type"] ?: "SYSTEM"
         val listingId = message.data["listingId"]   // may be null for non-drop notifications
 
-        // 1. Show a local push notification (required for FOREGROUND state)
-        //
-        // ⚠️  BACKEND NOTE: For notifications to appear in the Alerts screen
-        // when the app is in background/killed, the server MUST send ONLY a
-        // "data" payload (no "notification" key). If a "notification" key is
-        // present, Android handles it silently and onMessageReceived() is NOT
-        // called, so the Firestore write below is skipped.
-        // Required data keys: title, body, type, listingId (optional)
         val notifId = Random.nextInt()
         showLocalNotification(title, body, listingId, requestCode = notifId)
 
-        // 2. Write to Firestore so it appears in the Alerts screen in real-time
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid)
             .collection("notifications")
@@ -91,16 +65,12 @@ class ReskuMessagingService : FirebaseMessagingService() {
 
         createNotificationChannel(notificationManager)
 
-        // Carry listingId so MainActivity can open the listing detail screen directly
         val tapIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             if (!listingId.isNullOrBlank()) {
                 putExtra(NotificationDeepLinkBus.EXTRA_LISTING_ID, listingId)
             }
         }
-        // requestCode must be unique per notification — using the same value (e.g. 0)
-        // with FLAG_UPDATE_CURRENT would replace all previous intents with this one,
-        // making tapping any old notification open the last listing.
         val pendingIntent = PendingIntent.getActivity(
             this, requestCode, tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -116,7 +86,6 @@ class ReskuMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        // Use the same requestCode as the PendingIntent so notifications stack
         notificationManager.notify(requestCode, notification)
     }
 
@@ -137,8 +106,6 @@ class ReskuMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         val uid = auth.currentUser?.uid ?: return
-        // Use set+merge instead of update() so this never fails on new user
-        // documents where the fcmToken field doesn't exist yet.
         db.collection("users").document(uid)
             .set(mapOf("fcmToken" to token), SetOptions.merge())
     }

@@ -1,4 +1,4 @@
-package com.reskyu.consumer.ui.orders
+﻿package com.reskyu.consumer.ui.orders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,16 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-/**
- * MyOrdersViewModel
- *
- * Subscribes to a real-time Firestore snapshot of the current user's claims.
- * Status changes (PENDING_PICKUP → COMPLETED) appear live without pull-to-refresh.
- *
- * Tab logic:
- *  "Current" tab → claims with status PENDING_PICKUP
- *  "Past" tab    → all other statuses (COMPLETED, REFUNDED, DISPUTED, etc.)
- */
 class MyOrdersViewModel : ViewModel() {
 
     private val claimRepository = ClaimRepository()
@@ -51,17 +41,11 @@ class MyOrdersViewModel : ViewModel() {
 
     fun refresh() = subscribeToOrders()
 
-    /**
-     * Saves a 1–5 star rating for a completed order.
-     * Writes to the claim doc and updates the merchant's ratingSum/ratingCount atomically.
-     * The snapshot listener auto-refreshes the UI — no manual state update needed.
-     */
     fun submitRating(claimId: String, merchantId: String, stars: Int) {
         viewModelScope.launch {
             try {
                 claimRepository.submitRating(claimId, merchantId, stars)
             } catch (_: Exception) {
-                // Already rated or Firestore error — fail silently
             }
         }
     }
