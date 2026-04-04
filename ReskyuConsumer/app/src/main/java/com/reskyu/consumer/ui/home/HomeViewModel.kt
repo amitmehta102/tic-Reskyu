@@ -1,150 +1,89 @@
 package com.reskyu.consumer.ui.home
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.Timestamp
 import com.reskyu.consumer.data.model.DietaryTag
 import com.reskyu.consumer.data.model.Listing
-import com.reskyu.consumer.data.model.ListingStatus
 import com.reskyu.consumer.data.repository.ListingRepository
+import com.reskyu.consumer.data.repository.LocationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 /**
  * HomeViewModel
  *
- * Fetches nearby food listings from Firestore.
- * Falls back to dev sample listings when Firebase isn't configured.
+ * Fetches the device's GPS location, then subscribes to a real-time Firestore
+ * GeoHash listing stream for nearby food drops within 2km.
  *
- * TODO: Wire real device location via FusedLocationProviderClient.
+ * Flow:
+ *  1. Request GPS location (real or Bhopal fallback).
+ *  2. Collect ListingRepository.observeNearbyListings(lat, lng) as a real-time Flow.
+ *  3. Show empty state if Firestore returns no OPEN listings in range.
+ *
+ * Dev samples are intentionally removed — the app now shows only live Firestore data.
+ * If the merchant has posted an OPEN listing in a nearby GeoHash cell, it will appear.
  */
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val listingRepository = ListingRepository()
+    private val listingRepository  = ListingRepository()
+    private val locationRepository = LocationRepository(application)
 
     private val _listings = MutableStateFlow<List<Listing>>(emptyList())
     val listings: StateFlow<List<Listing>> = _listings.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    /** Active dietary filter — null means "show all" */
     private val _selectedFilter = MutableStateFlow<DietaryTag?>(null)
     val selectedFilter: StateFlow<DietaryTag?> = _selectedFilter.asStateFlow()
 
-    init {
-        // TODO: Replace with real device location
-        fetchListings(lat = 23.2599, lng = 77.4126)
+    /** Current device location — drives both map center and GeoHash query */
+    private val _userLat = MutableStateFlow(LocationRepository.DEFAULT_LAT)
+    private val _userLng = MutableStateFlow(LocationRepository.DEFAULT_LNG)
+    val userLat: StateFlow<Double> = _userLat.asStateFlow()
+    val userLng: StateFlow<Double> = _userLng.asStateFlow()
+
+    init { startListingStream() }
+
+    /**
+     * Called from HomeScreen after the location permission dialog result.
+     * Restarts the stream with the real device coordinates.
+     */
+    fun onLocationPermissionResult(granted: Boolean) {
+        startListingStream()
     }
 
-    fun fetchListings(lat: Double, lng: Double) {
+    private fun startListingStream() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            try {
-                val result = listingRepository.getNearbyListings(lat, lng)
-                _listings.value = result.ifEmpty { devSampleListings() }
-            } catch (e: Exception) {
-                // Firebase not configured or no internet — show dev samples
-                _listings.value = devSampleListings()
-            } finally {
-                _isLoading.value = false
-            }
+
+            // 1. Get real GPS (falls back to Bhopal automatically)
+            val (lat, lng) = locationRepository.getCurrentLocation()
+            _userLat.value = lat
+            _userLng.value = lng
+
+            // 2. Subscribe to real-time Firestore stream (OPEN listings in nearby GeoHash cells)
+            listingRepository
+                .observeNearbyListings(lat, lng)
+                .catch { _isLoading.value = false }
+                .collect { liveListings ->
+                    _isLoading.value = false
+                    _listings.value = liveListings
+                    // Empty list = genuine "no drops nearby" — shows empty state in UI
+                }
         }
     }
 
-    fun setFilter(tag: DietaryTag?) {
-        _selectedFilter.value = tag
-    }
+    fun setFilter(tag: DietaryTag?) { _selectedFilter.value = tag }
 
-    fun refresh() = fetchListings(lat = 23.2599, lng = 77.4126)
-
-    /** Realistic sample listings for dev mode testing */
-    private fun devSampleListings(): List<Listing> {
-        val now = System.currentTimeMillis() / 1000
-        // Coordinates scattered around Bhopal city center (23.2599, 77.4126)
-        return listOf(
-            Listing(
-                id = "dev_listing_1",
-                merchantId = "merchant_1",
-                businessName = "The Bread Basket",
-                heroItem = "Assorted Pastry Box (4 pcs)",
-                dietaryTag = DietaryTag.VEG.name,
-                mealsLeft = 3,
-                originalPrice = 280.0,
-                discountedPrice = 99.0,
-                imageUrl = "",
-                geoHash = "test",
-                lat = 23.2612, lng = 77.4098,
-                expiresAt = Timestamp(now + TimeUnit.HOURS.toSeconds(2), 0),
-                status = ListingStatus.OPEN.name
-            ),
-            Listing(
-                id = "dev_listing_2",
-                merchantId = "merchant_2",
-                businessName = "Green Leaf Café",
-                heroItem = "Veg Thali Combo (Full meal)",
-                dietaryTag = DietaryTag.VEGAN.name,
-                mealsLeft = 1,
-                originalPrice = 200.0,
-                discountedPrice = 79.0,
-                imageUrl = "",
-                geoHash = "test",
-                lat = 23.2585, lng = 77.4150,
-                expiresAt = Timestamp(now + TimeUnit.MINUTES.toSeconds(45), 0),
-                status = ListingStatus.OPEN.name
-            ),
-            Listing(
-                id = "dev_listing_3",
-                merchantId = "merchant_3",
-                businessName = "Spice Garden",
-                heroItem = "Chicken Biryani + Raita",
-                dietaryTag = DietaryTag.NON_VEG.name,
-                mealsLeft = 5,
-                originalPrice = 380.0,
-                discountedPrice = 149.0,
-                imageUrl = "",
-                geoHash = "test",
-                lat = 23.2630, lng = 77.4180,
-                expiresAt = Timestamp(now + TimeUnit.HOURS.toSeconds(3), 0),
-                status = ListingStatus.OPEN.name
-            ),
-            Listing(
-                id = "dev_listing_4",
-                merchantId = "merchant_4",
-                businessName = "Jain Sweets & Farsan",
-                heroItem = "Farsan Sampler Platter",
-                dietaryTag = DietaryTag.JAIN.name,
-                mealsLeft = 2,
-                originalPrice = 150.0,
-                discountedPrice = 59.0,
-                imageUrl = "",
-                geoHash = "test",
-                lat = 23.2570, lng = 77.4110,
-                expiresAt = Timestamp(now + TimeUnit.HOURS.toSeconds(1), 0),
-                status = ListingStatus.OPEN.name
-            ),
-            Listing(
-                id = "dev_listing_5",
-                merchantId = "merchant_5",
-                businessName = "Italiano Express",
-                heroItem = "Mixed Pizza Slices Box (6 pcs)",
-                dietaryTag = DietaryTag.VEG.name,
-                mealsLeft = 4,
-                originalPrice = 320.0,
-                discountedPrice = 129.0,
-                imageUrl = "",
-                geoHash = "test",
-                lat = 23.2650, lng = 77.4070,
-                expiresAt = Timestamp(now + TimeUnit.HOURS.toSeconds(4), 0),
-                status = ListingStatus.OPEN.name
-            )
-        )
-    }
+    /** Re-fetches location and restarts the stream on pull-to-refresh. */
+    fun refresh() = startListingStream()
 }

@@ -30,11 +30,11 @@ object Constants {
 
     // ─── GeoHash ──────────────────────────────────────────────────────────────
 
-    /** Default GeoHash precision level for proximity queries (5 = ~5km radius) */
-    const val GEOHASH_PRECISION = 5
+    /** GeoHash precision matching the merchant app (4 = ~40km cell, neighbors cover 2km area) */
+    const val GEOHASH_PRECISION = 4
 
-    /** Default search radius in kilometers */
-    const val DEFAULT_SEARCH_RADIUS_KM = 5.0
+    /** Search radius in kilometers for the Alerts screen and map display */
+    const val DEFAULT_SEARCH_RADIUS_KM = 2.0
 
     // ─── Razorpay ─────────────────────────────────────────────────────────────
 

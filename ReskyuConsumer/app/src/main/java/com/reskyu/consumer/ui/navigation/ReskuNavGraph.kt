@@ -68,12 +68,14 @@ fun ReskuNavGraph(
         composable(
             route = Screen.Claim.route,
             arguments = listOf(
-                navArgument(Constants.NAV_ARG_LISTING_ID) { type = NavType.StringType }
+                navArgument(Constants.NAV_ARG_LISTING_ID) { type = NavType.StringType },
+                navArgument("quantity") { type = NavType.IntType; defaultValue = 1 }
             )
         ) { backStackEntry ->
             val listingId = backStackEntry.arguments
                 ?.getString(Constants.NAV_ARG_LISTING_ID) ?: return@composable
-            ClaimScreen(listingId = listingId, navController = navController)
+            val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+            ClaimScreen(listingId = listingId, initialQuantity = quantity, navController = navController)
         }
 
         // ── Confirmation / Ticket ─────────────────────────────────────────────

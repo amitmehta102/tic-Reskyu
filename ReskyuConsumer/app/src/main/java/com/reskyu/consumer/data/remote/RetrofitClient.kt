@@ -1,28 +1,61 @@
 package com.reskyu.consumer.data.remote
 
+import com.reskyu.consumer.BuildConfig
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+
 /**
  * RetrofitClient
  *
- * Singleton Retrofit instance for making HTTP calls to your backend
- * (e.g., a Firebase Cloud Function that creates Razorpay orders).
+ * Singleton Retrofit instance pointing at the Node.js backend running via localtunnel.
+ * The tunnel URL is read from BuildConfig (local.properties → NODE_API_BASE_URL).
  *
- * TODO: Uncomment and add Retrofit + Gson dependencies when backend is ready:
- *   implementation("com.squareup.retrofit2:retrofit:2.11.0")
- *   implementation("com.squareup.retrofit2:converter-gson:2.11.0")
- *
- * Usage:
- *   val api = RetrofitClient.instance.create(YourApiService::class.java)
+ * Interceptors:
+ *  ① bypass-tunnel-reminder — localtunnel shows a warning page on first visit
+ *     unless this header is set. OkHttp injects it on every request.
+ *  ② Logging — full request/response logging in debug builds.
  */
 object RetrofitClient {
 
-    // TODO: Replace with your actual Cloud Functions base URL
-    private const val BASE_URL = "https://us-central1-YOUR_PROJECT.cloudfunctions.net/"
+    /**
+     * OkHttp interceptor that injects the header required to bypass
+     * the localtunnel "this is a tunnel" splash page automatically.
+     */
+    private val tunnelBypassInterceptor = Interceptor { chain ->
+        val request = chain.request().newBuilder()
+            .addHeader("bypass-tunnel-reminder", "true")
+            .addHeader("Content-Type", "application/json")
+            .build()
+        chain.proceed(request)
+    }
 
-    // TODO: Uncomment when Retrofit dependency is added
-    // val instance: Retrofit by lazy {
-    //     Retrofit.Builder()
-    //         .baseUrl(BASE_URL)
-    //         .addConverterFactory(GsonConverterFactory.create())
-    //         .build()
-    // }
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(tunnelBypassInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
+    val instance: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.NODE_API_BASE_URL + "/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    /** Convenience accessor — create a typed API service interface */
+    val api: ApiService by lazy {
+        instance.create(ApiService::class.java)
+    }
 }

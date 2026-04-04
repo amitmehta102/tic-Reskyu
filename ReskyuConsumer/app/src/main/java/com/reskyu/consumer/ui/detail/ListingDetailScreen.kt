@@ -6,9 +6,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -86,12 +88,17 @@ fun ListingDetailScreen(
                 val isOpen = l.status == "OPEN" && l.mealsLeft > 0 && timeLeftMs > 0
                 val co2Saved = 2.5  // kg per meal (configurable)
 
+                // Quantity state — drives the stepper in the bottom bar and impact card
+                var quantity     by remember { mutableStateOf(1) }
+                val maxQty       = l.mealsLeft.coerceAtLeast(1)
+                val totalPayable = l.discountedPrice * quantity
+
                 // ── Scrollable content ────────────────────────────────────────
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(bottom = 88.dp) // space for sticky bottom bar
+                        .padding(bottom = 152.dp) // space for quantity stepper + claim button
                 ) {
 
                     // ── Hero Image ────────────────────────────────────────────
@@ -275,15 +282,16 @@ fun ListingDetailScreen(
                                 modifier = Modifier.padding(16.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                ImpactStat(emoji = "🌍", value = "${co2Saved}kg", label = "CO₂ saved")
+                                val co2Total = String.format("%.1f", co2Saved * quantity)
+                                ImpactStat(emoji = "🌍", value = "${co2Total}kg", label = "CO₂ saved")
                                 VerticalDivider(modifier = Modifier.height(40.dp))
                                 ImpactStat(
                                     emoji = "💰",
-                                    value = "₹${(l.originalPrice - l.discountedPrice).toInt()}",
+                                    value = "₹${((l.originalPrice - l.discountedPrice) * quantity).toInt()}",
                                     label = "Money saved"
                                 )
                                 VerticalDivider(modifier = Modifier.height(40.dp))
-                                ImpactStat(emoji = "🍱", value = "1", label = "Meal rescued")
+                                ImpactStat(emoji = "🍱", value = "$quantity", label = "Meal${if (quantity > 1) "s" else ""} rescued")
                             }
                         }
 
@@ -309,7 +317,7 @@ fun ListingDetailScreen(
                     }
                 }
 
-                // ── Sticky Bottom Bar ─────────────────────────────────────────
+                // ── Sticky Bottom Bar (quantity stepper + claim) ──────────────────
                 Box(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
@@ -318,29 +326,91 @@ fun ListingDetailScreen(
                         shadowElevation = 8.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "₹${l.discountedPrice.toInt()}",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "instead of ₹${l.originalPrice.toInt()}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            // ── Portions stepper + reactive total ────────────────
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // [Portions label] [−] [qty] [+]
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        "Portions",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = { if (quantity > 1) quantity-- },
+                                        modifier = Modifier.size(32.dp),
+                                        enabled = quantity > 1 && isOpen
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Remove,
+                                            contentDescription = "Less",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = if (quantity > 1 && isOpen)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        )
+                                    }
+                                    Text(
+                                        "$quantity",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    IconButton(
+                                        onClick = { if (quantity < maxQty) quantity++ },
+                                        modifier = Modifier.size(32.dp),
+                                        enabled = quantity < maxQty && isOpen
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Add,
+                                            contentDescription = "More",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = if (quantity < maxQty && isOpen)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        )
+                                    }
+                                }
+
+                                // Reactive total
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        "₹${totalPayable.toInt()}",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        if (quantity > 1)
+                                            "₹${l.discountedPrice.toInt()} × $quantity"
+                                        else
+                                            "instead of ₹${l.originalPrice.toInt()}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
+
+                            // ── Claim button (full width) ──────────────────────────
                             Button(
                                 onClick = {
-                                    navController.navigate(Screen.Claim.createRoute(l.id))
+                                    navController.navigate(
+                                        Screen.Claim.createRoute(l.id, quantity)
+                                    )
                                 },
                                 enabled = isOpen,
                                 modifier = Modifier.height(52.dp),

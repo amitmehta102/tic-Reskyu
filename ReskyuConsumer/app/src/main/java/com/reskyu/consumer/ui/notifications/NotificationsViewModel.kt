@@ -1,54 +1,83 @@
 package com.reskyu.consumer.ui.notifications
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.reskyu.consumer.data.model.AppNotification
+import com.reskyu.consumer.data.repository.AuthRepository
 import com.reskyu.consumer.data.repository.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 
 /**
  * NotificationsViewModel
  *
- * Exposes notifications from [NotificationRepository] to [NotificationsScreen].
- *
- * In a production app, this list would be populated reactively as FCM messages
- * arrive via [ReskuMessagingService], which calls [NotificationRepository.addNotification].
- *
- * TODO: Wire [ReskuMessagingService] → [NotificationRepository] → this ViewModel
- *       using a shared singleton or Hilt injection.
+ * Subscribes to the real-time Firestore notification subcollection for the
+ * current user at /users/{uid}/notifications.
+ * Falls back to dev sample data when not authenticated.
  */
 class NotificationsViewModel : ViewModel() {
 
-    // TODO: Inject via Hilt/DI instead of direct instantiation
+    private val authRepository         = AuthRepository()
     private val notificationRepository = NotificationRepository()
 
     private val _notifications = MutableStateFlow<List<AppNotification>>(
-        notificationRepository.getNotifications()
+        notificationRepository.devSampleNotifications()
     )
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
 
-    /**
-     * Marks a notification as read and refreshes the list.
-     * @param id  The notification ID to mark
-     */
-    fun markAsRead(id: String) {
-        notificationRepository.markAsRead(id)
-        _notifications.value = notificationRepository.getNotifications()
-    }
+    init { subscribeToNotifications() }
 
-    fun markAllAsRead() {
-        notificationRepository.getNotifications().forEach { n ->
-            if (!n.isRead) notificationRepository.markAsRead(n.id)
+    private fun subscribeToNotifications() {
+        val uid = try { authRepository.requireUid() } catch (_: Exception) { return }
+
+        viewModelScope.launch {
+            notificationRepository
+                .observeNotifications(uid)
+                .catch { /* keep dev samples */ }
+                .collect { notifs -> _notifications.value = notifs }
         }
-        _notifications.value = notificationRepository.getNotifications()
     }
 
-    /** Removes a notification from the list (swipe-to-dismiss). */
+    /** Marks a single notification as read in Firestore. */
+    fun markAsRead(id: String) {
+        val uid = try { authRepository.requireUid() } catch (_: Exception) {
+            // Dev mode — just update local state
+            _notifications.value = _notifications.value.map {
+                if (it.id == id) it.copy(isRead = true) else it
+            }
+            return
+        }
+        viewModelScope.launch {
+            try { notificationRepository.markAsRead(uid, id) } catch (_: Exception) {}
+        }
+    }
+
+    /** Marks all unread notifications as read. */
+    fun markAllAsRead() {
+        val uid = try { authRepository.requireUid() } catch (_: Exception) {
+            _notifications.value = _notifications.value.map { it.copy(isRead = true) }
+            return
+        }
+        viewModelScope.launch {
+            _notifications.value
+                .filter { !it.isRead }
+                .forEach { try { notificationRepository.markAsRead(uid, it.id) } catch (_: Exception) {} }
+        }
+    }
+
+    /** Deletes a notification (swipe-to-dismiss). */
     fun dismiss(id: String) {
-        notificationRepository.dismiss(id)
-        _notifications.value = notificationRepository.getNotifications()
+        val uid = try { authRepository.requireUid() } catch (_: Exception) {
+            _notifications.value = _notifications.value.filter { it.id != id }
+            return
+        }
+        viewModelScope.launch {
+            try { notificationRepository.dismiss(uid, id) } catch (_: Exception) {}
+        }
     }
 
-    fun getUnreadCount(): Int = notificationRepository.getUnreadCount()
+    fun getUnreadCount(): Int = _notifications.value.count { !it.isRead }
 }

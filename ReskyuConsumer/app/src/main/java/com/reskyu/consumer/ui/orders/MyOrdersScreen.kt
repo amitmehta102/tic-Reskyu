@@ -185,7 +185,10 @@ fun MyOrdersScreen(
                         claim    = claim,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 5.dp)
+                            .padding(horizontal = 16.dp, vertical = 5.dp),
+                        onRate   = { stars ->
+                            viewModel.submitRating(claim.id, claim.merchantId, stars)
+                        }
                     )
                 }
                 item { Spacer(Modifier.height(20.dp)) }

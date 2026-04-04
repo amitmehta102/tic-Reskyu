@@ -48,10 +48,12 @@ private val OC_DividerAlpha    = Color(0xFFD4EDDA)   // light green divider
 @Composable
 fun OrderCard(
     claim: Claim,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRate: (Int) -> Unit = {}          // called with 1-5 stars, empty default for previews
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var userRating by remember { mutableStateOf(0) }   // 0 = not rated yet
+    // Initialize from persisted claim.rating so the stars survive recomposition
+    var userRating by remember(claim.id) { mutableStateOf(claim.rating) }
 
     val accentColor = statusAccentColor(claim.status)
     val savedAmount  = (claim.originalPrice - claim.amount).coerceAtLeast(0.0)
@@ -221,8 +223,13 @@ fun OrderCard(
                 // ── Star rating (past orders only) ────────────────────────────
                 if (claim.status != "PENDING_PICKUP") {
                     RatingRow(
-                        rating    = userRating,
-                        onRate    = { userRating = it }
+                        rating = userRating,
+                        onRate = { stars ->
+                            if (userRating == 0) {  // block double-rating in UI
+                                userRating = stars
+                                onRate(stars)
+                            }
+                        }
                     )
                 }
 

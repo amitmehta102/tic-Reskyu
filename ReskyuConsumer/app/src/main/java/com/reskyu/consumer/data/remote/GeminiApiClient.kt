@@ -1,45 +1,62 @@
 package com.reskyu.consumer.data.remote
 
+import com.google.ai.client.generativeai.GenerativeModel
+import com.reskyu.consumer.BuildConfig
+
 /**
  * GeminiApiClient
  *
- * Client wrapper for interacting with the Gemini 2.5 Flash API.
- * On the CONSUMER side, Gemini is used for features like:
- *  - Generating personalised meal suggestions based on dietary preferences
- *  - Answering questions about a listing's ingredients/allergens
+ * Singleton wrapper for the Google Generative AI SDK (Gemini 2.5 Flash).
+ * Used on the consumer side to generate short, enthusiastic food-rescue insights
+ * shown on the Listing Detail screen.
  *
- * On the merchant side (separate app), Gemini handles pricing predictions.
- *
- * TODO: Add the `generativeai` dependency to build.gradle.kts and
- *       replace API_KEY with a value read from BuildConfig or local.properties.
- *
- * Dependency (add to build.gradle.kts):
- *   implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+ * The API key is read from BuildConfig (sourced from local.properties → GEMINI_API_KEY).
+ * The key is never hardcoded in source.
  */
 object GeminiApiClient {
 
-    // TODO: Replace with your actual Gemini API key (store in local.properties, NOT source control)
-    private const val API_KEY = "YOUR_GEMINI_API_KEY"
-
+    // gemini-2.5-flash: best quality for insight text, and user has Gemini Pro quota
+    // Cache-first strategy in ListingDetailViewModel keeps actual calls minimal
     private const val MODEL_NAME = "gemini-2.5-flash"
 
-    // TODO: Uncomment after adding the generativeai dependency
-    // val model: GenerativeModel by lazy {
-    //     GenerativeModel(
-    //         modelName = MODEL_NAME,
-    //         apiKey = API_KEY
-    //     )
-    // }
+    private val model: GenerativeModel by lazy {
+        GenerativeModel(
+            modelName = MODEL_NAME,
+            apiKey    = BuildConfig.GEMINI_API_KEY
+        )
+    }
 
     /**
-     * Example usage — generate a short description for a listing.
+     * Generates a short, enthusiastic 1-sentence insight for a food listing.
+     * Shown in a shimmer AI chip on the Listing Detail screen.
+     *
+     * Fails silently — returns null if the API is unavailable or key is missing.
      *
      * @param heroItem    The name of the food item
-     * @param dietaryTag  Dietary classification (VEG, VEGAN, etc.)
-     * @return            AI-generated description string
+     * @param dietaryTag  e.g. "VEG", "VEGAN", "NON_VEG", "JAIN"
+     * @param businessName The restaurant / bakery name
+     * @return            1-sentence AI insight, or null on error
      */
-    suspend fun generateListingInsight(heroItem: String, dietaryTag: String): String {
-        // TODO: Implement using model.generateContent(...)
-        return "AI insight for $heroItem ($dietaryTag) — coming soon."
+    suspend fun generateListingInsight(
+        heroItem: String,
+        dietaryTag: String,
+        businessName: String = ""
+    ): String? {
+        if (BuildConfig.GEMINI_API_KEY.isBlank() ||
+            BuildConfig.GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE") return null
+
+        return try {
+            val prompt = """
+                In exactly one short, enthusiastic sentence, describe why rescuing this food is a great idea.
+                Food: "$heroItem" from "$businessName" (dietary: $dietaryTag).
+                Be positive, mention the environmental impact, and end with a relevant emoji.
+                No hashtags, no quotation marks, just one sentence.
+            """.trimIndent()
+
+            val response = model.generateContent(prompt)
+            response.text?.trim()?.take(160)
+        } catch (_: Exception) {
+            null
+        }
     }
 }

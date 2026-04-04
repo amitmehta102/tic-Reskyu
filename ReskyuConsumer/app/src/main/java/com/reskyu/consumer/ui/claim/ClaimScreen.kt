@@ -1,20 +1,27 @@
 package com.reskyu.consumer.ui.claim
 
+import android.app.Activity
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -22,32 +29,33 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.razorpay.Checkout
+import com.reskyu.consumer.BuildConfig
+import com.reskyu.consumer.RazorpayPaymentBus
+import com.reskyu.consumer.RazorpayResult
 import com.reskyu.consumer.data.model.Listing
 import com.reskyu.consumer.data.model.PaymentState
 import com.reskyu.consumer.ui.components.LoadingOverlay
 import com.reskyu.consumer.ui.navigation.Screen
+import org.json.JSONObject
 
-/**
- * ClaimScreen (Checkout)
- *
- * Layout:
- *  ─ TopAppBar (back)
- *  ─ Scrollable body:
- *      · Listing mini-card (thumbnail + name + item)
- *      · Order breakdown (item, original, discount, you save, total)
- *      · Impact preview (CO₂ + money saved)
- *      · Payment method info (Razorpay secure badge)
- *  ─ Sticky bottom: "Pay ₹X securely" button
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClaimScreen(
     listingId: String,
+    initialQuantity: Int = 1,
     navController: NavController,
     viewModel: ClaimViewModel = viewModel()
 ) {
-    val listing by viewModel.listing.collectAsState()
-    val paymentState by viewModel.paymentState.collectAsState()
+    val listing       by viewModel.listing.collectAsState()
+    val paymentState  by viewModel.paymentState.collectAsState()
+    val context       = LocalContext.current
+    val razorpayBus   by RazorpayPaymentBus.result.collectAsState()
+
+    // Hoisted so both the Scaffold content and the sticky Pay button can read it
+    // Seeded from initialQuantity passed through navigation (from listing card stepper)
+    var quantity     by remember { mutableStateOf(initialQuantity.coerceAtLeast(1)) }
+    val totalPayable = (listing?.discountedPrice ?: 0.0) * quantity
 
     LaunchedEffect(listingId) { viewModel.loadListing(listingId) }
 
@@ -57,6 +65,49 @@ fun ClaimScreen(
             navController.navigate(Screen.Confirmation.createRoute(claimId)) {
                 popUpTo(Screen.Main.route) { saveState = false }
             }
+        }
+    }
+
+    // Open Razorpay checkout sheet when ViewModel emits the event
+    LaunchedEffect(Unit) {
+        viewModel.openCheckoutEvent.collect { event ->
+            try {
+                Checkout.preload(context)
+                val checkout = Checkout()
+                checkout.setKeyID(BuildConfig.RAZORPAY_KEY_ID)
+                val options = JSONObject().apply {
+                    put("name", "Reskyu")
+                    put("description", "${event.businessName} — ${event.heroItem}")
+                    put("order_id", event.orderId)
+                    put("amount", event.amount)
+                    put("currency", "INR")
+                    put("prefill", JSONObject().apply {
+                        put("email", event.email)
+                    })
+                    put("theme", JSONObject().apply {
+                        put("color", "#2DC653")
+                    })
+                }
+                checkout.open(context as Activity, options)
+            } catch (e: Exception) {
+                viewModel.onPaymentFailed("Failed to open payment: ${e.message}")
+            }
+        }
+    }
+
+    // Handle Razorpay payment result from MainActivity via the bus
+    LaunchedEffect(razorpayBus) {
+        val l = listing ?: return@LaunchedEffect
+        when (val result = razorpayBus) {
+            is RazorpayResult.Success -> {
+                RazorpayPaymentBus.reset()
+                viewModel.onPaymentSuccess(result.paymentId, result.signature, l)
+            }
+            is RazorpayResult.Failure -> {
+                RazorpayPaymentBus.reset()
+                viewModel.onPaymentFailed(result.reason)
+            }
+            is RazorpayResult.Idle -> { /* nothing */ }
         }
     }
 
@@ -74,7 +125,10 @@ fun ClaimScreen(
             }
         ) { paddingValues ->
             listing?.let { l ->
-                val savings = l.originalPrice - l.discountedPrice
+                val maxQty       = l.mealsLeft.coerceAtLeast(1)
+                // quantity is hoisted at composable level
+                val totalOriginal= l.originalPrice  * quantity
+                val savings      = totalOriginal - totalPayable
 
                 Column(
                     modifier = Modifier
@@ -105,7 +159,32 @@ fun ClaimScreen(
                             )
                             HorizontalDivider()
 
-                            PriceRow(label = l.heroItem, value = "₹${l.originalPrice.toInt()}")
+                            // ── Quantity stepper ──────────────────────────────
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Portions",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                QuantityStepper(
+                                    quantity    = quantity,
+                                    max         = maxQty,
+                                    onDecrement = { if (quantity > 1) quantity-- },
+                                    onIncrement = { if (quantity < maxQty) quantity++ }
+                                )
+                            }
+
+                            HorizontalDivider()
+
+                            PriceRow(
+                                label = l.heroItem,
+                                value = "₹${l.originalPrice.toInt()}" +
+                                        if (quantity > 1) " × $quantity" else ""
+                            )
                             PriceRow(
                                 label = "Reskyu Discount",
                                 value = "−₹${savings.toInt()}",
@@ -115,7 +194,7 @@ fun ClaimScreen(
                             HorizontalDivider()
 
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().animateContentSize(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -125,7 +204,7 @@ fun ClaimScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "₹${l.discountedPrice.toInt()}",
+                                    "₹${totalPayable.toInt()}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -175,8 +254,9 @@ fun ClaimScreen(
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ImpactPill(emoji = "🌍", label = "2.5kg CO₂ saved")
-                            ImpactPill(emoji = "🍱", label = "1 meal rescued")
+                            val co2 = String.format("%.1f", 2.5 * quantity)
+                            ImpactPill(emoji = "🌍", label = "${co2}kg CO₂ saved")
+                            ImpactPill(emoji = "🍱", label = "$quantity meal${if (quantity > 1) "s" else ""} rescued")
                             ImpactPill(emoji = "💚", label = "Planet thanks you!")
                         }
                     }
@@ -236,7 +316,7 @@ fun ClaimScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
-                        onClick = { viewModel.initiatePayment(l) },
+                        onClick = { viewModel.initiatePayment(l, quantity) },
                         enabled = paymentState == PaymentState.Idle || paymentState is PaymentState.Failed,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -247,7 +327,8 @@ fun ClaimScreen(
                         Icon(Icons.Rounded.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Pay ₹${l.discountedPrice.toInt()} Securely",
+                            "Pay ₹${totalPayable.toInt()} Securely" +
+                                    if (quantity > 1) " (×$quantity)" else "",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -337,5 +418,70 @@ private fun ImpactPill(emoji: String, label: String) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer
         )
+    }
+}
+
+// ── Quantity Stepper ────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun QuantityStepper(
+    quantity: Int,
+    max: Int,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // − button
+        FilledIconButton(
+            onClick = onDecrement,
+            enabled = quantity > 1,
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor   = MaterialTheme.colorScheme.primary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Icon(Icons.Rounded.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+        }
+
+        // Quantity badge
+        Box(
+            modifier = Modifier
+                .defaultMinSize(minWidth = 40.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$quantity",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        // + button
+        FilledIconButton(
+            onClick = onIncrement,
+            enabled = quantity < max,
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor   = MaterialTheme.colorScheme.onPrimary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Icon(Icons.Rounded.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.reskyu.consumer.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import com.reskyu.consumer.data.model.LoginState
 import com.reskyu.consumer.data.model.User
 import com.reskyu.consumer.data.repository.UserRepository
@@ -18,7 +19,14 @@ import kotlinx.coroutines.tasks.await
  * Handles email/password authentication only:
  *  [signInWithEmail]  → Firebase signInWithEmailAndPassword
  *  [signUpWithEmail]  → Firebase createUserWithEmailAndPassword + Firestore profile
- *                        (stores name, email, and consumerType: INDIVIDUAL | NGO)
+ *                        (stores name, email, consumerType: INDIVIDUAL | NGO)
+ *
+ * After every successful auth (sign-in or sign-up):
+ *  → Fetches the current FCM token and saves it to /users/{uid}/fcmToken
+ *    so the Node.js backend can send push notifications to this device.
+ *  → This runs in addition to ReskuMessagingService.onNewToken() which fires
+ *    only when the token changes — saving on login ensures the token is always
+ *    current even on first install or after a manual data clear.
  */
 class LoginViewModel : ViewModel() {
 
@@ -28,11 +36,8 @@ class LoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
 
-    // ── Email Auth ────────────────────────────────────────────────────────────
+    // ── Email Sign In ─────────────────────────────────────────────────────────
 
-    /**
-     * Signs in an existing user with email and password.
-     */
     fun signInWithEmail(email: String, password: String) {
         if (email.isBlank() || password.length < 6) {
             _loginState.value = LoginState.Error("Enter a valid email and password (min 6 chars)")
@@ -41,12 +46,17 @@ class LoginViewModel : ViewModel() {
         _loginState.value = LoginState.Loading
         viewModelScope.launch {
             try {
-                auth.signInWithEmailAndPassword(email.trim(), password).await()
+                val result = auth.signInWithEmailAndPassword(email.trim(), password).await()
+                val uid = result.user?.uid ?: throw Exception("Sign in succeeded but UID missing")
+
+                // Save FCM token on every login
+                fetchAndSaveFcmToken(uid)
+
                 _loginState.value = LoginState.Success
             } catch (e: Exception) {
                 _loginState.value = LoginState.Error(
                     when {
-                        e.message?.contains("no user record") == true ->
+                        e.message?.contains("no user record")      == true ->
                             "No account found for this email. Sign up instead?"
                         e.message?.contains("password is invalid") == true ->
                             "Incorrect password. Please try again."
@@ -57,13 +67,20 @@ class LoginViewModel : ViewModel() {
         }
     }
 
+    // ── Email Sign Up ─────────────────────────────────────────────────────────
+
     /**
      * Creates a new account with email/password + consumer type,
-     * then writes a Firestore user profile.
+     * then writes a Firestore user profile and saves the FCM token.
      *
      * @param consumerType  "INDIVIDUAL" or "NGO"
      */
-    fun signUpWithEmail(name: String, email: String, password: String, consumerType: String = "INDIVIDUAL") {
+    fun signUpWithEmail(
+        name: String,
+        email: String,
+        password: String,
+        consumerType: String = "INDIVIDUAL"
+    ) {
         if (name.isBlank()) {
             _loginState.value = LoginState.Error("Please enter your name")
             return
@@ -82,23 +99,49 @@ class LoginViewModel : ViewModel() {
                 val result = auth.createUserWithEmailAndPassword(email.trim(), password).await()
                 val uid = result.user?.uid ?: throw Exception("Account created but UID missing")
 
-                // Write Firestore user profile (includes consumer type)
+                // Write Firestore user profile (includes consumerType)
                 userRepository.createUserProfile(
-                    User(uid = uid, name = name.trim(), email = email.trim())
+                    User(
+                        uid          = uid,
+                        name         = name.trim(),
+                        email        = email.trim(),
+                        consumerType = consumerType
+                    )
                 )
-                // TODO: store consumerType field via userRepository.setConsumerType(uid, consumerType)
+
+                // Save FCM token immediately after sign-up
+                fetchAndSaveFcmToken(uid)
+
                 _loginState.value = LoginState.Success
             } catch (e: Exception) {
                 _loginState.value = LoginState.Error(
                     when {
                         e.message?.contains("email address is already") == true ->
                             "An account with this email already exists. Sign in instead?"
-                        e.message?.contains("badly formatted") == true ->
+                        e.message?.contains("badly formatted")          == true ->
                             "Please enter a valid email address."
                         else -> e.message ?: "Sign up failed"
                     }
                 )
             }
+        }
+    }
+
+    // ── FCM Token ─────────────────────────────────────────────────────────────
+
+    /**
+     * Fetches the current FCM registration token and saves it to Firestore.
+     *
+     * This is non-critical — if it fails (e.g., no network), the token will
+     * be saved the next time [ReskuMessagingService.onNewToken] fires.
+     * We never block login on a token failure.
+     */
+    private suspend fun fetchAndSaveFcmToken(uid: String) {
+        try {
+            val token = FirebaseMessaging.getInstance().token.await()
+            userRepository.saveFcmToken(uid, token)
+        } catch (_: Exception) {
+            // Non-critical — ReskuMessagingService.onNewToken() is the fallback
         }
     }
 
@@ -108,10 +151,7 @@ class LoginViewModel : ViewModel() {
         _loginState.value = LoginState.Idle
     }
 
-    /**
-     * DEV ONLY — skips Firebase Auth entirely.
-     * Remove once Firebase Auth is configured.
-     */
+    /** DEV ONLY — skips Firebase Auth for UI testing without a network. */
     fun devBypass() {
         _loginState.value = LoginState.Success
     }
