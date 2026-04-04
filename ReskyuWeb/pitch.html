@@ -221,8 +221,8 @@
           students and NGOs — zero delivery, zero emissions, zero waste.
         </p>
         <div class="hero-actions">
-          <a href="#cta" class="btn-cream">Get Early Access</a>
-          <a href="#how" class="btn-outline-cream">See How It Works</a>
+          <button type="button" class="btn-cream" id="open-ea-modal">Download Apps</button>
+          <a href="#footer" class="btn-outline-cream">Contact us</a>
         </div>
       </div>
     </div>
@@ -596,6 +596,40 @@
       </div>
     </div>
   </footer>
+
+  <!-- ════ EARLY ACCESS MODAL ════ -->
+  <div id="ea-modal" class="auth-modal" role="dialog" aria-modal="true" aria-label="Early Access Options" hidden>
+    <div class="auth-backdrop" id="ea-backdrop"></div>
+    <div class="auth-card" id="ea-card" style="padding-bottom: 28px;">
+      <button class="auth-close" id="ea-close" aria-label="Close">&times;</button>
+      <div class="auth-logo">RES<em>KYU</em></div>
+      <p class="auth-welcome" style="margin-bottom: 24px;">Choose your version to download the app.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; flex-direction: column;">
+          <button class="btn-teal" id="ea-consumer-btn" style="width: 100%;">Reskyu Consumer</button>
+          <div id="ea-consumer-slider" style="overflow: hidden; max-height: 0; transition: max-height 0.4s ease, margin-top 0.4s ease; margin-top: 0;">
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+              <a href="https://drive.google.com/file/d/1_dz8yfbTL8LXBQGbfPi9G1F08eO8o1Ur/view?usp=sharing" target="_blank" class="btn-outline-cream" style="text-align: center; color: var(--cream); border-color: rgba(254, 250, 242, .3); width: 100%;">Google Drive</a>
+              <a href="https://www.mediafire.com/file/a4u1d8ql3q627hw/ReskyuConsumer.apk/file" target="_blank" class="btn-outline-cream" style="text-align: center; color: var(--cream); border-color: rgba(254, 250, 242, .3); width: 100%;">MediaFire</a>
+              <a href="https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuConsumerV1.0/ReskyuConsumer.apk" target="_blank" class="btn-outline-cream" style="text-align: center; color: var(--cream); border-color: rgba(254, 250, 242, .3); width: 100%;">GitHub Release</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column;">
+          <button class="btn-teal" id="ea-merchant-btn" style="width: 100%;">Reskyu Merchant</button>
+          <div id="ea-merchant-slider" style="overflow: hidden; max-height: 0; transition: max-height 0.4s ease, margin-top 0.4s ease; margin-top: 0;">
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+              <a href="https://drive.google.com/file/d/1FFksQcbv_h2AKAYFpoNm-5yt2E44SBr4/view?usp=sharing" target="_blank" class="btn-outline-cream" style="text-align: center; color: var(--cream); border-color: rgba(254, 250, 242, .3); width: 100%;">Google Drive</a>
+              <a href="https://www.mediafire.com/file/ayi52aafoq4aqkw/ReskyuMerchant.apk/file" target="_blank" class="btn-outline-cream" style="text-align: center; color: var(--cream); border-color: rgba(254, 250, 242, .3); width: 100%;">MediaFire</a>
+              <a href="https://github.com/amitmehta102/tic-Reskyu/releases/download/ReskyuMerchantV1.0/ReskyuMerchant.apk" target="_blank" class="btn-outline-cream" style="text-align: center; color: var(--cream); border-color: rgba(254, 250, 242, .3); width: 100%;">GitHub Release</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ════ AUTH MODAL ════ -->
   <div id="auth-modal" class="auth-modal" role="dialog" aria-modal="true" aria-label="Login or Sign Up" hidden>

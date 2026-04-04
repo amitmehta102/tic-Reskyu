@@ -155,6 +155,74 @@
 })();
 
 /* ════════════════════════════════════════════
+   EARLY ACCESS MODAL
+════════════════════════════════════════════ */
+(function() {
+  'use strict';
+  const eaBtn = document.getElementById('open-ea-modal');
+  const eaModal = document.getElementById('ea-modal');
+  const eaBackdrop = document.getElementById('ea-backdrop');
+  const eaClose = document.getElementById('ea-close');
+  const eaConsumerBtn = document.getElementById('ea-consumer-btn');
+  const eaConsumerSlider = document.getElementById('ea-consumer-slider');
+  const eaMerchantBtn = document.getElementById('ea-merchant-btn');
+  const eaMerchantSlider = document.getElementById('ea-merchant-slider');
+
+  if (!eaModal || !eaBtn) return;
+
+  function openEaModal() {
+    eaModal.removeAttribute('hidden');
+    requestAnimationFrame(() => eaModal.classList.add('open'));
+    document.body.style.overflow = 'hidden';
+    if (eaConsumerSlider) eaConsumerSlider.style.maxHeight = '0';
+    if (eaMerchantSlider) eaMerchantSlider.style.maxHeight = '0';
+  }
+
+  function closeEaModal() {
+    eaModal.classList.remove('open');
+    setTimeout(() => {
+      eaModal.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+      if (eaConsumerSlider) eaConsumerSlider.style.maxHeight = '0';
+      if (eaMerchantSlider) eaMerchantSlider.style.maxHeight = '0';
+    }, 280);
+  }
+
+  eaBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openEaModal();
+  });
+
+  if (eaClose) eaClose.addEventListener('click', closeEaModal);
+  if (eaBackdrop) eaBackdrop.addEventListener('click', closeEaModal);
+  
+  document.addEventListener('keydown', e => { 
+    if (e.key === 'Escape' && !eaModal.hasAttribute('hidden')) closeEaModal(); 
+  });
+  
+  function toggleSlider(sliderToOpen, sliderToClose) {
+    if (sliderToOpen) {
+      const isOpen = sliderToOpen.style.maxHeight !== '0px' && sliderToOpen.style.maxHeight !== '0' && sliderToOpen.style.maxHeight !== '';
+      if (!isOpen) {
+        sliderToOpen.style.maxHeight = '280px';
+      } else {
+        sliderToOpen.style.maxHeight = '0';
+      }
+    }
+    if (sliderToClose) {
+      sliderToClose.style.maxHeight = '0';
+    }
+  }
+  
+  if (eaConsumerBtn) {
+    eaConsumerBtn.addEventListener('click', () => toggleSlider(eaConsumerSlider, eaMerchantSlider));
+  }
+  if (eaMerchantBtn) {
+    eaMerchantBtn.addEventListener('click', () => toggleSlider(eaMerchantSlider, eaConsumerSlider));
+  }
+})();
+
+/* ════════════════════════════════════════════
    AUTH MODAL — open / close / tab / forms
 ════════════════════════════════════════════ */
 (function () {
