@@ -317,6 +317,46 @@
 
   <div id="progress-bar"></div>
 
+  <!-- ══ PWA INSTALL BANNER (#6) ══════════════════════════ -->
+  <div id="pwa-banner" class="pwa-banner" hidden aria-live="polite" role="banner">
+    <div class="pwa-banner-inner">
+      <div class="pwa-banner-left">
+        <span class="pwa-icon">📲</span>
+        <div>
+          <div class="pwa-title">Install RESKYU App</div>
+          <div class="pwa-sub">Add to your home screen for instant access to nearby surplus food.</div>
+        </div>
+      </div>
+      <div class="pwa-banner-right">
+        <button class="pwa-install-btn" id="pwa-install-btn">Install</button>
+        <button class="pwa-dismiss-btn" id="pwa-dismiss-btn" aria-label="Dismiss">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCROLL TO TOP (#7) ════════════════════════════════ -->
+  <button id="scroll-top-btn" class="scroll-top-btn" aria-label="Back to top" hidden>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 14V4M4 9l5-5 5 5"/>
+    </svg>
+  </button>
+
+  <!-- ══ COOKIE CONSENT (#8) ════════════════════════════════ -->
+  <div id="cookie-banner" class="cookie-banner" hidden role="dialog" aria-label="Cookie consent">
+    <div class="cookie-banner-inner">
+      <span class="cookie-icon">🍪</span>
+      <p class="cookie-text">
+        We use cookies and Google Analytics to improve your experience.
+        Your data is never sold.
+        <a href="privacy.html" class="cookie-link">Learn more</a>
+      </p>
+      <div class="cookie-actions">
+        <button class="cookie-accept" id="cookie-accept">Accept All</button>
+        <button class="cookie-decline" id="cookie-decline">Decline</button>
+      </div>
+    </div>
+  </div>
+
 
   <nav id="navbar">
     <a href="#hero" class="nav-logo">RES<em>KYU</em></a>
@@ -357,21 +397,21 @@
       </div>
     </div>
 
-    <div class="hero-stats">
+    <div class="hero-stats" id="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-num">35–45%</div>
+        <div class="hero-stat-num" data-count-to="45" data-count-prefix="" data-count-suffix="%" data-count-label="35–">35–45%</div>
         <div class="hero-stat-label">of restaurant food wasted daily</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num">₹85K Cr+</div>
+        <div class="hero-stat-num" data-count-to="85" data-count-prefix="₹" data-count-suffix="K Cr+">₹85K Cr+</div>
         <div class="hero-stat-label">lost to food waste every year</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num">1 in 5</div>
+        <div class="hero-stat-num" data-count-to="5" data-count-prefix="1 in " data-count-suffix="">1 in 5</div>
         <div class="hero-stat-label">Indians face food insecurity</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num">~Zero</div>
+        <div class="hero-stat-num" data-count-glow>~Zero</div>
         <div class="hero-stat-label">delivery emissions — walkable pickup</div>
       </div>
     </div>
@@ -701,7 +741,7 @@
         <a href="#why">Why RESKYU</a>
         <a href="#how">How It Works</a>
         <a href="#audiences">For You</a>
-        <a href="#cta">Contact</a>
+        <a href="contact.html">Contact</a>
       </nav>
       <p class="footer-tagline">Rescuing food. Feeding India. Zero waste.</p>
     </div>
@@ -720,9 +760,9 @@
         </a>
       </div>
       <div class="footer-legal">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms</a>
-        <a href="#">Contact</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms</a>
+        <a href="contact.html">Contact</a>
       </div>
     </div>
   </footer>
@@ -913,6 +953,18 @@
       });
     }
   </script>
+
+  <!-- Theme toggle FAB -->
+  <button
+    id="theme-toggle"
+    class="theme-fab"
+    aria-label="Toggle light/dark mode"
+    title="Switch theme"
+  >
+    <span class="theme-fab-icon theme-fab-moon">🌙</span>
+    <span class="theme-fab-icon theme-fab-sun">☀️</span>
+    <span class="theme-fab-label">Theme</span>
+  </button>
 
 </body>
 </html>

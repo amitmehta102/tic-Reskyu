@@ -96,6 +96,17 @@
           <div class="role-panel-header">
             <h2 class="role-panel-title">🗺️ Available Surplus Near You</h2>
             <div class="browse-controls">
+              <div class="browse-search-wrap">
+                <span class="browse-search-icon">🔍</span>
+                <input
+                  id="surplus-search"
+                  class="browse-search-input"
+                  type="search"
+                  placeholder="Search food or restaurant…"
+                  autocomplete="off"
+                  aria-label="Search surplus listings"
+                />
+              </div>
               <select id="category-filter" class="filter-select">
                 <option value="all">All Categories</option>
                 <option value="meals">🍛 Full Meals</option>
@@ -221,6 +232,18 @@
               <div class="milestone locked" data-target="500"><div class="milestone-icon">🏆</div><div class="milestone-label">Food Hero (500)</div><div class="milestone-progress">0 / 500</div></div>
             </div>
           </div>
+
+          <!-- Chart.js Collections Trend -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span class="dash-card-icon">📊</span>
+              <h2 class="dash-card-title">Meals Claimed — Last 7 Days</h2>
+            </div>
+            <p class="dash-card-desc" style="margin-bottom:20px">Your daily food rescue activity over the past week.</p>
+            <div style="position:relative;height:220px">
+              <canvas id="ngo-meals-chart" aria-label="NGO meals claimed last 7 days" role="img"></canvas>
+            </div>
+          </div>
         </div>
 
         <!-- ── TAB: PROFILE ── -->
@@ -313,6 +336,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/onboarding.js"></script>
