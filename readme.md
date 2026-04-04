@@ -16,7 +16,7 @@
 > **1 in 5 Indians faces food insecurity.**  
 > We built RESKYU to close that gap — in real time, with zero logistics.
 
-🌐 **Live Demo:** [reskyu-app.netlify.app](https://reskyu-app.netlify.app)
+🌐 **Live Demo:** [reskyu.netlify.app/pitch](https://reskyu.netlify.app/pitch)
 
 </div>
 
@@ -48,12 +48,12 @@ RESKYU is a **full-stack, multi-platform ecosystem** built entirely for this hac
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        RESKYU ECOSYSTEM                      │
+│                        RESKYU ECOSYSTEM                     │
 ├──────────────────┬──────────────────┬───────────────────────┤
 │  ReskyuConsumer  │  ReskyuMerchant  │      ReskyuWeb        │
-│  (Android App)   │  (Android App)   │  (Landing + Dashboards)│
+│  (Android App)   │  (Android App)   │ (Landing + Dashboards)│
 ├──────────────────┴──────────────────┴───────────────────────┤
-│               Firebase (Firestore · Auth · FCM)              │
+│               Firebase (Firestore · Auth · FCM)             │
 ├─────────────────────────────────────────────────────────────┤
 │      Gemini 2.0 Flash · Razorpay · Cloudinary · OSMDroid    │
 └─────────────────────────────────────────────────────────────┘
@@ -271,7 +271,7 @@ cd ReskyuWeb
 
 ## 👥 Team
 
-**Team Name:** Technocrats  
+**Team Name:** Reskyu  
 **Hackathon:** Technocrats Innovation Challenge 2026  
 **Contact:** [reskyu123@gmail.com](mailto:reskyu123@gmail.com)
 
