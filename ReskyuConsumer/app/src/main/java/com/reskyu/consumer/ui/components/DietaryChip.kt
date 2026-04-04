@@ -30,10 +30,12 @@ import com.reskyu.consumer.data.model.DietaryTag
 @Composable
 fun DietaryChip(tag: DietaryTag) {
     val (label, color) = when (tag) {
-        DietaryTag.VEG     -> "VEG" to Color(0xFF4CAF50)
+        DietaryTag.VEG     -> "VEG"     to Color(0xFF4CAF50)
         DietaryTag.NON_VEG -> "NON-VEG" to Color(0xFFF44336)
-        DietaryTag.VEGAN   -> "VEGAN" to Color(0xFF00897B)
-        DietaryTag.JAIN    -> "JAIN" to Color(0xFFFF8F00)
+        DietaryTag.VEGAN   -> "VEGAN"   to Color(0xFF00897B)
+        DietaryTag.JAIN    -> "JAIN"    to Color(0xFFFF8F00)
+        DietaryTag.BAKERY  -> "BAKERY"  to Color(0xFF8D6E63)   // warm brown
+        DietaryTag.SWEETS  -> "SWEETS"  to Color(0xFFE91E8C)   // vibrant pink
     }
 
     Text(

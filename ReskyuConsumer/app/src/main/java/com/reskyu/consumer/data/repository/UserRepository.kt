@@ -97,6 +97,46 @@ class UserRepository {
      * Uses update() so only the fcmToken field is written; other fields are untouched.
      */
     suspend fun saveFcmToken(uid: String, token: String) {
-        usersRef.document(uid).update("fcmToken", token).await()
+        // CRITICAL: use set+merge, NOT update().
+        // update() throws DocumentNotFoundException if fcmToken field doesn't exist yet
+        // (first login / fresh install / data cleared). That exception is swallowed
+        // silently in LoginViewModel, meaning the token is never written → backend
+        // query returns no tokens → notifications never delivered.
+        usersRef.document(uid)
+            .set(mapOf("fcmToken" to token), com.google.firebase.firestore.SetOptions.merge())
+            .await()
+    }
+
+    /**
+     * Saves the user's selected dietary notification preferences.
+     * An empty list means "notify me for everything".
+     */
+    suspend fun updateNotificationPrefs(uid: String, prefs: List<String>) {
+        usersRef.document(uid).update("notificationPrefs", prefs).await()
+    }
+
+    /**
+     * Updates the user's preferred discovery radius (in km).
+     * This is passed to the GeoHash listing query on next refresh.
+     */
+    suspend fun updateDiscoveryRadius(uid: String, radiusKm: Int) {
+        usersRef.document(uid).update("discoveryRadiusKm", radiusKm).await()
+    }
+
+    /**
+     * One-shot fetch of the app's privacy policy from Firestore.
+     * Document path: config/privacy_policy
+     * Field: content (plain text)
+     *
+     * The document must be added manually via the Firebase Console.
+     */
+    suspend fun fetchPrivacyPolicy(): String? {
+        return try {
+            db.collection("config")
+                .document("privacy_policy")
+                .get()
+                .await()
+                .getString("content")
+        } catch (e: Exception) { null }
     }
 }

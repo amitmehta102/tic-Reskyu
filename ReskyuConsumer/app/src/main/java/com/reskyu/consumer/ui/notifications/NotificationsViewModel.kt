@@ -23,10 +23,17 @@ class NotificationsViewModel : ViewModel() {
     private val authRepository         = AuthRepository()
     private val notificationRepository = NotificationRepository()
 
+    private val isAuthenticated: Boolean
+        get() = try { authRepository.requireUid(); true } catch (_: Exception) { false }
+
+    // Start empty for authenticated users; show dev samples only in preview/dev mode
     private val _notifications = MutableStateFlow<List<AppNotification>>(
-        notificationRepository.devSampleNotifications()
+        if (isAuthenticated) emptyList() else notificationRepository.devSampleNotifications()
     )
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
+
+    /** Callback set by the screen to navigate to a listing without passing navController into ViewModel */
+    var onNavigateToListing: ((String) -> Unit)? = null
 
     init { subscribeToNotifications() }
 
@@ -36,8 +43,17 @@ class NotificationsViewModel : ViewModel() {
         viewModelScope.launch {
             notificationRepository
                 .observeNotifications(uid)
-                .catch { /* keep dev samples */ }
+                .catch { _notifications.value = emptyList() }
                 .collect { notifs -> _notifications.value = notifs }
+        }
+    }
+
+    /** Marks a single notification as read in Firestore.
+     *  If the notification has a deepLink (listingId), also triggers navigation. */
+    fun onNotificationTapped(notification: AppNotification) {
+        markAsRead(notification.id)
+        notification.deepLink?.takeIf { it.isNotBlank() }?.let { listingId ->
+            onNavigateToListing?.invoke(listingId)
         }
     }
 

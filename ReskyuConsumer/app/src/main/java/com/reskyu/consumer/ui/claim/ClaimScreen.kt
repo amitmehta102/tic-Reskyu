@@ -13,13 +13,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +45,20 @@ import com.reskyu.consumer.ui.components.LoadingOverlay
 import com.reskyu.consumer.ui.navigation.Screen
 import org.json.JSONObject
 
+// ── Checkout brand palette ────────────────────────────────────────────────────
+private val CC_Bg        = Color(0xFFF2F8F4)   // ScreenBg
+private val CC_Surface   = Color.White
+private val CC_Accent    = Color(0xFF52B788)   // GreenAccent
+private val CC_Dark      = Color(0xFF0C1E13)   // GreenDark
+private val CC_Mid       = Color(0xFF1F5235)   // GreenMid
+private val CC_TextSub   = Color(0xFF5A7A65)   // muted sage
+private val CC_Divider   = Color(0xFFD4EDDA)   // light green divider
+private val CC_Light     = Color(0xFF95D5B2)   // GreenLight (header subtitle)
+private val CC_ImpactBg  = Color(0xFFE8F5EE)   // very light mint
+private val CC_SaveBg    = Color(0xFFD1FAE5)   // savings highlight bg
+private val CC_SaveText  = Color(0xFF065F46)   // savings highlight text
+private val CC_Grad      = listOf(Color(0xFF0C1E13), Color(0xFF163823), Color(0xFF1F5235))
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClaimScreen(
@@ -47,13 +67,11 @@ fun ClaimScreen(
     navController: NavController,
     viewModel: ClaimViewModel = viewModel()
 ) {
-    val listing       by viewModel.listing.collectAsState()
-    val paymentState  by viewModel.paymentState.collectAsState()
-    val context       = LocalContext.current
-    val razorpayBus   by RazorpayPaymentBus.result.collectAsState()
+    val listing      by viewModel.listing.collectAsState()
+    val paymentState by viewModel.paymentState.collectAsState()
+    val context      = LocalContext.current
+    val razorpayBus  by RazorpayPaymentBus.result.collectAsState()
 
-    // Hoisted so both the Scaffold content and the sticky Pay button can read it
-    // Seeded from initialQuantity passed through navigation (from listing card stepper)
     var quantity     by remember { mutableStateOf(initialQuantity.coerceAtLeast(1)) }
     val totalPayable = (listing?.discountedPrice ?: 0.0) * quantity
 
@@ -68,7 +86,6 @@ fun ClaimScreen(
         }
     }
 
-    // Open Razorpay checkout sheet when ViewModel emits the event
     LaunchedEffect(Unit) {
         viewModel.openCheckoutEvent.collect { event ->
             try {
@@ -81,12 +98,8 @@ fun ClaimScreen(
                     put("order_id", event.orderId)
                     put("amount", event.amount)
                     put("currency", "INR")
-                    put("prefill", JSONObject().apply {
-                        put("email", event.email)
-                    })
-                    put("theme", JSONObject().apply {
-                        put("color", "#2DC653")
-                    })
+                    put("prefill", JSONObject().apply { put("email", event.email) })
+                    put("theme", JSONObject().apply { put("color", "#2DC653") })
                 }
                 checkout.open(context as Activity, options)
             } catch (e: Exception) {
@@ -95,7 +108,6 @@ fun ClaimScreen(
         }
     }
 
-    // Handle Razorpay payment result from MainActivity via the bus
     LaunchedEffect(razorpayBus) {
         val l = listing ?: return@LaunchedEffect
         when (val result = razorpayBus) {
@@ -111,157 +123,50 @@ fun ClaimScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Checkout") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                )
-            }
-        ) { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CC_Bg)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // ── Dark gradient header ──────────────────────────────────────────
+            CheckoutHeader(onBack = { navController.popBackStack() })
+
+            // ── Scrollable body ───────────────────────────────────────────────
             listing?.let { l ->
                 val maxQty       = l.mealsLeft.coerceAtLeast(1)
-                // quantity is hoisted at composable level
-                val totalOriginal= l.originalPrice  * quantity
+                val totalOriginal = l.originalPrice * quantity
                 val savings      = totalOriginal - totalPayable
 
                 Column(
                     modifier = Modifier
-                        .padding(paddingValues)
+                        .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp)
-                        .padding(bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(horizontal = 18.dp)
+                        .padding(top = 14.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(4.dp))
 
                     // ── Listing mini-card ─────────────────────────────────────
                     ListingMiniCard(listing = l)
 
-                    // ── Order breakdown ───────────────────────────────────────
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                "Order Summary",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            HorizontalDivider()
+                    // ── Order summary card ────────────────────────────────────
+                    SummaryCard(
+                        listing       = l,
+                        quantity      = quantity,
+                        maxQty        = maxQty,
+                        totalOriginal = totalOriginal,
+                        totalPayable  = totalPayable,
+                        savings       = savings,
+                        onDecrement   = { if (quantity > 1) quantity-- },
+                        onIncrement   = { if (quantity < maxQty) quantity++ }
+                    )
 
-                            // ── Quantity stepper ──────────────────────────────
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "Portions",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                QuantityStepper(
-                                    quantity    = quantity,
-                                    max         = maxQty,
-                                    onDecrement = { if (quantity > 1) quantity-- },
-                                    onIncrement = { if (quantity < maxQty) quantity++ }
-                                )
-                            }
+                    // ── Impact card ───────────────────────────────────────────
+                    ImpactCard(quantity = quantity)
 
-                            HorizontalDivider()
-
-                            PriceRow(
-                                label = l.heroItem,
-                                value = "₹${l.originalPrice.toInt()}" +
-                                        if (quantity > 1) " × $quantity" else ""
-                            )
-                            PriceRow(
-                                label = "Reskyu Discount",
-                                value = "−₹${savings.toInt()}",
-                                valueColor = MaterialTheme.colorScheme.primary
-                            )
-
-                            HorizontalDivider()
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth().animateContentSize(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "Total Payable",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "₹${totalPayable.toInt()}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            // You save highlight
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.small,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "You're saving ₹${savings.toInt()} on this order!",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Impact preview ────────────────────────────────────────
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val co2 = String.format("%.1f", 2.5 * quantity)
-                            ImpactPill(emoji = "🌍", label = "${co2}kg CO₂ saved")
-                            ImpactPill(emoji = "🍱", label = "$quantity meal${if (quantity > 1) "s" else ""} rescued")
-                            ImpactPill(emoji = "💚", label = "Planet thanks you!")
-                        }
-                    }
-
-                    // ── Payment method badge ───────────────────────────────────
+                    // ── Secure payment badge ──────────────────────────────────
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -270,69 +175,75 @@ fun ClaimScreen(
                         Icon(
                             Icons.Rounded.Lock,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(13.dp),
+                            tint = CC_TextSub
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(5.dp))
                         Text(
                             "Secured by Razorpay · UPI · Cards · Wallets",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = CC_TextSub
                         )
                     }
 
-                    // ── Error message ─────────────────────────────────────────
+                    // ── Payment error ─────────────────────────────────────────
                     if (paymentState is PaymentState.Failed) {
                         Surface(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = MaterialTheme.shapes.small,
+                            color  = Color(0xFFFFEDED),
+                            shape  = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "❌ ${(paymentState as PaymentState.Failed).reason}",
+                                text = "❌  ${(paymentState as PaymentState.Failed).reason}",
                                 modifier = Modifier.padding(12.dp),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = Color(0xFFB91C1C)
                             )
                         }
                     }
                 }
             } ?: Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = CC_Accent)
             }
         }
 
-        // ── Sticky Pay Button ─────────────────────────────────────────────────
+        // ── Sticky Pay button ─────────────────────────────────────────────────
         listing?.let { l ->
-            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                Surface(
-                    tonalElevation = 8.dp,
-                    shadowElevation = 8.dp,
-                    modifier = Modifier.fillMaxWidth()
+            Surface(
+                modifier        = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                color           = CC_Bg,
+                shadowElevation = 16.dp,
+                tonalElevation  = 0.dp
+            ) {
+                Button(
+                    onClick  = { viewModel.initiatePayment(l, quantity) },
+                    enabled  = paymentState == PaymentState.Idle || paymentState is PaymentState.Failed,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor         = CC_Mid,
+                        contentColor           = Color.White,
+                        disabledContainerColor = CC_Accent.copy(alpha = 0.4f)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Button(
-                        onClick = { viewModel.initiatePayment(l, quantity) },
-                        enabled = paymentState == PaymentState.Idle || paymentState is PaymentState.Failed,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 14.dp)
-                            .height(56.dp),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Icon(Icons.Rounded.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Pay ₹${totalPayable.toInt()} Securely" +
-                                    if (quantity > 1) " (×$quantity)" else "",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Icon(Icons.Rounded.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Pay ₹${totalPayable.toInt()} Securely" +
+                                if (quantity > 1) "  ×$quantity" else "",
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize   = 16.sp
+                    )
                 }
             }
         }
@@ -341,87 +252,321 @@ fun ClaimScreen(
     }
 }
 
-// ── Sub-composables ────────────────────────────────────────────────────────────
+// ── Dark gradient header ──────────────────────────────────────────────────────
 
 @Composable
-private fun ListingMiniCard(listing: Listing) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium
+private fun CheckoutHeader(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation    = 8.dp,
+                shape        = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                ambientColor = Color(0x401F5235),
+                spotColor    = Color(0x601F5235)
+            )
+            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+            .background(Brush.verticalGradient(CC_Grad))
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(end = 20.dp)
+                .padding(top = 8.dp, bottom = 18.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (listing.imageUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = listing.imageUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Text("🍱", fontSize = 28.sp)
-                }
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint     = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
             }
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
-                    listing.businessName,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    "Checkout 🛒",
+                    style      = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White
                 )
                 Text(
-                    listing.heroItem,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    "Pickup • ${listing.mealsLeft} left",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Complete your food rescue",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CC_Light
                 )
             }
         }
     }
 }
 
+// ── Listing mini-card ─────────────────────────────────────────────────────────
+
+@Composable
+private fun ListingMiniCard(listing: Listing) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = CC_Surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Food image / emoji fallback
+            Box(
+                modifier = Modifier
+                    .size(68.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFECF9F3)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (listing.imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model            = listing.imageUrl,
+                        contentDescription = null,
+                        contentScale     = ContentScale.Crop,
+                        modifier         = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text("🍱", fontSize = 30.sp)
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                // Business name
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Rounded.Store, null, Modifier.size(12.dp), tint = CC_Accent)
+                    Text(
+                        listing.businessName,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = CC_Accent,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Text(
+                    listing.heroItem,
+                    style      = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = CC_Dark
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Rounded.Restaurant, null, Modifier.size(11.dp), tint = CC_TextSub)
+                    Text(
+                        "Pickup  •  ${listing.mealsLeft} portions left",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CC_TextSub
+                    )
+                }
+            }
+
+            // Price chip
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    "₹${listing.discountedPrice.toInt()}",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color      = CC_Mid
+                )
+                Text(
+                    "₹${listing.originalPrice.toInt()}",
+                    style          = MaterialTheme.typography.labelSmall,
+                    color          = CC_TextSub,
+                    textDecoration = TextDecoration.LineThrough
+                )
+            }
+        }
+    }
+}
+
+// ── Order summary card ────────────────────────────────────────────────────────
+
+@Composable
+private fun SummaryCard(
+    listing: Listing,
+    quantity: Int,
+    maxQty: Int,
+    totalOriginal: Double,
+    totalPayable: Double,
+    savings: Double,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit
+) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = CC_Surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Order Summary",
+                style      = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color      = CC_Dark
+            )
+            HorizontalDivider(color = CC_Divider)
+
+            // Quantity stepper
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Portions",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CC_TextSub
+                )
+                QuantityStepper(
+                    quantity    = quantity,
+                    max         = maxQty,
+                    onDecrement = onDecrement,
+                    onIncrement = onIncrement
+                )
+            }
+
+            HorizontalDivider(color = CC_Divider)
+
+            // Price rows
+            PriceRow(
+                label = listing.heroItem,
+                value = "₹${listing.originalPrice.toInt()}" +
+                        if (quantity > 1) " × $quantity" else ""
+            )
+            PriceRow(
+                label      = "Reskyu Discount",
+                value      = "−₹${savings.toInt()}",
+                valueColor = CC_Accent
+            )
+
+            HorizontalDivider(color = CC_Divider)
+
+            // Total row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Total Payable",
+                    style      = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = CC_Dark
+                )
+                Text(
+                    "₹${totalPayable.toInt()}",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color      = CC_Mid
+                )
+            }
+
+            // Savings highlight
+            Surface(
+                color    = CC_SaveBg,
+                shape    = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint     = CC_SaveText,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        "You're saving ₹${savings.toInt()} on this order!",
+                        style      = MaterialTheme.typography.labelMedium,
+                        color      = CC_SaveText,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Impact card ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun ImpactCard(quantity: Int) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = CC_ImpactBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val co2 = String.format("%.1f", 2.5 * quantity)
+            ImpactPill(emoji = "🌍", label = "${co2}kg CO₂")
+            VerticalDivider(modifier = Modifier.height(32.dp), color = CC_Divider)
+            ImpactPill(emoji = "🍱", label = "$quantity meal${if (quantity > 1) "s" else ""}")
+            VerticalDivider(modifier = Modifier.height(32.dp), color = CC_Divider)
+            ImpactPill(emoji = "💚", label = "Planet loves you")
+        }
+    }
+}
+
+// ── Helper composables ────────────────────────────────────────────────────────
+
 @Composable
 private fun PriceRow(
     label: String,
     value: String,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
+    valueColor: Color = CC_Dark
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = CC_TextSub)
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = valueColor)
     }
 }
 
 @Composable
 private fun ImpactPill(emoji: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(emoji, fontSize = 20.sp)
-        Spacer(Modifier.height(2.dp))
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Text(emoji, fontSize = 22.sp)
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer
+            style      = MaterialTheme.typography.labelSmall,
+            color      = CC_Mid,
+            fontWeight = FontWeight.SemiBold,
+            fontSize   = 10.sp
         )
     }
 }
 
-// ── Quantity Stepper ────────────────────────────────────────────────────────────────────
+// ── Quantity Stepper ──────────────────────────────────────────────────────────
 
 @Composable
 private fun QuantityStepper(
@@ -432,56 +577,49 @@ private fun QuantityStepper(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // − button
         FilledIconButton(
-            onClick = onDecrement,
-            enabled = quantity > 1,
+            onClick  = onDecrement,
+            enabled  = quantity > 1,
             modifier = Modifier.size(32.dp),
-            shape = CircleShape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor   = MaterialTheme.colorScheme.primary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            shape    = CircleShape,
+            colors   = IconButtonDefaults.filledIconButtonColors(
+                containerColor         = CC_ImpactBg,
+                contentColor           = CC_Mid,
+                disabledContainerColor = Color(0xFFE5E7EB)
             )
         ) {
-            Icon(Icons.Rounded.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.Remove, "Decrease", Modifier.size(16.dp))
         }
 
-        // Quantity badge
         Box(
             modifier = Modifier
-                .defaultMinSize(minWidth = 40.dp)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .defaultMinSize(minWidth = 44.dp)
+                .border(1.dp, CC_Divider, RoundedCornerShape(8.dp))
+                .padding(horizontal = 14.dp, vertical = 5.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "$quantity",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                text       = "$quantity",
+                style      = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color      = CC_Dark
             )
         }
 
-        // + button
         FilledIconButton(
-            onClick = onIncrement,
-            enabled = quantity < max,
+            onClick  = onIncrement,
+            enabled  = quantity < max,
             modifier = Modifier.size(32.dp),
-            shape = CircleShape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor   = MaterialTheme.colorScheme.onPrimary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            shape    = CircleShape,
+            colors   = IconButtonDefaults.filledIconButtonColors(
+                containerColor         = CC_Accent,
+                contentColor           = Color.White,
+                disabledContainerColor = Color(0xFFE5E7EB)
             )
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.Add, "Increase", Modifier.size(16.dp))
         }
     }
 }

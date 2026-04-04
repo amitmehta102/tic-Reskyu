@@ -12,13 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-/**
- * ProfileViewModel
- *
- * Subscribes to a real-time Firestore snapshot of the current user's profile.
- * Any change in Firestore (e.g., name edited on another device, impactStats
- * incremented after a claim) reflects on the profile screen immediately.
- */
 class ProfileViewModel : ViewModel() {
 
     private val authRepository = AuthRepository()
@@ -37,6 +30,14 @@ class ProfileViewModel : ViewModel() {
     private val _saveError = MutableStateFlow<String?>(null)
     val saveError: StateFlow<String?> = _saveError.asStateFlow()
 
+    // ── Privacy Policy ─────────────────────────────────────────────────────────
+    /** null = not loaded yet, empty = no doc in Firestore */
+    private val _privacyPolicy = MutableStateFlow<String?>(null)
+    val privacyPolicy: StateFlow<String?> = _privacyPolicy.asStateFlow()
+
+    private val _isPolicyLoading = MutableStateFlow(false)
+    val isPolicyLoading: StateFlow<Boolean> = _isPolicyLoading.asStateFlow()
+
     init {
         _user.value = devUser()   // pre-seed so UI is never blank
         subscribeToProfile()
@@ -47,14 +48,10 @@ class ProfileViewModel : ViewModel() {
             _isLoading.value = false
             return
         }
-
         viewModelScope.launch {
             userRepository
                 .observeUserProfile(uid)
-                .catch {
-                    // Firestore unavailable — keep devUser already seeded
-                    _isLoading.value = false
-                }
+                .catch { _isLoading.value = false }
                 .collect { profile ->
                     _isLoading.value = false
                     if (profile != null) _user.value = profile
@@ -62,17 +59,12 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Saves updated name + phone to Firestore.
-     * Local state is updated optimistically so the UI reflects changes immediately.
-     */
+    // ── Profile edit ───────────────────────────────────────────────────────────
+
     fun updateProfile(name: String, phone: String) {
         val trimName  = name.trim()
         val trimPhone = phone.trim()
-        if (trimName.isBlank()) {
-            _saveError.value = "Name cannot be empty"
-            return
-        }
+        if (trimName.isBlank()) { _saveError.value = "Name cannot be empty"; return }
 
         viewModelScope.launch {
             _isSaving.value = true
@@ -80,9 +72,7 @@ class ProfileViewModel : ViewModel() {
             try {
                 val uid = authRepository.requireUid()
                 userRepository.updateProfile(uid, trimName, trimPhone)
-            } catch (_: Exception) {
-                // Dev mode — apply optimistically
-            }
+            } catch (_: Exception) { /* optimistic */ }
             _user.value = _user.value?.copy(name = trimName, phone = trimPhone)
             _isSaving.value = false
         }
@@ -92,6 +82,53 @@ class ProfileViewModel : ViewModel() {
         _isSaving.value = null
         _saveError.value = null
     }
+
+    // ── Notification Preferences ───────────────────────────────────────────────
+
+    /**
+     * Saves the user's selected dietary tag preferences to Firestore.
+     * Empty list = notify for all categories.
+     */
+    fun updateNotificationPrefs(prefs: List<String>) {
+        viewModelScope.launch {
+            try {
+                val uid = authRepository.requireUid()
+                userRepository.updateNotificationPrefs(uid, prefs)
+            } catch (_: Exception) { /* optimistic */ }
+            _user.value = _user.value?.copy(notificationPrefs = prefs)
+        }
+    }
+
+    // ── Discovery Radius ───────────────────────────────────────────────────────
+
+    /**
+     * Saves the user's preferred discovery radius to Firestore.
+     * HomeViewModel reads this on next refresh/pull-to-refresh.
+     */
+    fun updateDiscoveryRadius(radiusKm: Int) {
+        viewModelScope.launch {
+            try {
+                val uid = authRepository.requireUid()
+                userRepository.updateDiscoveryRadius(uid, radiusKm)
+            } catch (_: Exception) { /* optimistic */ }
+            _user.value = _user.value?.copy(discoveryRadiusKm = radiusKm)
+        }
+    }
+
+    // ── Privacy Policy ─────────────────────────────────────────────────────────
+
+    /** Fetches (or re-fetches) privacy policy text from Firestore config/privacy_policy.
+     *  Always fetches fresh \u2014 avoids stale data if admin edits the policy without the user restarting. */
+    fun loadPrivacyPolicy() {
+        if (_isPolicyLoading.value) return   // debounce concurrent taps
+        viewModelScope.launch {
+            _isPolicyLoading.value = true
+            _privacyPolicy.value = userRepository.fetchPrivacyPolicy() ?: ""
+            _isPolicyLoading.value = false
+        }
+    }
+
+    // ── Sign Out ───────────────────────────────────────────────────────────────
 
     fun signOut() {
         try { authRepository.signOut() } catch (_: Exception) {}
@@ -103,7 +140,9 @@ class ProfileViewModel : ViewModel() {
         name  = "Dev User",
         email = "dev@reskyu.app",
         phone = "+91 98765 43210",
-        consumerType = "INDIVIDUAL",
+        consumerType      = "INDIVIDUAL",
+        notificationPrefs = emptyList(),
+        discoveryRadiusKm = 2,
         impactStats = ImpactStats(
             totalMealsRescued = 7,
             co2SavedKg        = 17.5,

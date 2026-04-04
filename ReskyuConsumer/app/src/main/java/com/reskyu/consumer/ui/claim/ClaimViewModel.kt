@@ -1,6 +1,7 @@
 package com.reskyu.consumer.ui.claim
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.reskyu.consumer.BuildConfig
@@ -15,6 +16,7 @@ import com.reskyu.consumer.data.repository.ClaimRepository
 import com.reskyu.consumer.data.repository.ListingRepository
 import com.reskyu.consumer.data.repository.NotificationRepository
 import com.reskyu.consumer.data.repository.UserRepository
+import com.reskyu.consumer.data.repository.LocationRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -22,6 +24,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.*
+import java.util.concurrent.TimeUnit
 
 /**
  * ClaimViewModel  — Razorpay-enabled checkout orchestrator
@@ -36,14 +40,15 @@ import kotlinx.coroutines.launch
  * The ClaimScreen observes [openCheckoutEvent] and delegates to MainActivity
  * for the actual Razorpay Activity interaction (SDK requires Activity).
  */
-class ClaimViewModel : ViewModel() {
+class ClaimViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val listingRepository     = ListingRepository()
-    private val claimRepository       = ClaimRepository()
-    private val authRepository        = AuthRepository()
-    private val userRepository        = UserRepository()
+    private val listingRepository      = ListingRepository()
+    private val claimRepository        = ClaimRepository()
+    private val authRepository         = AuthRepository()
+    private val userRepository         = UserRepository()
     private val notificationRepository = NotificationRepository()
-    private val api                   = RetrofitClient.api
+    private val locationRepository     = LocationRepository(application)
+    private val api                    = RetrofitClient.api
 
     private val _listing = MutableStateFlow<Listing?>(null)
     val listing: StateFlow<Listing?> = _listing.asStateFlow()
@@ -131,19 +136,26 @@ class ClaimViewModel : ViewModel() {
                 val qty    = pendingQuantity.coerceAtLeast(1)
                 val uid    = try { authRepository.requireUid() } catch (_: Exception) { "dev_user_${System.currentTimeMillis()}" }
 
+                // Compute distance-aware pickup deadline
+                val (userLat, userLng) = try { locationRepository.getCurrentLocation() }
+                    catch (_: Exception) { Pair(LocationRepository.DEFAULT_LAT, LocationRepository.DEFAULT_LNG) }
+                val distanceKm     = haversineKm(userLat, userLng, listing.lat, listing.lng)
+                val pickupDeadline = computePickupDeadline(listing, distanceKm)
+
                 // Write claim atomically in Firestore
                 val claim = Claim(
-                    userId        = uid,
-                    merchantId    = listing.merchantId,
-                    listingId     = listing.id,
-                    businessName  = listing.businessName,
-                    heroItem      = listing.heroItem,
-                    paymentId     = paymentId,
-                    amount        = listing.discountedPrice * qty,
-                    originalPrice = listing.originalPrice * qty,
-                    timestamp     = Timestamp.now(),
-                    status        = "PENDING_PICKUP",
-                    quantity      = qty
+                    userId           = uid,
+                    merchantId       = listing.merchantId,
+                    listingId        = listing.id,
+                    businessName     = listing.businessName,
+                    heroItem         = listing.heroItem,
+                    paymentId        = paymentId,
+                    amount           = listing.discountedPrice * qty,
+                    originalPrice    = listing.originalPrice * qty,
+                    timestamp        = Timestamp.now(),
+                    status           = "PENDING_PICKUP",
+                    quantity         = qty,
+                    pickupDeadlineMs = pickupDeadline
                 )
 
                 val claimId = try {
@@ -177,6 +189,40 @@ class ClaimViewModel : ViewModel() {
         _paymentState.value = PaymentState.Idle
         pendingOrderId   = null
         pendingQuantity  = 1
+    }
+
+    // ── Pickup deadline computation ──────────────────────────────────────────────
+
+    /**
+     * Returns the epoch-ms at which the pickup window closes.
+     *
+     * Rules:
+     *  - If listing expiry is > 1 hour away  → use listing expiry + travel buffer
+     *  - If listing expiry is ≤ 1 hour away  → give the user 1 hour from now + travel buffer
+     *
+     * Travel buffer = 5 min per km to the restaurant, capped at 30 min.
+     */
+    private fun computePickupDeadline(listing: Listing, distanceKm: Double): Long {
+        val nowMs = System.currentTimeMillis()
+        val expiryMs = listing.expiresAt.toDate().time
+        val remainingMs = expiryMs - nowMs
+        val travelBufferMs = TimeUnit.MINUTES.toMillis(
+            (distanceKm * 5.0).toLong().coerceIn(0, 30)
+        )
+        return if (remainingMs > TimeUnit.HOURS.toMillis(1)) {
+            expiryMs + travelBufferMs        // use actual expiry + travel buffer
+        } else {
+            nowMs + TimeUnit.HOURS.toMillis(1) + travelBufferMs  // extend by 1hr
+        }
+    }
+
+    private fun haversineKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
+        val R    = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLng = Math.toRadians(lng2 - lng1)
+        val a    = sin(dLat / 2).pow(2) +
+                   cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLng / 2).pow(2)
+        return R * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 }
 

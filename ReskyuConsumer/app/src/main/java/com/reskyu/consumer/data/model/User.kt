@@ -24,8 +24,12 @@ data class User(
     val phone: String = "",
     val consumerType: String = "INDIVIDUAL",
     val fcmToken: String = "",
-    val impactStats: ImpactStats = ImpactStats()
+    val impactStats: ImpactStats = ImpactStats(),
+    /** DietaryTag names the user wants push notifications for. Empty = all. */
+    val notificationPrefs: List<String> = emptyList(),
+    /** Discovery radius in km — drives the GeoHash listing query. Default 2km. */
+    val discoveryRadiusKm: Int = 2
 ) {
     /** No-arg constructor required by Firestore deserialization */
-    constructor() : this("", "", "", "", "INDIVIDUAL", "", ImpactStats())
+    constructor() : this("", "", "", "", "INDIVIDUAL", "", ImpactStats(), emptyList(), 2)
 }

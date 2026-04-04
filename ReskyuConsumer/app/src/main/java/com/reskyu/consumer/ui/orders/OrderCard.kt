@@ -26,13 +26,13 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-// ── OrderCard light-theme palette (matches screenshot) ────────────────────────
+// ── OrderCard palette — exact merchant brand ──────────────────────────────────────
 private val OC_Surface         = Color.White
-private val OC_Text            = Color(0xFF133922)   // dark forest green
-private val OC_TextSub         = Color(0xFF5A7A65)   // muted sage green-grey
-private val OC_Outline         = Color(0xFFB0CABB)   // soft green outline
-private val OC_Primary         = Color(0xFF1A9E45)   // darker price green
-private val OC_DividerAlpha    = Color(0xFFD4EDDA)   // light green divider
+private val OC_Text            = Color(0xFF0C1E13)   // GreenDark
+private val OC_TextSub         = Color(0xFF5A7A65)   // muted sage (keep)
+private val OC_Outline         = Color(0xFFB0CABB)   // soft outline (keep)
+private val OC_Primary         = Color(0xFF52B788)   // GreenAccent — price / icon
+private val OC_DividerAlpha    = Color(0xFFD4EDDA)   // light green divider (keep)
 
 /**
  * OrderCard — premium redesign
@@ -49,10 +49,10 @@ private val OC_DividerAlpha    = Color(0xFFD4EDDA)   // light green divider
 fun OrderCard(
     claim: Claim,
     modifier: Modifier = Modifier,
-    onRate: (Int) -> Unit = {}          // called with 1-5 stars, empty default for previews
+    onCardClick: (() -> Unit)? = null,   // if set, click opens external dialog instead of expanding
+    onRate: (Int) -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // Initialize from persisted claim.rating so the stars survive recomposition
     var userRating by remember(claim.id) { mutableStateOf(claim.rating) }
 
     val accentColor = statusAccentColor(claim.status)
@@ -61,7 +61,9 @@ fun OrderCard(
         ((savedAmount / claim.originalPrice) * 100).toInt() else 0
 
     Card(
-        modifier = modifier.clickable { expanded = !expanded },
+        modifier = modifier.clickable {
+            if (onCardClick != null) onCardClick() else expanded = !expanded
+        },
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = OC_Surface)
@@ -196,13 +198,15 @@ fun OrderCard(
                         )
                     }
 
-                    // Expand/collapse chevron
-                    Icon(
-                        if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                        contentDescription = if (expanded) "Collapse" else "More details",
-                        modifier = Modifier.size(16.dp),
-                        tint = OC_Outline
-                    )
+                    // Expand/collapse chevron — hidden for current orders (they open a dialog)
+                    if (onCardClick == null) {
+                        Icon(
+                            if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                            contentDescription = if (expanded) "Collapse" else "More details",
+                            modifier = Modifier.size(16.dp),
+                            tint = OC_Outline
+                        )
+                    }
                 }
 
                 // ── REFUNDED status note ──────────────────────────────────────
@@ -225,10 +229,8 @@ fun OrderCard(
                     RatingRow(
                         rating = userRating,
                         onRate = { stars ->
-                            if (userRating == 0) {  // block double-rating in UI
-                                userRating = stars
-                                onRate(stars)
-                            }
+                            userRating = stars
+                            onRate(stars)
                         }
                     )
                 }
@@ -270,8 +272,10 @@ fun OrderCard(
 private fun PickupCodeRow(claim: Claim) {
     // Show last 6 chars of paymentId as the "pickup code"
     val code = claim.paymentId.takeLast(6).uppercase()
-    // Countdown
-    val countdownText = countdownText(claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(4))
+    val countdownText = countdownText(
+        if (claim.pickupDeadlineMs > 0) claim.pickupDeadlineMs
+        else claim.timestamp.toDate().time + TimeUnit.HOURS.toMillis(4)
+    )
 
     Surface(
         shape = RoundedCornerShape(10.dp),

@@ -30,12 +30,12 @@ import com.reskyu.consumer.ui.profile.ProfileScreen
 import com.reskyu.consumer.ui.navigation.Screen
 
 // ── Light-theme palette for the bottom nav (matches screenshot)
-private val NavBg           = Color(0xFFFFFFFF)   // pure white
-private val NavIndicator    = Color(0xFFC8F0D6)   // light green pill (screenshot)
-private val NavIconActive   = Color(0xFF133922)   // dark forest green (screenshot active)
-private val NavIconInactive = Color(0xFF8A9E93)   // muted sage grey inactive
-private val NavLabelActive  = Color(0xFF133922)
-private val NavLabelInactive = Color(0xFF8A9E93)
+private val NavBg           = Color(0xFFFFFFFF)   // pure white nav bar
+private val NavIndicator    = Color(0xFFB7E4CB)   // active-tab pill (GreenAccent light tint)
+private val NavIconActive   = Color(0xFF0C1E13)   // GreenDark — active icon
+private val NavIconInactive = Color(0xFF8A9E93)   // muted sage grey (keep)
+private val NavLabelActive  = Color(0xFF0C1E13)   // GreenDark
+private val NavLabelInactive = Color(0xFF8A9E93)  // muted (keep)
 
 /**
  * MainScreen
@@ -60,11 +60,8 @@ fun MainScreen(outerNavController: NavController) {
         pendingTab?.let { route ->
             TabNavigationBus.consume()
             innerNavController.navigate(route) {
-                popUpTo(innerNavController.graph.findStartDestination().id) {
-                    saveState = true
-                }
+                popUpTo(Screen.Home.route) { inclusive = false }
                 launchSingleTop = true
-                restoreState    = true
             }
         }
     }
@@ -90,7 +87,10 @@ fun MainScreen(outerNavController: NavController) {
                 MyOrdersScreen(navController = innerNavController)
             }
             composable(Screen.Notifications.route) {
-                NotificationsScreen(navController = innerNavController)
+                NotificationsScreen(
+                    navController      = innerNavController,
+                    outerNavController = outerNavController
+                )
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(
@@ -111,10 +111,9 @@ private data class BottomNavItem(
 )
 
 private val bottomNavItems = listOf(
-    BottomNavItem(Screen.Home,          "Home",          Icons.Rounded.Home),
-    BottomNavItem(Screen.MyOrders,      "Orders",         Icons.Rounded.ShoppingBag),
-    BottomNavItem(Screen.Notifications, "Alerts",         Icons.Rounded.Notifications),
-    BottomNavItem(Screen.Profile,       "Profile",        Icons.Rounded.Person),
+    BottomNavItem(Screen.Home,     "Home",    Icons.Rounded.Home),
+    BottomNavItem(Screen.MyOrders, "Orders",  Icons.Rounded.ShoppingBag),
+    BottomNavItem(Screen.Profile,  "Profile", Icons.Rounded.Person),
 )
 
 @Composable
@@ -135,12 +134,8 @@ private fun ReskyuBottomNavBar(navController: NavController) {
                 selected = selected,
                 onClick = {
                     navController.navigate(item.screen.route) {
-                        // Pop back to start so we don't build a huge back stack
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        popUpTo(Screen.Home.route) { inclusive = false }
                         launchSingleTop = true
-                        restoreState = true
                     }
                 },
                 icon = {

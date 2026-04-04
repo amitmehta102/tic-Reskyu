@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.reskyu.consumer.MainActivity
@@ -53,24 +54,38 @@ class ReskuMessagingService : FirebaseMessagingService() {
         val listingId = message.data["listingId"]   // may be null for non-drop notifications
 
         // 1. Show a local push notification (required for FOREGROUND state)
-        showLocalNotification(title, body, listingId)
+        //
+        // ⚠️  BACKEND NOTE: For notifications to appear in the Alerts screen
+        // when the app is in background/killed, the server MUST send ONLY a
+        // "data" payload (no "notification" key). If a "notification" key is
+        // present, Android handles it silently and onMessageReceived() is NOT
+        // called, so the Firestore write below is skipped.
+        // Required data keys: title, body, type, listingId (optional)
+        val notifId = Random.nextInt()
+        showLocalNotification(title, body, listingId, requestCode = notifId)
 
         // 2. Write to Firestore so it appears in the Alerts screen in real-time
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid)
             .collection("notifications")
             .add(
-                mapOf(
-                    "title"     to title,
-                    "body"      to body,
-                    "type"      to type,
-                    "timestamp" to Timestamp.now(),
-                    "isRead"    to false
-                )
+                buildMap {
+                    put("title",     title)
+                    put("body",      body)
+                    put("type",      type)
+                    put("timestamp", Timestamp.now())
+                    put("isRead",    false)
+                    if (!listingId.isNullOrBlank()) put("listingId", listingId)
+                }
             )
     }
 
-    private fun showLocalNotification(title: String, body: String, listingId: String? = null) {
+    private fun showLocalNotification(
+        title: String,
+        body: String,
+        listingId: String? = null,
+        requestCode: Int = Random.nextInt()   // unique per notification — fixes PendingIntent overwrite bug
+    ) {
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -83,23 +98,26 @@ class ReskuMessagingService : FirebaseMessagingService() {
                 putExtra(NotificationDeepLinkBus.EXTRA_LISTING_ID, listingId)
             }
         }
+        // requestCode must be unique per notification — using the same value (e.g. 0)
+        // with FLAG_UPDATE_CURRENT would replace all previous intents with this one,
+        // making tapping any old notification open the last listing.
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, tapIntent,
+            this, requestCode, tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)   // uses your app icon
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)                   // dismisses on tap
+            .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
 
-        // Use a random ID so multiple notifications stack rather than replace
-        notificationManager.notify(Random.nextInt(), notification)
+        // Use the same requestCode as the PendingIntent so notifications stack
+        notificationManager.notify(requestCode, notification)
     }
 
     private fun createNotificationChannel(manager: NotificationManager) {
@@ -119,6 +137,9 @@ class ReskuMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         val uid = auth.currentUser?.uid ?: return
-        db.collection("users").document(uid).update("fcmToken", token)
+        // Use set+merge instead of update() so this never fails on new user
+        // documents where the fcmToken field doesn't exist yet.
+        db.collection("users").document(uid)
+            .set(mapOf("fcmToken" to token), SetOptions.merge())
     }
 }

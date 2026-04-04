@@ -3,6 +3,7 @@ package com.reskyu.consumer.ui.home
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 import com.reskyu.consumer.data.model.DietaryTag
 import com.reskyu.consumer.data.model.Listing
 import com.reskyu.consumer.data.repository.ListingRepository
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 /**
  * HomeViewModel
@@ -50,6 +52,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val userLat: StateFlow<Double> = _userLat.asStateFlow()
     val userLng: StateFlow<Double> = _userLng.asStateFlow()
 
+    /** Merchant ratings cache: merchantId → avg rating (loaded lazily per listing batch) */
+    private val _merchantRatings = MutableStateFlow<Map<String, Double>>(emptyMap())
+    val merchantRatings: StateFlow<Map<String, Double>> = _merchantRatings.asStateFlow()
+
+    private val db = FirebaseFirestore.getInstance()
+
     init { startListingStream() }
 
     /**
@@ -70,14 +78,30 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _userLat.value = lat
             _userLng.value = lng
 
-            // 2. Subscribe to real-time Firestore stream (OPEN listings in nearby GeoHash cells)
+            // 2. Read user's saved discovery radius (default 2km if unavailable)
+            val radiusKm = try {
+                val uid = com.reskyu.consumer.data.repository.AuthRepository().requireUid()
+                com.reskyu.consumer.data.repository.UserRepository()
+                    .getUserProfile(uid)
+                    ?.discoveryRadiusKm
+                    ?.toDouble()
+                    ?: 2.0
+            } catch (_: Exception) { 2.0 }
+
+            // 3. Subscribe to real-time Firestore stream (OPEN listings in nearby GeoHash cells)
             listingRepository
-                .observeNearbyListings(lat, lng)
+                .observeNearbyListings(lat, lng, radiusKm)
                 .catch { _isLoading.value = false }
                 .collect { liveListings ->
                     _isLoading.value = false
                     _listings.value = liveListings
-                    // Empty list = genuine "no drops nearby" — shows empty state in UI
+                    // Fetch ratings for any merchantIds we haven't seen yet
+                    val newIds = liveListings
+                        .map { it.merchantId }
+                        .filter { it.isNotBlank() && it !in _merchantRatings.value.keys }
+                        .distinct()
+                        .take(10)   // Firestore whereIn max = 10
+                    if (newIds.isNotEmpty()) launch { fetchMerchantRatings(newIds) }
                 }
         }
     }
@@ -86,4 +110,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Re-fetches location and restarts the stream on pull-to-refresh. */
     fun refresh() = startListingStream()
+
+    // ── Merchant rating lookup ───────────────────────────────────────────────
+
+    private suspend fun fetchMerchantRatings(merchantIds: List<String>) {
+        try {
+            val docs = db.collection("merchants")
+                .whereIn("uid", merchantIds)
+                .get().await()
+            val newEntries = docs.documents.associate { doc ->
+                val uid   = doc.getString("uid") ?: doc.id
+                val sum   = doc.getDouble("ratingSum") ?: doc.getLong("ratingSum")?.toDouble() ?: 0.0
+                val count = doc.getLong("ratingCount")?.toInt() ?: 0
+                uid to if (count > 0) sum / count else 0.0
+            }
+            _merchantRatings.value = _merchantRatings.value + newEntries
+        } catch (_: Exception) { /* silently ignore — ratings are best-effort */ }
+    }
 }
