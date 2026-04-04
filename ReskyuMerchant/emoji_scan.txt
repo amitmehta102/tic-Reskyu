@@ -1,0 +1,110 @@
+﻿EsgAnalyticsScreen.kt|L72|title    = "🌱 ESG Impact",
+EsgAnalyticsScreen.kt|L130|ImpactMetricCard("🍱", "Meals Rescued",  "${stats.totalMealsRescued}",              Color(0xFF2D6A4F), Modifier.weight(1f))
+EsgAnalyticsScreen.kt|L131|ImpactMetricCard("🌍", "CO₂ Saved",      "${stats.co2SavedKg.toInt()} kg",          Color(0xFF457B9D), Modifier.weight(1f))
+EsgAnalyticsScreen.kt|L137|ImpactMetricCard("🗑️", "Waste Diverted", "${stats.foodWasteReducedKg.toInt()} kg", Color(0xFFE76F51), Modifier.weight(1f))
+EsgAnalyticsScreen.kt|L138|ImpactMetricCard("💰", "Revenue Earned",  "₹${stats.totalRevenue.toInt()}",         RGreenAccent,       Modifier.weight(1f))
+EsgAnalyticsScreen.kt|L183|Text(text = "🌱", fontSize = 56.sp)
+EsgAnalyticsScreen.kt|L210|text      = "📋  Post a listing → complete an order → unlock insights",
+EsgAnalyticsScreen.kt|L267|text       = "Analysing your sales data…",
+EsgAnalyticsScreen.kt|L298|Text(text = "🌱", fontSize = 24.sp)
+EsgAnalyticsScreen.kt|L380|Text(text = "🤖", fontSize = 24.sp)
+EsgAnalyticsScreen.kt|L439|emoji = "🕐",
+EsgAnalyticsScreen.kt|L446|emoji = "💰",
+EsgAnalyticsScreen.kt|L453|emoji = "💡",
+EsgAnalyticsScreen.kt|L479|text       = "🚀  Create Surplus Listing",
+EsgAnalyticsScreen.kt|L576|Text("🤖", fontSize = 24.sp)
+EsgAnalyticsScreen.kt|L775|0    -> "🥇"
+EsgAnalyticsScreen.kt|L776|1    -> "🥈"
+EsgAnalyticsScreen.kt|L777|2    -> "🥉"
+EsgAnalyticsScreen.kt|L863|text       = "Scanning nearby listings…",
+EsgAnalyticsScreen.kt|L892|"HIGH"   -> "🔴"
+EsgAnalyticsScreen.kt|L893|"MEDIUM" -> "🟡"
+EsgAnalyticsScreen.kt|L894|else     -> "⚪"
+EsgAnalyticsScreen.kt|L918|Text(text = "📡", fontSize = 24.sp)
+EsgAnalyticsScreen.kt|L976|emoji = "🎯",
+EsgAnalyticsScreen.kt|L983|emoji = "⏱",
+EsgAnalyticsScreen.kt|L990|emoji = "💬",
+EsgAnalyticsScreen.kt|L1020|Text("📡", fontSize = 24.sp)
+EsgAnalyticsScreen.kt|L1231|text     = "✅ $rateStr of all orders completed successfully",
+EsgAnalyticsScreen.kt|L1369|Text("🤫", fontSize = 20.sp)
+EsgAnalyticsScreen.kt|L1405|Text("🤷", fontSize = 20.sp)
+EsgAnalyticsScreen.kt|L1430|Text("🔥", fontSize = 24.sp)
+EsgAnalyticsScreen.kt|L1447|StrategyItem("💸", "Apply ${state.result.discountPercentage}% discount to all active listings")
+EsgAnalyticsScreen.kt|L1448|StrategyItem("📦", "Create Bundle: ${state.result.bundleMeals} meals for ₹${state.result.bundlePrice.toInt()}")
+EsgAnalyticsScreen.kt|L1450|StrategyItem("📣", "Send push: \"${state.result.urgencyMessage}\"")
+EsgAnalyticsScreen.kt|L1485|Text("✅", fontSize = 20.sp)
+SellEverythingUiState.kt|L48|* Merchant tapped "Activate" — show confirmation dialog before applying changes.
+MerchantLoginScreen.kt|L233|"✅  Password reset email sent!",
+SurplusIqBanner.kt|L30|text = "🤖 SurplusIQ Prediction",
+DashboardScreen.kt|L102|emoji = "📦",
+DashboardScreen.kt|L109|emoji = "🕐",
+DashboardScreen.kt|L123|emoji      = "➕",
+DashboardScreen.kt|L134|emoji      = "📋",
+DashboardScreen.kt|L145|emoji      = "🌱",
+DashboardScreen.kt|L200|text  = "$greeting 👋",
+DashboardScreen.kt|L237|emoji    = "🍱",
+DashboardScreen.kt|L243|emoji    = "💰",
+DashboardScreen.kt|L244|value    = "₹${stats.totalRevenue.toInt()}",
+DashboardScreen.kt|L299|Text(text = "🤖", fontSize = 32.sp)
+LiveListingCard.kt|L109|Text(text = "⚠️", fontSize = 26.sp)
+LiveListingCard.kt|L227|text       = "🎁 Mystery Box",
+LiveListingCard.kt|L304|text     = "📦 ${listing.itemCount} items",
+LiveListingCard.kt|L313|text     = "🛍 ${listing.mealsLeft} ${unitLabel}${if (listing.mealsLeft != 1) "es" else ""}",
+LiveListingCard.kt|L321|text       = "⏱ $timeLeft",
+LiveListingCard.kt|L346|text       = "₹${listing.discountedPrice.toInt()}",
+LiveListingCard.kt|L360|text           = "₹${listing.originalPrice.toInt()}",
+LiveListingsScreen.kt|L140|Text(text = "🍽️", fontSize = 64.sp)
+OnboardingScreen.kt|L65|PageMeta("🏢", "What's your\nbusiness name?",   "Set up your Reskyu Partner profile"),
+OnboardingScreen.kt|L66|PageMeta("📍", "Where are\nyou located?",        "We'll show you to nearby customers"),
+OnboardingScreen.kt|L67|PageMeta("🕐", "What time do\nyou close?",        "Help customers know when to arrive"),
+OnboardingScreen.kt|L68|PageMeta("✅", "You're all set!",                 "Review your details and go live")
+OnboardingScreen.kt|L240|Text("← Back", fontSize = 15.sp)
+OnboardingScreen.kt|L257|"🚀  Launch" else "Next  →"
+OnboardingScreen.kt|L388|label         = { Text("e.g. Green Bites Café") },
+OnboardingScreen.kt|L480|text     = "⊕",
+OnboardingScreen.kt|L533|Text("Getting address…", fontWeight = FontWeight.SemiBold)
+OnboardingScreen.kt|L535|Text("✓  Confirm this location", fontWeight = FontWeight.SemiBold)
+OnboardingScreen.kt|L617|draft.lat != 0.0 -> "%.4f°, %.4f°".format(draft.lat, draft.lng)
+ClaimCard.kt|L66|if (claim.paymentId.length > 22) claim.paymentId.take(22) + "…"
+ClaimCard.kt|L67|else claim.paymentId.ifBlank { "—" }
+ClaimCard.kt|L110|text     = "₹${claim.amount.toInt()}  ·  $formattedDate",
+ClaimCard.kt|L144|text       = "✓  Confirm",
+OrderManagementScreen.kt|L267|ClaimTab.PENDING   -> Triple("🕐", "No Pending Orders",
+OrderManagementScreen.kt|L269|ClaimTab.COMPLETED -> Triple("✅", "No Completed Orders",
+OrderManagementScreen.kt|L271|ClaimTab.DISPUTED  -> Triple("🎉", "No Disputes",
+OrderManagementScreen.kt|L312|Text(text = "✅", fontSize = 48.sp)
+OrderManagementScreen.kt|L359|Text(text = "❌", fontSize = 48.sp)
+OrderManagementViewModel.kt|L196|// ── Pipe-separated: "<claimId>|<merchantId>" ────────────────────────
+QrScannerScreen.kt|L368|Text("🚫", fontSize = 56.sp)
+PostListingScreen.kt|L170|placeholder = "e.g. Pizza, Burger, Pasta…",
+PostListingScreen.kt|L243|label         = { Text("Min ₹") },
+PostListingScreen.kt|L253|label         = { Text("Max ₹") },
+PostListingScreen.kt|L277|label           = { Text("Selling Price ₹") },
+PostListingScreen.kt|L290|"Customer saves at least ₹${savings.toInt()} 🎉",
+PostListingScreen.kt|L348|label         = { Text("Original ₹") },
+PostListingScreen.kt|L358|label           = { Text("Discounted ₹") },
+PostListingScreen.kt|L370|Text("✅  $pct% off", fontSize = 12.sp, color = GreenAccent, fontWeight = FontWeight.SemiBold)
+PostListingScreen.kt|L419|Text("Publishing…", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+PostListingScreen.kt|L423|text       = if (isMysteryBox) "🎁  Publish Mystery Box" else "🚀  Publish Listing",
+PostListingScreen.kt|L443|val tabs = listOf(ListingType.REGULAR to "Regular Listing", ListingType.MYSTERY_BOX to "🎁 Mystery Box")
+PostListingScreen.kt|L687|Text("Uploading image…", fontSize = 13.sp, color = Color.White, fontWeight = FontWeight.SemiBold)
+PostListingScreen.kt|L693|Text("❌", fontSize = 32.sp)
+PostListingScreen.kt|L696|text     = (uploadState as UploadState.Error).message.take(60).let { if (it.length == 60) "$it…" else it },
+PostListingScreen.kt|L701|Text("🔄  Tap to retry", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFE63946))
+PostListingScreen.kt|L788|Text("−", fontSize = if (compact) 18.sp else 22.sp, fontWeight = FontWeight.Medium, color = if (count > 1) GreenDeep else Color(0xFFD1D5DB))
+PostListingScreen.kt|L989|Text("📋", fontSize = 16.sp)
+PostListingScreen.kt|L1005|text     = if (expanded) "▲" else "▼",
+PostListingScreen.kt|L1023|placeholder   = { Text("e.g. 2 samosas, 1 drink, seasonal vegetables…", fontSize = 12.sp) },
+MerchantProfileScreen.kt|L117|emoji = "🏢",
+MerchantProfileScreen.kt|L119|value = merchant?.businessName?.ifBlank { "—" } ?: "—"
+MerchantProfileScreen.kt|L144|AccountRow(emoji = "📞", label = "Support",         onClick = { viewModel.openSupport() })
+MerchantProfileScreen.kt|L145|AccountRow(emoji = "📄", label = "Terms of Service", onClick = {})
+MerchantProfileScreen.kt|L146|AccountRow(emoji = "🔒", label = "Privacy Policy",   onClick = { viewModel.openPrivacyPolicy() })
+MerchantProfileScreen.kt|L172|text       = "🚪  Sign Out",
+MerchantProfileScreen.kt|L216|text       = "🔒  Privacy Policy",
+MerchantProfileScreen.kt|L252|text  = "Loading…",
+MerchantProfileScreen.kt|L276|text       = "📞  Support",
+MerchantProfileScreen.kt|L424|// ── Rating OR "New Restaurant" ─────────────────────────────────
+MerchantProfileScreen.kt|L519|text          = "⭐ New Restaurant",
+MerchantProfileScreen.kt|L623|Text(text = "🕐", fontSize = 18.sp)
+MerchantProfileScreen.kt|L683|text  = if (isSaving) "Saving…" else "Save",
